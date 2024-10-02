@@ -1,142 +1,199 @@
-import * as React from "react";
-import {
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogContentText,
-  DialogTitle,
-  Button,
-  TextField,
-  Select,
-  MenuItem,
-  Checkbox,
-  FormControlLabel,
-  FormGroup,
-  InputLabel,
-  Typography,
-} from "@mui/material";
-import ReactQuill from 'react-quill';
-import 'react-quill/dist/quill.snow.css';
+import React, { useState, useEffect } from "react";
+import { Box, Button, IconButton, Tab, Tabs, TextField } from "@mui/material";
+import CloseIcon from "@mui/icons-material/Close";
+import FirstComponent from "./FirstComponent";
+import SecondComponent from "./SecondComponent";
+import ThirdComponent from "./ThirdComponent";
+import ReactQuill from "react-quill";
+import "react-quill/dist/quill.snow.css";
 
-export default function EditActivityModal({
-  open,
-  handleClose,
-  selectedRowData,
-}) {
-  const [duration, setDuration] = React.useState("5 minutes");
-  const [result, setResult] = React.useState("To-do Done");
-  const [addActivityToHistory, setAddActivityToHistory] = React.useState(false);
-  const [value, setValue] = React.useState('');
-
+function TabPanel({ children, value, index, ...other }) {
   return (
-    <Dialog
-      open={open}
-      onClose={handleClose}
-      aria-labelledby="modal-title"
-      aria-describedby="modal-description"
+    <div
+      role="tabpanel"
+      hidden={value !== index}
+      id={`simple-tabpanel-${index}`}
+      aria-labelledby={`simple-tab-${index}`}
+      {...other}
     >
-      <DialogTitle id="modal-title">Edit Activity</DialogTitle>
-      <DialogContent>
-        <Typography variant="subtitle1">
-          <strong>Type:</strong> {selectedRowData?.type}
-        </Typography>
-        <TextField
-          fullWidth
-          label="Organiser"
-          value={selectedRowData?.scheduledWith || ""}
-          margin="dense"
-          size="small"
-          disabled
-        />
-        <TextField
-          fullWidth
-          label="Participants"
-          value={
-            selectedRowData?.participants ||
-            "Muhammad Azhar Aslam, Vanessa De Pretis"
-          }
-          margin="dense"
-          size="small"
-          disabled
-        />
-        <TextField
-          fullWidth
-          label="Associate With"
-          value={selectedRowData?.associateWith || ""}
-          margin="dense"
-          size="small"
-        />
-
-        {/* Duration Select */}
-        <FormGroup column style={{ marginTop: "10px" }}>
-          <InputLabel id="duration-label">Duration</InputLabel>
-          <Select
-            labelId="duration-label"
-            value={duration}
-            size="small"
-            onChange={(e) => setDuration(e.target.value)}
-            sx={{ minWidth: 150 }}
-          >
-            <MenuItem value="5 minutes">5 minutes</MenuItem>
-            <MenuItem value="1 hour">1 hour</MenuItem>
-            <MenuItem value="30 minutes">30 minutes</MenuItem>
-          </Select>
-        </FormGroup>
-        <br />
-        <TextField
-          fullWidth
-          label="Regarding"
-          value={selectedRowData?.regarding || ""}
-          margin="dense"
-          multiline
-          disabled
-          size="small"
-        />
-
-        {/* Results Section */}
-        <Typography variant="subtitle1" style={{ marginTop: "10px" }}>
-          Results:
-        </Typography>
-        <FormGroup row>
-          <FormControlLabel control={<Checkbox />} label="Clear" />
-          <FormControlLabel control={<Checkbox />} label="Erase" />
-          <Select
-            value={result}
-            onChange={(e) => setResult(e.target.value)}
-            sx={{ marginLeft: 2, minWidth: 150 }}
-            size="small"
-          >
-            <MenuItem value="To-do Done">To-do Done</MenuItem>
-            <MenuItem value="In Progress">In Progress</MenuItem>
-            <MenuItem value="Pending">Pending</MenuItem>
-          </Select>
-        </FormGroup>
-
-        {/* Add to History Checkbox */}
-        <FormControlLabel
-          control={
-            <Checkbox
-              checked={addActivityToHistory}
-              onChange={() => setAddActivityToHistory(!addActivityToHistory)}
-            />
-          }
-          label="Add Activity Details to History"
-          style={{ marginTop: "10px" }}
-        />
-
-        {/* Details Text Area */}
-        <ReactQuill theme="snow" value={value} onChange={setValue} />
-      </DialogContent>
-
-      {/* Dialog Actions */}
-      <DialogActions>
-        <Button onClick={handleClose} color="primary">
-          Cancel
-        </Button>
-        <Button onClick={handleClose} color="primary" variant="contained">
-          OK
-        </Button>
-      </DialogActions>
-    </Dialog>
+      {value === index && <Box p={3}>{children}</Box>}
+    </div>
   );
 }
+
+const EditActivityModal = ({ open, handleClose, selectedRowData }) => {
+  const [value, setValue] = useState(0);
+  const [formData, setFormData] = useState({
+    id: `job1`,
+    title: "",
+    startTime: "",
+    endTime: "",
+    duration: "",
+    associateWith: "",
+    regarding: "",
+    resource: 0,
+    location: "",
+    priority: "",
+    ringAlarm: "",
+    gender: "once",
+    start: "",
+    end: "",
+    noEndDate: false,
+    quillContent: "",
+    color: "#d1891f",
+  });
+
+  // Prefill the form data when selectedRowData changes
+  useEffect(() => {
+    if (selectedRowData) {
+      setFormData({
+        ...selectedRowData,
+        id: selectedRowData.id || `job1`, // Default id if not provided
+      });
+    }
+  }, [selectedRowData]);
+
+  const handleChange = (event, newValue) => {
+    setValue(newValue);
+  };
+
+  const handleNext = () => {
+    if (value < 2) setValue(value + 1);
+  };
+
+  const handleBack = () => {
+    if (value > 0) setValue(value - 1);
+  };
+
+  const handleInputChange = (field, value) => {
+    if (field === "resources") {
+      value = parseInt(value, 10); // Convert the input to an integer
+    }
+    setFormData((prevState) => ({
+      ...prevState,
+      [field]: value,
+    }));
+  };
+
+  const handleSubmit = () => {
+    console.log("Form Data Submitted:", formData);
+    // Call an API or handle form submission logic here
+    handleClose(); // Close the modal after submission
+  };
+
+  if (!open) return null; // Return nothing if modal is closed
+
+  return (
+    <Box
+      sx={{
+        position: "absolute",
+        top: "50%",
+        left: "50%",
+        transform: "translate(-50%, -50%)",
+        width: 600,
+        bgcolor: "background.paper",
+        border: "2px solid #000",
+        boxShadow: 24,
+        p: 2,
+        borderRadius: 5,
+      }}
+    >
+      <Box height={15}>
+        <IconButton
+          aria-label="close"
+          onClick={handleClose} // Use the passed handleClose function
+          sx={{
+            position: "absolute",
+            right: 8,
+            top: 8,
+          }}
+        >
+          <CloseIcon />
+        </IconButton>
+      </Box>
+      <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
+        <Tabs
+          value={value}
+          onChange={handleChange}
+          textColor="inherit"
+          aria-label="simple tabs example"
+        >
+          <Tab label="General" />
+          <Tab label="Details" />
+          <Tab label="Recurrence" />
+        </Tabs>
+      </Box>
+      <TabPanel value={value} index={0}>
+        <FirstComponent
+          formData={formData}
+          handleInputChange={handleInputChange}
+        />
+        <Box display="flex" justifyContent="space-between" mt={2}>
+          <Button size="small" disabled>
+            Back
+          </Button>
+          <Button
+            size="small"
+            variant="contained"
+            color="primary"
+            onClick={handleNext}
+          >
+            Next
+          </Button>
+        </Box>
+      </TabPanel>
+      <TabPanel value={value} index={1}>
+        <ReactQuill
+          theme="snow"
+          style={{ height: 250, marginBottom: 80 }}
+          value={formData.quillContent}
+          onChange={(content) => handleInputChange("quillContent", content)}
+        />
+        <Box display="flex" justifyContent="space-between" mt={2}>
+          <Button
+            size="small"
+            variant="contained"
+            color="primary"
+            onClick={handleBack}
+          >
+            Back
+          </Button>
+          <Button
+            size="small"
+            variant="contained"
+            color="primary"
+            onClick={handleNext}
+          >
+            Next
+          </Button>
+        </Box>
+      </TabPanel>
+      <TabPanel value={value} index={2}>
+        <ThirdComponent
+          formData={formData}
+          handleInputChange={handleInputChange}
+        />
+        <Box display="flex" justifyContent="space-between" mt={2}>
+          <Button
+            size="small"
+            variant="contained"
+            color="primary"
+            onClick={handleBack}
+          >
+            Back
+          </Button>
+          <Button
+            size="small"
+            variant="contained"
+            color="secondary"
+            onClick={handleSubmit}
+          >
+            Submit
+          </Button>
+        </Box>
+      </TabPanel>
+    </Box>
+  );
+};
+
+export default EditActivityModal;

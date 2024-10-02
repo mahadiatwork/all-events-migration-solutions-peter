@@ -15,8 +15,8 @@ import {
   InputLabel,
   Typography,
 } from "@mui/material";
-import ReactQuill from 'react-quill';
-import 'react-quill/dist/quill.snow.css';
+import ReactQuill from "react-quill";
+import "react-quill/dist/quill.snow.css";
 
 export default function ClearActivityModal({
   open,
@@ -26,7 +26,7 @@ export default function ClearActivityModal({
   const [duration, setDuration] = React.useState("5 minutes");
   const [result, setResult] = React.useState("To-do Done");
   const [addActivityToHistory, setAddActivityToHistory] = React.useState(false);
-  const [value, setValue] = React.useState('');
+  const [value, setValue] = React.useState("");
 
   return (
     <Dialog
@@ -125,7 +125,12 @@ export default function ClearActivityModal({
         />
 
         {/* Details Text Area */}
-        <ReactQuill theme="snow" value={value} onChange={setValue} />
+        <ReactQuill
+          theme="snow"
+          value={value}
+          onChange={setValue}
+          style={{ height: 230, marginBottom: 40 }}
+        />
       </DialogContent>
 
       {/* Dialog Actions */}
