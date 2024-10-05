@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Box, Button, IconButton, Tab, Tabs, TextField } from "@mui/material";
+import { Box, Button, IconButton, Tab, Tabs } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import FirstComponent from "./FirstComponent";
 import SecondComponent from "./SecondComponent";
@@ -31,8 +31,6 @@ const EditActivityModal = ({ open, handleClose, selectedRowData }) => {
     duration: "",
     associateWith: "",
     regarding: "",
-    resource: 0,
-    location: "",
     priority: "",
     ringAlarm: "",
     gender: "once",
@@ -43,12 +41,45 @@ const EditActivityModal = ({ open, handleClose, selectedRowData }) => {
     color: "#d1891f",
   });
 
-  // Prefill the form data when selectedRowData changes
+  // Map data from JSON to form fields
   useEffect(() => {
-    if (selectedRowData) {
+
+    if (selectedRowData && selectedRowData.length > 0) {
+      const event = selectedRowData;; // Use the first event as an example
       setFormData({
-        ...selectedRowData,
-        id: selectedRowData.id || `job1`, // Default id if not provided
+        id: event.id || `job1`,
+        title: event.Event_Title || "",
+        startTime: event.Start_DateTime || "",
+        endTime: event.End_DateTime || "",
+        duration: calculateDuration(event.Start_DateTime, event.End_DateTime),
+        associateWith: event.What_Id ? event.What_Id.name : "",
+        regarding: event.Description || "",
+        priority: event.Priority || "",
+        ringAlarm: event.Remind_At || "",
+        gender: "once", // Assuming default value
+        start: event.Start_DateTime || "",
+        end: event.End_DateTime || "",
+        noEndDate: false,
+        quillContent: event.Full_Description || "",
+        color: "#d1891f", // Assuming default color
+      });
+    } else {
+      setFormData({
+        id: `job1`,
+        title: "",
+        startTime: "",
+        endTime: "",
+        duration: "",
+        associateWith: "",
+        regarding: "",
+        priority: "",
+        ringAlarm: "",
+        gender: "once",
+        start: "",
+        end: "",
+        noEndDate: false,
+        quillContent: "",
+        color: "#d1891f",
       });
     }
   }, [selectedRowData]);
@@ -66,9 +97,6 @@ const EditActivityModal = ({ open, handleClose, selectedRowData }) => {
   };
 
   const handleInputChange = (field, value) => {
-    if (field === "resources") {
-      value = parseInt(value, 10); // Convert the input to an integer
-    }
     setFormData((prevState) => ({
       ...prevState,
       [field]: value,
@@ -77,7 +105,6 @@ const EditActivityModal = ({ open, handleClose, selectedRowData }) => {
 
   const handleSubmit = () => {
     console.log("Form Data Submitted:", formData);
-    // Call an API or handle form submission logic here
     handleClose(); // Close the modal after submission
   };
 
@@ -188,12 +215,21 @@ const EditActivityModal = ({ open, handleClose, selectedRowData }) => {
             color="secondary"
             onClick={handleSubmit}
           >
-            Submit
+            {selectedRowData ? "Save Changes" : "Create Event"}
           </Button>
         </Box>
       </TabPanel>
     </Box>
   );
+};
+
+// Utility function to calculate duration between two times
+const calculateDuration = (start, end) => {
+  const startTime = new Date(start);
+  const endTime = new Date(end);
+  const durationMs = endTime - startTime;
+  const durationMinutes = Math.floor(durationMs / (1000 * 60));
+  return `${durationMinutes} minutes`;
 };
 
 export default EditActivityModal;

@@ -16,7 +16,7 @@ import {
   const FirstComponent = ({ formData, handleInputChange }) => {
     const [activityType, setActivityType] = useState([
       "Meeting",
-      "Todo",
+      "To-Do",
       "Appointment",
       "Boardroom",
       "Call Billing",

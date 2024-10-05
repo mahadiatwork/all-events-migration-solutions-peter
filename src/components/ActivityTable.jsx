@@ -13,23 +13,60 @@ import {
   FormControl,
   InputLabel,
   Grid,
-  Typography,
   Button,
 } from "@mui/material";
 import ClearActivityModal from "./ClearActivityModal";
-import EditActivityModal from "./EditActivityModal"; // Import your EditActivityModal
+import EditActivityModal from "./EditActivityModal";
+import {
+  subDays,
+  startOfWeek,
+  startOfMonth,
+  addDays,
+  isAfter,
+  isBefore,
+} from "date-fns";
 
-// Function to create row data
-function createData(
-  type,
-  date,
-  time,
-  priority,
-  scheduledWith,
-  regarding,
-  duration,
-  associateWith
-) {
+// Function to create row data for To-Do, Meeting, and Call
+function createData(event, type) {
+  let startDateTime, endDateTime, time, duration, scheduledWith;
+
+  if (type === "Meeting") {
+    startDateTime = new Date(event.Start_DateTime);
+    endDateTime = new Date(event.End_DateTime);
+    time = startDateTime.toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+    duration = `${Math.round((endDateTime - startDateTime) / 60000)} minutes`;
+    scheduledWith = event.Owner ? event.Owner.name : "Unknown";
+  } else if (type === "To-Do") {
+    startDateTime = new Date(event.Due_Date);
+    time = "None"; // To-Do doesn't have time field
+    duration = "N/A";
+    scheduledWith = event.Who_Id ? event.Who_Id.name : "Unknown";
+  } else if (type === "Call") {
+    startDateTime = new Date(event.Call_Start_Time);
+    time = startDateTime.toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+    duration = event.Call_Duration || "N/A";
+    scheduledWith = event.Who_Id ? event.Who_Id.name : "Unknown";
+  }
+
+  const date = startDateTime.toLocaleDateString();
+  const priority = event.Priority || "Low";
+  const regarding =
+    type === "Meeting"
+      ? event.Event_Title || "No Title"
+      : type === "To-Do"
+      ? event.Subject || "No Subject"
+      : type === "Call"
+      ? event.Subject || "No Subject"
+      : "No Info";
+  const associateWith = event.What_Id ? event.What_Id.name : "";
+  const id = event.id;
+
   return {
     type,
     date,
@@ -39,122 +76,32 @@ function createData(
     regarding,
     duration,
     associateWith,
+    id,
   };
 }
 
-// Example data based on your image and instructions
-const initialRows = [
-  createData(
-    "To-Do",
-    "11/09/2024",
-    "5:46 PM",
-    "Low",
-    "Muhammad Azhar Aslam",
-    "18/0383 Deadline reminder...",
-    "5 minutes",
-    ""
-  ),
-  createData(
-    "Meeting",
-    "11/09/2024",
-    "11:30 AM",
-    "Low",
-    "Vanessa De Pretis",
-    "No consults until 10am - WFH",
-    "1 hour",
-    "Migration Solutions[CMP]"
-  ),
-  createData(
-    "To-Do",
-    "9/09/2024",
-    "1:00 PM",
-    "Low",
-    "Coralie Rossi",
-    "Managers Meeting",
-    "1 hour",
-    "Savanna Energy Services[CMP]"
-  ),
-  createData(
-    "Appointment",
-    "9/09/2024",
-    "None",
-    "Low",
-    "+Bo Dai",
-    "18/1245 Deadline TODAY...",
-    "5 minutes",
-    ""
-  ),
-  createData(
-    "Call",
-    "08/09/2024",
-    "3:30 PM",
-    "High",
-    "Tran Thi Ngoc Lan",
-    "Customer follow-up for Q3 targets",
-    "30 minutes",
-    "Customer Services"
-  ),
-  createData(
-    "Meeting",
-    "06/09/2024",
-    "2:00 PM",
-    "High",
-    "Susan Mulder",
-    "Budget approval meeting for Q4",
-    "2 hours",
-    "Finance Department"
-  ),
-  createData(
-    "Appointment",
-    "07/09/2024",
-    "10:00 AM",
-    "Low",
-    "Gaby Perez",
-    "HR policy discussion and approval",
-    "45 minutes",
-    "HR Department"
-  ),
-  createData(
-    "Call",
-    "05/09/2024",
-    "4:00 PM",
-    "Low",
-    "Coralie Rossi",
-    "Follow-up call with client",
-    "15 minutes",
-    "Client Relations"
-  ),
-  createData(
-    "To-Do",
-    "10/09/2024",
-    "9:00 AM",
-    "High",
-    "Nasir Uddin",
-    "Prepare project report for board meeting",
-    "2 hours",
-    "Project Management"
-  ),
-  createData(
-    "Call",
-    "12/09/2024",
-    "8:30 AM",
-    "High",
-    "Bo Dai",
-    "Call with international partners for Q3 review",
-    "1 hour",
-    "International Relations"
-  ),
-];
-
-export default function ScheduleTable() {
+export default function ScheduleTable({ events, todo, ZOHO, users }) {
   const [selectedRowIndex, setSelectedRowIndex] = React.useState(null);
   const [openClearModal, setOpenClearModal] = React.useState(false);
   const [openEditModal, setOpenEditModal] = React.useState(false);
   const [selectedRowData, setSelectedRowData] = React.useState(null);
-  const [rows, setRows] = React.useState(initialRows);
+
+  // Combine events, todo, and calls into one dataset
+  const rows = [
+    ...events.map((event) => createData(event, "Meeting")),
+    ...todo.map((task) => createData(task, "To-Do")),
+  ];
+
+  // Get the min and max dates from the events, todo, and calls
+  const allDates = [...events, ...todo].map(
+    (item) =>
+      new Date(item.Start_DateTime || item.Due_Date || item.Call_Start_Time)
+  );
+  const maxDate =
+    allDates.length > 0 ? new Date(Math.max(...allDates)) : new Date();
 
   // Filter states
-  const [filterDate, setFilterDate] = React.useState("Last 7 Days");
+  const [filterDate, setFilterDate] = React.useState("All");
   const [filterType, setFilterType] = React.useState("All");
   const [filterPriority, setFilterPriority] = React.useState("All");
   const [filterUser, setFilterUser] = React.useState("All");
@@ -179,11 +126,41 @@ export default function ScheduleTable() {
     setOpenEditModal(false);
   };
 
+  // Date Filter logic
+  const filterDateOptions = [
+    { label: "All", value: "All" },
+    { label: "Last 7 Days", value: "Last 7 Days" },
+    { label: "Last 30 Days", value: "Last 30 Days" },
+    { label: "Last 90 Days", value: "Last 90 Days" },
+    { label: "Last Week", value: "Last Week" },
+    { label: "Last Month", value: "Last Month" },
+    { label: "Current Week", value: "Current Week" },
+    { label: "Current Month", value: "Current Month" },
+    { label: "Next Week", value: "Next Week" },
+  ];
+
   // Filter the rows based on selected filters
   const filteredRows = rows.filter((row) => {
+    const rowDate = new Date(row.date);
     const matchesDateFilter =
-      filterDate === "Last 7 Days" || // Implement date filter logic here
-      filterDate === "All";
+      filterDate === "All" ||
+      (filterDate === "Last 7 Days" &&
+        isAfter(rowDate, subDays(new Date(), 7))) ||
+      (filterDate === "Last 30 Days" &&
+        isAfter(rowDate, subDays(new Date(), 30))) ||
+      (filterDate === "Last 90 Days" &&
+        isAfter(rowDate, subDays(new Date(), 90))) ||
+      (filterDate === "Current Week" &&
+        isAfter(rowDate, startOfWeek(new Date()))) ||
+      (filterDate === "Current Month" &&
+        isAfter(rowDate, startOfMonth(new Date()))) ||
+      (filterDate === "Next Week" &&
+        isAfter(rowDate, addDays(startOfWeek(new Date()), 7))) ||
+      (filterDate === "Last Week" &&
+        isAfter(rowDate, subDays(startOfWeek(new Date()), 7))) ||
+      (filterDate === "Last Month" &&
+        isAfter(rowDate, subDays(startOfMonth(new Date()), 30)));
+
     const matchesTypeFilter =
       filterType === "All" ||
       row.type.toLowerCase() === filterType.toLowerCase();
@@ -202,6 +179,8 @@ export default function ScheduleTable() {
     );
   });
 
+  console.log({todo})
+
   return (
     <>
       {/* Filter Row */}
@@ -215,14 +194,11 @@ export default function ScheduleTable() {
               label="Date"
               size="small"
             >
-              <MenuItem value="Last 7 Days">Last 7 Days</MenuItem>
-              <MenuItem value="Last 30 Days">Last 30 Days</MenuItem>
-              <MenuItem value="Last 90 Days">Last 90 Days</MenuItem>
-              <MenuItem value="Last Week">Last Week</MenuItem>
-              <MenuItem value="Last Month">Last Month</MenuItem>
-              <MenuItem value="Current Week">Current Week</MenuItem>
-              <MenuItem value="Current Month">Current Month</MenuItem>
-              <MenuItem value="Next Week">Next Week</MenuItem>
+              {filterDateOptions.map((option, index) => (
+                <MenuItem key={index} value={option.value}>
+                  {option.label}
+                </MenuItem>
+              ))}
             </Select>
           </FormControl>
         </Grid>
@@ -236,10 +212,11 @@ export default function ScheduleTable() {
               size="small"
             >
               <MenuItem value="All">All</MenuItem>
-              <MenuItem value="To-Do">To-Do</MenuItem>
-              <MenuItem value="Meeting">Meeting</MenuItem>
-              <MenuItem value="Appointment">Appointment</MenuItem>
-              <MenuItem value="Call">Call</MenuItem>
+              {["Meeting", "To-Do", "Call"].map((type) => (
+                <MenuItem key={type} value={type}>
+                  {type}
+                </MenuItem>
+              ))}
             </Select>
           </FormControl>
         </Grid>
@@ -268,25 +245,19 @@ export default function ScheduleTable() {
               size="small"
             >
               <MenuItem value="All">All</MenuItem>
-              <MenuItem value="Muhammad Azhar Aslam">
-                Muhammad Azhar Aslam
-              </MenuItem>
-              <MenuItem value="Vanessa De Pretis">Vanessa De Pretis</MenuItem>
-              <MenuItem value="Coralie Rossi">Coralie Rossi</MenuItem>
-              <MenuItem value="Bo Dai">Bo Dai</MenuItem>
-              <MenuItem value="Tran Thi Ngoc Lan">Tran Thi Ngoc Lan</MenuItem>
-              <MenuItem value="Susan Mulder">Susan Mulder</MenuItem>
-              <MenuItem value="Gaby Perez">Gaby Perez</MenuItem>
-              <MenuItem value="Nasir Uddin">Nasir Uddin</MenuItem>
+              {users.map((user) => (
+                <MenuItem key={user.id} value={user.full_name}>
+                  {user.full_name}
+                </MenuItem>
+              ))}
             </Select>
           </FormControl>
         </Grid>
         <Grid item xs={2}>
           <Button
             variant="contained"
-            // size="large"
             fullWidth
-            onClick={() =>  setOpenEditModal(true)} // Add button functionality here
+            onClick={() => setOpenEditModal(true)}
           >
             Create New Event
           </Button>
@@ -321,7 +292,7 @@ export default function ScheduleTable() {
               >
                 <TableCell
                   padding="checkbox"
-                  onClick={(e) => e.stopPropagation()}
+                  onClick={(e) => e.stopPropagation()} // Prevent checkbox from triggering row click
                 >
                   <Checkbox
                     checked={selectedRowIndex === index && openClearModal}
@@ -392,18 +363,23 @@ export default function ScheduleTable() {
       </TableContainer>
 
       {/* Clear Activity Modal */}
-      <ClearActivityModal
-        open={openClearModal}
-        handleClose={handleClose}
-        selectedRowData={selectedRowData}
-      />
+      {openClearModal && (
+        <ClearActivityModal
+          open={openClearModal}
+          handleClose={handleClose}
+          selectedRowData={selectedRowData}
+          ZOHO={ZOHO}
+        />
+      )}
 
       {/* Edit Activity Modal */}
-      <EditActivityModal
-        open={openEditModal}
-        handleClose={handleClose}
-        selectedRowData={selectedRowData}
-      />
+      {openEditModal && (
+        <EditActivityModal
+          open={openEditModal}
+          handleClose={handleClose}
+          selectedRowData={selectedRowData}
+        />
+      )}
     </>
   );
 }
