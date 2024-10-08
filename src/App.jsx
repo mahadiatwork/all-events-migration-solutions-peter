@@ -1,40 +1,26 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState, createContext, useContext } from "react";
 import "./App.css";
 import ActivityTable from "./components/ActivityTable";
+import ContactField from "./components/atom/ContactField";
 
 const ZOHO = window.ZOHO;
+
+// Create a ZohoContext to hold the ZOHO data
+const ZohoContext = createContext();
 
 function App() {
   const [zohoLoaded, setZohoLoaded] = useState(false);
   const [laborData, setLaborData] = useState([]);
-  const [events , setEvents] = useState([])
-  const [todo , setTodo] = useState([])
-  const [calls, setCalls] = useState([])
-  const [users, setUsers] = useState([])
+  const [events, setEvents] = useState([]);
+  const [todo, setTodo] = useState([]);
+  const [calls, setCalls] = useState([]);
+  const [users, setUsers] = useState([]);
 
   useEffect(() => {
     ZOHO.embeddedApp.init().then(() => {
       setZohoLoaded(true);
     });
-    console.log(ZOHO)
-  }, [])
-
-  // useEffect(() => {
-  //   console.log("App component mounted");
-  //   const handlePageLoad = (data) => {
-  //     // Handle page load
-  //   };
-
-  //   ZOHO.embeddedApp.on("PageLoad", handlePageLoad);
-
-  //   ZOHO.embeddedApp.init().then(() => {
-  //     setZohoLoaded(true);
-  //   });
-
-  //   return () => {
-  //     ZOHO.embeddedApp.off("PageLoad", handlePageLoad);
-  //   };
-  // }, []);
+  }, []);
 
   useEffect(() => {
     async function getData() {
@@ -46,6 +32,7 @@ function App() {
           page: 1,
         });
         setEvents(allMeetings.data);
+
         const todos = await ZOHO.CRM.API.getAllRecords({
           Entity: "Tasks",
           sort_order: "asc",
@@ -53,35 +40,24 @@ function App() {
           page: 1,
         });
         setTodo(todos.data);
-        const callResp = await ZOHO.CRM.API.getAllRecords({
-          Entity: "Calls",
-          sort_order: "asc",
-          per_page: 100,
-          page: 1,
-        });
-        setCalls(callResp.data);
-        const users = await ZOHO.CRM.API.getAllRecords({
+
+        const usersResponse = await ZOHO.CRM.API.getAllRecords({
           Entity: "users",
           sort_order: "asc",
           per_page: 100,
           page: 1,
         });
-        setUsers(users.users)
+        setUsers(usersResponse.users); // assuming users data is available here
       }
     }
     getData();
   }, [zohoLoaded]);
 
-
-  const [color, setColor] = useState(null)
-
-
-  console.log({users})
   return (
-    <>
-      <ActivityTable events={events} todo={todo} calls={calls} ZOHO={ZOHO} users={users} />
-
-    </>
+    // Wrap your components with the ZohoContext.Provider
+    <ZohoContext.Provider value={{ users, events, todo, ZOHO }}>
+      <ActivityTable events={events} todo={todo} ZOHO={ZOHO} users={users} />
+    </ZohoContext.Provider>
   );
 }
 

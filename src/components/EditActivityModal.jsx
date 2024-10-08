@@ -1,13 +1,20 @@
-import React, { useState, useEffect } from "react";
-import { Box, Button, IconButton, Tab, Tabs } from "@mui/material";
-import CloseIcon from "@mui/icons-material/Close";
+import React from "react";
+import "@mobiscroll/react/dist/css/mobiscroll.min.css";
+import { Input, Select, Textarea } from "@mobiscroll/react";
+import { Box, Button, IconButton, Tab, Tabs, TextField, Typography } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
+import { useState } from "react";
 import FirstComponent from "./FirstComponent";
 import SecondComponent from "./SecondComponent";
 import ThirdComponent from "./ThirdComponent";
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
+import CloseIcon from "@mui/icons-material/Close";
+import { Description } from "@mui/icons-material";
 
-function TabPanel({ children, value, index, ...other }) {
+function TabPanel(props) {
+  const { children, value, index, ...other } = props;
+
   return (
     <div
       role="tabpanel"
@@ -21,82 +28,56 @@ function TabPanel({ children, value, index, ...other }) {
   );
 }
 
-const EditActivityModal = ({ open, handleClose, selectedRowData }) => {
+const EditActivityModal = ({ openEditModal,handleClose, selectedRowData, ZOHO,users }) => {
+  const theme = useTheme();
   const [value, setValue] = useState(0);
+  const [textvalue, setTextValue] = useState("");
   const [formData, setFormData] = useState({
-    id: `job1`,
-    title: "",
+    id:`${selectedRowData ? selectedRowData.id : "test"}`,
+    Type_of_Activity: "",
     startTime: "",
     endTime: "",
     duration: "",
     associateWith: "",
-    regarding: "",
+    Event_title: "",
+    resource: 0,
+    scheduleFor:'',
+    scheduleWith:[],
+    location: "",
     priority: "",
     ringAlarm: "",
-    gender: "once",
+    repeat: "once",
     start: "",
     end: "",
     noEndDate: false,
-    quillContent: "",
-    color: "#d1891f",
+    description: "",
+    color: "#fff",
   });
-
-  // Map data from JSON to form fields
-  useEffect(() => {
-
-    if (selectedRowData && selectedRowData.length > 0) {
-      const event = selectedRowData;; // Use the first event as an example
-      setFormData({
-        id: event.id || `job1`,
-        title: event.Event_Title || "",
-        startTime: event.Start_DateTime || "",
-        endTime: event.End_DateTime || "",
-        duration: calculateDuration(event.Start_DateTime, event.End_DateTime),
-        associateWith: event.What_Id ? event.What_Id.name : "",
-        regarding: event.Description || "",
-        priority: event.Priority || "",
-        ringAlarm: event.Remind_At || "",
-        gender: "once", // Assuming default value
-        start: event.Start_DateTime || "",
-        end: event.End_DateTime || "",
-        noEndDate: false,
-        quillContent: event.Full_Description || "",
-        color: "#d1891f", // Assuming default color
-      });
-    } else {
-      setFormData({
-        id: `job1`,
-        title: "",
-        startTime: "",
-        endTime: "",
-        duration: "",
-        associateWith: "",
-        regarding: "",
-        priority: "",
-        ringAlarm: "",
-        gender: "once",
-        start: "",
-        end: "",
-        noEndDate: false,
-        quillContent: "",
-        color: "#d1891f",
-      });
-    }
-  }, [selectedRowData]);
 
   const handleChange = (event, newValue) => {
     setValue(newValue);
   };
 
+  // Handlers for Next and Back buttons
   const handleNext = () => {
-    if (value < 2) setValue(value + 1);
+    if (value < 2) setValue(value + 1); // Increment to next tab
   };
 
   const handleBack = () => {
-    if (value > 0) setValue(value - 1);
+    if (value > 0) setValue(value - 1); // Decrement to previous tab
   };
 
   const handleInputChange = (field, value) => {
+    if (field === "resource") {
+      value = parseInt(value, 10); // Convert the input to an integer
+    }
+
+    if(field === "scheduleWith"){
+      setFormData((prev) => ({
+        ...prev,
+        [field]: Array.isArray(value) ? [...value] : value,  // Spread array values for multiple selections
+      }));
+    }
     setFormData((prevState) => ({
       ...prevState,
       [field]: value,
@@ -105,10 +86,10 @@ const EditActivityModal = ({ open, handleClose, selectedRowData }) => {
 
   const handleSubmit = () => {
     console.log("Form Data Submitted:", formData);
-    handleClose(); // Close the modal after submission
+    // Add your submit logic here (e.g., send data to the backend)
+    setEvents((prev) => [...prev, formData]);
+    setOpen(false);
   };
-
-  if (!open) return null; // Return nothing if modal is closed
 
   return (
     <Box
@@ -128,7 +109,9 @@ const EditActivityModal = ({ open, handleClose, selectedRowData }) => {
       <Box height={15}>
         <IconButton
           aria-label="close"
-          onClick={handleClose} // Use the passed handleClose function
+          onClick={() => {
+            handleClose()
+          }}
           sx={{
             position: "absolute",
             right: 8,
@@ -147,18 +130,22 @@ const EditActivityModal = ({ open, handleClose, selectedRowData }) => {
         >
           <Tab label="General" />
           <Tab label="Details" />
-          <Tab label="Recurrence" />
+          <Tab label="Reccurence" />
         </Tabs>
       </Box>
       <TabPanel value={value} index={0}>
         <FirstComponent
           formData={formData}
           handleInputChange={handleInputChange}
+          users={users}
+          selectedRowData={selectedRowData}
+          ZOHO={ZOHO}
         />
         <Box display="flex" justifyContent="space-between" mt={2}>
           <Button size="small" disabled>
             Back
-          </Button>
+          </Button>{" "}
+          {/* Back is disabled on first tab */}
           <Button
             size="small"
             variant="contained"
@@ -170,12 +157,15 @@ const EditActivityModal = ({ open, handleClose, selectedRowData }) => {
         </Box>
       </TabPanel>
       <TabPanel value={value} index={1}>
-        <ReactQuill
+        {/* <SecondComponent /> */}
+        <Typography variant="h6">Description</Typography>
+        {/* <ReactQuill
           theme="snow"
           style={{ height: 250, marginBottom: 80 }}
           value={formData.quillContent}
           onChange={(content) => handleInputChange("quillContent", content)}
-        />
+        /> */}
+        <TextField multiline rows={10} fullWidth onChange={(content) => handleInputChange("description", content)}/>
         <Box display="flex" justifyContent="space-between" mt={2}>
           <Button
             size="small"
@@ -215,21 +205,13 @@ const EditActivityModal = ({ open, handleClose, selectedRowData }) => {
             color="secondary"
             onClick={handleSubmit}
           >
-            {selectedRowData ? "Save Changes" : "Create Event"}
-          </Button>
+            Submit
+          </Button>{" "}
+          {/* Next is disabled on the last tab */}
         </Box>
       </TabPanel>
     </Box>
   );
-};
-
-// Utility function to calculate duration between two times
-const calculateDuration = (start, end) => {
-  const startTime = new Date(start);
-  const endTime = new Date(end);
-  const durationMs = endTime - startTime;
-  const durationMinutes = Math.floor(durationMs / (1000 * 60));
-  return `${durationMinutes} minutes`;
 };
 
 export default EditActivityModal;

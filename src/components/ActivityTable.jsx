@@ -43,7 +43,7 @@ function createData(event, type) {
     startDateTime = new Date(event.Due_Date);
     time = "None"; // To-Do doesn't have time field
     duration = "N/A";
-    scheduledWith = event.Who_Id ? event.Who_Id.name : "Unknown";
+    scheduledWith = event.Owner ? event.Owner.name : "Unknown";
   } else if (type === "Call") {
     startDateTime = new Date(event.Call_Start_Time);
     time = startDateTime.toLocaleTimeString([], {
@@ -369,6 +369,7 @@ export default function ScheduleTable({ events, todo, ZOHO, users }) {
           handleClose={handleClose}
           selectedRowData={selectedRowData}
           ZOHO={ZOHO}
+          users={users}
         />
       )}
 
@@ -378,6 +379,8 @@ export default function ScheduleTable({ events, todo, ZOHO, users }) {
           open={openEditModal}
           handleClose={handleClose}
           selectedRowData={selectedRowData}
+          ZOHO={ZOHO}
+          users={users}
         />
       )}
     </>
