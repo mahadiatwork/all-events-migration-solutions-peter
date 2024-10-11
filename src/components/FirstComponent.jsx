@@ -14,11 +14,12 @@ import {
 } from "@mui/material";
 import React from "react";
 import { useState } from "react";
-import { Datepicker } from "@mobiscroll/react";
 import CustomTextField from "./atom/CustomTextField";
 import ContactField from "./atom/ContactField";
 import AccountField from "./atom/AccountField";
 import { ChromePicker } from "react-color";
+import { Datepicker } from "@mobiscroll/react";
+import RegardingField from "./atom/RegardingField";
 
 const FirstComponent = ({
   formData,
@@ -46,6 +47,8 @@ const FirstComponent = ({
     { type: "vacation", resource: 16 },
   ]);
   const [openDatepicker, setOpenDatepicker] = useState(false);
+  const [openStartDatepicker, setOpenStartDatepicker] = useState(false);
+  const [openEndDatepicker, setOpenEndDatepicker] = useState(false);
 
   const handleActivityChange = (event) => {
     const selectedType = event.target.value;
@@ -65,31 +68,16 @@ const FirstComponent = ({
   };
 
   console.log({ users });
-  const customInputComponent = ({ field }) => {
+  const customInputComponent = (field, placeholder, openDatepickerState) => {
     return (
-      <>
-        {field === "Start Time" ? (
-          <CustomTextField
-            fullWidth
-            size="small"
-            placeholder="Start Time"
-            variant="outlined"
-            value={formData.start}
-            onClick={() => setOpenDatepicker(true)}
-            // onChange={(e) => handleInputChange("startTime", e.target.value)}
-          />
-        ) : (
-          <CustomTextField
-            fullWidth
-            size="small"
-            placeholder="End Time"
-            variant="outlined"
-            value={formData.end}
-            onClick={() => setOpenDatepicker(true)}
-            // onChange={(e) => handleInputChange("startTime", e.target.value)}
-          />
-        )}
-      </>
+      <CustomTextField
+        fullWidth
+        size="small"
+        placeholder={placeholder}
+        variant="outlined"
+        value={formData[field]}
+        onClick={() => openDatepickerState(true)}
+      />
     );
   };
 
@@ -128,7 +116,7 @@ const FirstComponent = ({
     border: "1px solid #ccc",
     display: "inline-block",
     cursor: "pointer",
-    marginLeft: 1
+    marginLeft: 1,
   };
   return (
     <Box>
@@ -198,34 +186,30 @@ const FirstComponent = ({
 
         <Grid size={4}>
           <Datepicker
-            controls={["datetime"]}
-            calendarType="month"
             display="center"
-            calendarScroll={"vertical"}
-            pages={3}
-            inputComponent={() => customInputComponent("Start Time")}
-            onClose={() => setOpenDatepicker(false)}
+            inputComponent={() =>
+              customInputComponent(
+                "start",
+                "Start Time",
+                setOpenStartDatepicker
+              )
+            }
+            onClose={() => setOpenStartDatepicker(false)}
             onChange={(e) => handleInputChange("start", e.value)}
-            // className="mbsc-textfield"
-            // inputProps={props}
-            // maxHeight={"400px"}
-            // maxWidth={"1000px"}
-            isOpen={openDatepicker}
-            // showOnFocus={false}
-            // showOnClick={false}
+            isOpen={openStartDatepicker}
+            touchUi={true}
           />
         </Grid>
         <Grid size={4}>
           <Datepicker
-            controls={["datetime"]}
-            calendarType="month"
+            controls={["calendar", "time"]}
             display="center"
-            calendarScroll={"vertical"}
-            pages={3}
-            inputComponent={() => customInputComponent("End Time")}
-            onClose={() => setOpenDatepicker(false)}
+            inputComponent={() =>
+              customInputComponent("end", "End Time", setOpenEndDatepicker)
+            }
+            onClose={() => setOpenEndDatepicker(false)}
             onChange={(e) => handleInputChange("end", e.value)}
-            isOpen={openDatepicker}
+            isOpen={openEndDatepicker}
           />
         </Grid>
         <Grid size={4}>
@@ -264,7 +248,7 @@ const FirstComponent = ({
           </FormControl>
         </Grid>
 
-        <Grid size={12}>
+        <Grid size={6}>
           <AccountField
             value={formData.associateWith}
             handleInputChange={handleInputChange}
@@ -272,14 +256,13 @@ const FirstComponent = ({
           />
         </Grid>
 
-        <Grid size={12}>
+        <Grid size={6}>
           <ContactField
             value={formData.scheduledWith}
             handleInputChange={handleInputChange}
             ZOHO={ZOHO}
           />
         </Grid>
-
         <Grid size={6}>
           <FormControl fullWidth size="small" sx={{ minHeight: "20px" }}>
             <Autocomplete
@@ -396,9 +379,23 @@ const FirstComponent = ({
             </Select>
           </FormControl>
         </Grid>
-        <Grid size={3} sx={{display: "flex"}}>
-          <Box display="flex" alignItems="center" gap={1}>
-            <Typography variant="body1">Colour:</Typography>
+        <Grid size={4}>
+          <RegardingField />
+        </Grid>
+        <Grid container spacing={2} alignItems="center">
+          {/* Create separate activity for each contact */}
+          <Grid item xs={12} sm={6} md={8}>
+            <FormControlLabel
+              control={<Checkbox />}
+              label="Create separate activity for each contact"
+            />
+          </Grid>
+
+          {/* Color Picker and Text */}
+          <Grid item xs={6} sm={4} md={2} display="flex" alignItems="center">
+            <Typography variant="body1" sx={{ mr: 1 }}>
+              Colour:
+            </Typography>
             <div style={colorBoxStyle} onClick={handleClick} />
             {displayColorPicker && (
               <div style={popover}>
@@ -406,13 +403,12 @@ const FirstComponent = ({
                 <ChromePicker color={color} onChange={handleColorChange} />
               </div>
             )}
-          </Box>
-        </Grid>
-        <Grid size={3} sx={{display: "flex"}}>
-        <FormControlLabel
-        control={<Checkbox />}
-        label="Banner"
-      />
+          </Grid>
+
+          {/* Banner/Timeless Checkbox */}
+          <Grid item xs={12} sm={6} md={2}>
+            <FormControlLabel control={<Checkbox />} label="Banner/Timeless" />
+          </Grid>
         </Grid>
         {/* <Grid size={3}>
           <Button
@@ -426,11 +422,6 @@ const FirstComponent = ({
           </Button>
         </Grid> */}
       </Grid>
-
-      <FormControlLabel
-        control={<Checkbox />}
-        label="Create separate activity for each contact"
-      />
     </Box>
   );
 };

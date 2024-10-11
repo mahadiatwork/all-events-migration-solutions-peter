@@ -497,7 +497,7 @@
 
 "@icons/material@^0.2.4":
   version "0.2.4"
-  resolved "https://registry.yarnpkg.com/@icons/material/-/material-0.2.4.tgz#e90c9f71768b3736e76d7dd6783fc6c2afa88bc8"
+  resolved "https://registry.npmjs.org/@icons/material/-/material-0.2.4.tgz"
   integrity sha512-QPcGmICAPbGLGb6F/yNf/KzKqvFx8z5qx3D1yFqVAjoFmXK35EgyW+cJ57Te3CNsmzblwtzakLGFqHPqrfb4Tw==
 
 "@jridgewell/gen-mapping@^0.3.5":
@@ -532,10 +532,10 @@
     "@jridgewell/resolve-uri" "^3.1.0"
     "@jridgewell/sourcemap-codec" "^1.4.14"
 
-"@mobiscroll/react@npm:@mobiscroll/react-next-trial@5.32.1":
+"@mobiscroll/react@^5.30.1":
   version "5.32.1"
-  resolved "https://npm.mobiscroll.com/@mobiscroll%2freact-next-trial/-/react-next-trial-5.32.1.tgz#63794388da9467bad5029c6ed941b8ea55783532"
-  integrity sha512-tOhcU88rIF7Oxu/iDoTb2+sW52eY7Xwn8jqcyW50kD8eVwWlAilibxbh1qgISNy7Cm26sEbqmEovNzcr5RuJdQ==
+  resolved "https://npm.mobiscroll.com/@mobiscroll%2freact/-/react-5.32.1.tgz#7b9b3be03a1cb64c996e1a1a7b7a01248b3a96ea"
+  integrity sha512-UrVehpkw4F5+jRYj9gwMVODkq8OZyGLOaJCUFFVwmOpjDj4BStd+kwr0jH0vU5xkXMeUfIpMAqMFD8dEus46hA==
 
 "@mui/core-downloads-tracker@^6.1.1":
   version "6.1.1"
@@ -2063,7 +2063,7 @@ locate-path@^6.0.0:
 
 lodash-es@^4.17.15:
   version "4.17.21"
-  resolved "https://registry.yarnpkg.com/lodash-es/-/lodash-es-4.17.21.tgz#43e626c46e6591b7750beb2b50117390c609e3ee"
+  resolved "https://registry.npmjs.org/lodash-es/-/lodash-es-4.17.21.tgz"
   integrity sha512-mKnC+QJ9pWVzv+C4/U3rRsHapFfHvQFoFB92e52xeyGMcX6/OlIl78je1u8vePzYZSkkogMPJ2yjxxsb89cxyw==
 
 lodash.merge@^4.6.2:
@@ -2092,7 +2092,7 @@ lru-cache@^5.1.1:
 
 material-colors@^1.2.1:
   version "1.2.6"
-  resolved "https://registry.yarnpkg.com/material-colors/-/material-colors-1.2.6.tgz#6d1958871126992ceecc72f4bcc4d8f010865f46"
+  resolved "https://registry.npmjs.org/material-colors/-/material-colors-1.2.6.tgz"
   integrity sha512-6qE4B9deFBIa9YSpOc9O0Sgc43zTeVYbgDT5veRKSlB2+ZuHNoVVxA1L/ckMUayV9Ay9y7Z/SZCLcGteW9i7bg==
 
 minimatch@^3.1.2:
@@ -2331,7 +2331,7 @@ quill@^1.3.7:
 
 react-color@^2.19.3:
   version "2.19.3"
-  resolved "https://registry.yarnpkg.com/react-color/-/react-color-2.19.3.tgz#ec6c6b4568312a3c6a18420ab0472e146aa5683d"
+  resolved "https://registry.npmjs.org/react-color/-/react-color-2.19.3.tgz"
   integrity sha512-LEeGE/ZzNLIsFWa1TMe8y5VYqr7bibneWmvJwm1pCn/eNmrabWDh659JSPn9BuaMpEfU83WTOJfnCcjDZwNQTA==
   dependencies:
     "@icons/material" "^0.2.4"
@@ -2404,7 +2404,7 @@ react@^18.3.1:
 
 reactcss@^1.2.0:
   version "1.2.3"
-  resolved "https://registry.yarnpkg.com/reactcss/-/reactcss-1.2.3.tgz#c00013875e557b1cf0dfd9a368a1c3dab3b548dd"
+  resolved "https://registry.npmjs.org/reactcss/-/reactcss-1.2.3.tgz"
   integrity sha512-KiwVUcFu1RErkI97ywr8nvx8dNOpT03rbnma0SSalTYjkrPYaEajR4a/MRt6DZ46K6arDRbWMNHF+xH7G7n/8A==
   dependencies:
     lodash "^4.0.1"
@@ -2704,7 +2704,7 @@ text-table@^0.2.0:
 
 tinycolor2@^1.4.1:
   version "1.6.0"
-  resolved "https://registry.yarnpkg.com/tinycolor2/-/tinycolor2-1.6.0.tgz#f98007460169b0263b97072c5ae92484ce02d09e"
+  resolved "https://registry.npmjs.org/tinycolor2/-/tinycolor2-1.6.0.tgz"
   integrity sha512-XPaBkWQJdsf3pLKJV9p4qN/S+fm2Oj8AIPo1BTUhg5oxkvm9+SVEGFdhyOz7tTdUTfvxMiAs4sp6/eZO2Ew+pw==
 
 to-fast-properties@^2.0.0:

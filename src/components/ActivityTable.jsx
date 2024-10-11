@@ -179,7 +179,7 @@ export default function ScheduleTable({ events, todo, ZOHO, users }) {
     );
   });
 
-  console.log({todo})
+  console.log({events})
 
   return (
     <>

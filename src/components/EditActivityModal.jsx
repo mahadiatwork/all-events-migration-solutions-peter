@@ -85,10 +85,10 @@ const EditActivityModal = ({ openEditModal,handleClose, selectedRowData, ZOHO,us
   };
 
   const handleSubmit = () => {
-    console.log("Form Data Submitted:", formData);
     // Add your submit logic here (e.g., send data to the backend)
-    setEvents((prev) => [...prev, formData]);
-    setOpen(false);
+    // setEvents((prev) => [...prev, formData]);
+    // setOpen(false);
+    console.log({formData})
   };
 
   return (
