@@ -1,5 +1,12 @@
 import React, { useState } from "react";
-import { FormControl, InputLabel, Select, MenuItem, TextField, Box } from "@mui/material";
+import {
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  TextField,
+  Box,
+} from "@mui/material";
 
 const RegardingField = () => {
   const [selectedValue, setSelectedValue] = useState("");
@@ -17,7 +24,7 @@ const RegardingField = () => {
   };
 
   return (
-    <Box sx={{ minWidth: 300 }}>
+    <Box sx={{ width: "100%" }}>
       <FormControl fullWidth size="small">
         <InputLabel id="regarding-label" sx={{ top: "-5px" }}>
           Regarding
@@ -44,8 +51,12 @@ const RegardingField = () => {
           <MenuItem value={"Initial Consultation Fee $165"}>
             Initial Consultation Fee $165
           </MenuItem>
-          <MenuItem value={"No appointments today"}>No appointments today</MenuItem>
-          <MenuItem value={"No appointments tonight"}>No appointments tonight</MenuItem>
+          <MenuItem value={"No appointments today"}>
+            No appointments today
+          </MenuItem>
+          <MenuItem value={"No appointments tonight"}>
+            No appointments tonight
+          </MenuItem>
           <MenuItem value={"Other"}>Other (Manually enter)</MenuItem>
         </Select>
       </FormControl>

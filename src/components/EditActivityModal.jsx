@@ -1,7 +1,15 @@
 import React from "react";
 import "@mobiscroll/react/dist/css/mobiscroll.min.css";
 import { Input, Select, Textarea } from "@mobiscroll/react";
-import { Box, Button, IconButton, Tab, Tabs, TextField, Typography } from "@mui/material";
+import {
+  Box,
+  Button,
+  IconButton,
+  Tab,
+  Tabs,
+  TextField,
+  Typography,
+} from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { useState } from "react";
 import FirstComponent from "./FirstComponent";
@@ -11,6 +19,86 @@ import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
 import CloseIcon from "@mui/icons-material/Close";
 import { Description } from "@mui/icons-material";
+
+function formatDateWithOffset(dateString) {
+  if (!dateString) return null;
+
+  const date = new Date(dateString);
+
+  // Check if the date is valid
+  if (isNaN(date.getTime())) {
+    return null;
+  }
+
+  const pad = (num) => String(num).padStart(2, "0");
+
+  // Format the date part
+  const year = date.getFullYear();
+  const month = pad(date.getMonth() + 1);
+  const day = pad(date.getDate());
+  const hours = pad(date.getHours());
+  const minutes = pad(date.getMinutes());
+  const seconds = pad(date.getSeconds());
+
+  // Get the timezone offset in minutes and convert to hours and minutes
+  const timezoneOffset = -date.getTimezoneOffset(); // In minutes
+  const offsetSign = timezoneOffset >= 0 ? "+" : "-";
+  const offsetHours = pad(Math.floor(Math.abs(timezoneOffset) / 60));
+  const offsetMinutes = pad(Math.abs(timezoneOffset) % 60);
+
+  // Combine everything to return the correctly formatted string
+  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}${offsetSign}${offsetHours}:${offsetMinutes}`;
+}
+
+function transformFormSubmission(data) {
+  // Function to transform scheduleWith data into the Participants format
+  const transformScheduleWithToParticipants = (scheduleWith) => {
+    return scheduleWith.map(contact => ({
+      Email: contact.Email || null, // Use Email if available, or set to null
+      name: contact.Full_Name || null, // Use Full_Name for the name
+      invited: false, // Default to false
+      type: "contact", // Default type to "contact"
+      participant: contact.id || null, // Use id as participant ID
+      status: "not_known" // Default status to "not_known"
+    }));
+  };
+
+  const participantsFromScheduleWith = data.scheduleWith
+    ? transformScheduleWithToParticipants(data.scheduleWith)
+    : [];
+
+  return {
+    ...data,
+    Start_DateTime: formatDateWithOffset(data.start), // Format `start` to ISO with timezone
+    End_DateTime: formatDateWithOffset(data.end), // Format `end` to ISO with timezone
+    Description: data.description, // Map `description` to `Description`
+    Event_Priority: data.priority, // Map `priority` to `Event_Priority`
+    
+    // Updated `What_Id` with both name and id from `associateWith`
+    What_Id: data.associateWith
+      ? {
+          name: data.associateWith.Account_Name || null, // Assign name from associateWith
+          id: data.associateWith.id || null, // Assign id from associateWith
+        }
+      : null,
+
+    // Remove old fields
+    start: undefined,
+    end: undefined,
+    description: undefined,
+    priority: undefined,
+    associateWith: undefined, // Remove associateWith completely
+    
+    // Combine the manually set participants and those from `scheduleWith`
+    Participants: [
+      {
+        type: "email",
+        participant: "mahadi.hanshan@gmail.com",
+      },
+      ...participantsFromScheduleWith, // Add participants from scheduleWith
+    ],
+  };
+}
 
 function TabPanel(props) {
   const { children, value, index, ...other } = props;
@@ -28,22 +116,28 @@ function TabPanel(props) {
   );
 }
 
-const EditActivityModal = ({ openEditModal,handleClose, selectedRowData, ZOHO,users }) => {
+const EditActivityModal = ({
+  openEditModal,
+  handleClose,
+  selectedRowData,
+  ZOHO,
+  users,
+}) => {
   const theme = useTheme();
   const [value, setValue] = useState(0);
   const [textvalue, setTextValue] = useState("");
   const [formData, setFormData] = useState({
-    id:`${selectedRowData ? selectedRowData.id : "test"}`,
+    id: `${selectedRowData ? selectedRowData.id : "test"}`,
     Type_of_Activity: "",
     startTime: "",
     endTime: "",
     duration: "",
     associateWith: "",
-    Event_title: "",
+    Event_Title: "",
     resource: 0,
-    scheduleFor:'',
-    scheduleWith:[],
-    location: "",
+    scheduleFor: "",
+    scheduleWith: [],
+    Venue: "",
     priority: "",
     ringAlarm: "",
     repeat: "once",
@@ -72,10 +166,10 @@ const EditActivityModal = ({ openEditModal,handleClose, selectedRowData, ZOHO,us
       value = parseInt(value, 10); // Convert the input to an integer
     }
 
-    if(field === "scheduleWith"){
+    if (field === "scheduleWith") {
       setFormData((prev) => ({
         ...prev,
-        [field]: Array.isArray(value) ? [...value] : value,  // Spread array values for multiple selections
+        [field]: Array.isArray(value) ? [...value] : value, // Spread array values for multiple selections
       }));
     }
     setFormData((prevState) => ({
@@ -84,11 +178,19 @@ const EditActivityModal = ({ openEditModal,handleClose, selectedRowData, ZOHO,us
     }));
   };
 
-  const handleSubmit = () => {
-    // Add your submit logic here (e.g., send data to the backend)
-    // setEvents((prev) => [...prev, formData]);
-    // setOpen(false);
-    console.log({formData})
+  const handleSubmit = async () => {
+    if(formData.Type_of_Activity !==   "call" && formData.Type_of_Activity !== "todo"){
+      const transformedData = transformFormSubmission(formData);
+      await ZOHO.CRM.API.insertRecord({
+        Entity: "Events",
+        APIData: transformedData,
+        Trigger: ["workflow"],
+      }).then(function (data) {
+        console.log(data);
+      });
+    }else{
+      console.log({formData})
+    }
   };
 
   return (
@@ -110,7 +212,7 @@ const EditActivityModal = ({ openEditModal,handleClose, selectedRowData, ZOHO,us
         <IconButton
           aria-label="close"
           onClick={() => {
-            handleClose()
+            handleClose();
           }}
           sx={{
             position: "absolute",
@@ -165,7 +267,14 @@ const EditActivityModal = ({ openEditModal,handleClose, selectedRowData, ZOHO,us
           value={formData.quillContent}
           onChange={(content) => handleInputChange("quillContent", content)}
         /> */}
-        <TextField multiline rows={10} fullWidth onChange={(content) => handleInputChange("description", content)}/>
+        <TextField
+          multiline
+          rows={10}
+          fullWidth
+          onChange={(event) =>
+            handleInputChange("description", event.target.value)
+          }
+        />
         <Box display="flex" justifyContent="space-between" mt={2}>
           <Button
             size="small"

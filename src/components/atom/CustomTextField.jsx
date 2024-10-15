@@ -12,9 +12,12 @@ const CustomTextField = ({ onChange, value, ...props }) => {
       onChange={onChange}
       {...props} 
       sx={{
-        '& .MuiOutlinedInput-root': {
-          padding: '2px', 
-        
+        height: "40px", // You can adjust this value to your preferred height
+        "& .MuiOutlinedInput-root": {
+          height: "100%", // Ensure the full height is applied to the input
+        },
+        "& .MuiSelect-select, & .MuiAutocomplete-input": {
+          padding: "8px 12px", // Adjust padding to match the height
         },
       }}
     />

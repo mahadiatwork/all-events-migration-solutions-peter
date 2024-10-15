@@ -21,6 +21,19 @@ import { ChromePicker } from "react-color";
 import { Datepicker } from "@mobiscroll/react";
 import RegardingField from "./atom/RegardingField";
 
+const formatTime = (date, hour) => {
+  const newDate = new Date(date);
+  newDate.setHours(hour, 0, 0, 0);
+  // Manually format the date in YYYY-MM-DDTHH:mm without converting to UTC
+  const year = newDate.getFullYear();
+  const month = String(newDate.getMonth() + 1).padStart(2, "0"); // Months are 0-indexed
+  const day = String(newDate.getDate()).padStart(2, "0");
+  const hours = String(newDate.getHours()).padStart(2, "0");
+  const minutes = String(newDate.getMinutes()).padStart(2, "0");
+
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+};
+
 const FirstComponent = ({
   formData,
   handleInputChange,
@@ -49,6 +62,17 @@ const FirstComponent = ({
   const [openDatepicker, setOpenDatepicker] = useState(false);
   const [openStartDatepicker, setOpenStartDatepicker] = useState(false);
   const [openEndDatepicker, setOpenEndDatepicker] = useState(false);
+
+  const handleBannerChecked = (e) => {
+    handleInputChange("Banner", e.target.checked);
+    const now = new Date();
+    console.log(now);
+    const timeAt6AM = formatTime(now, 6);
+    const timeAt7AM = formatTime(now, 7);
+    console.log("fahim", timeAt6AM, timeAt7AM);
+    handleInputChange("start", timeAt6AM);
+    handleInputChange("end", timeAt7AM);
+  };
 
   const handleActivityChange = (event) => {
     const selectedType = event.target.value;
@@ -94,6 +118,7 @@ const FirstComponent = ({
 
   const handleColorChange = (newColor) => {
     setColor(newColor.hex);
+    handleInputChange("color", newColor.hex);
   };
 
   const popover = {
@@ -118,6 +143,17 @@ const FirstComponent = ({
     cursor: "pointer",
     marginLeft: 1,
   };
+
+  const commonStyles = {
+    height: "40px", // You can adjust this value to your preferred height
+    "& .MuiOutlinedInput-root": {
+      height: "100%", // Ensure the full height is applied to the input
+    },
+    "& .MuiSelect-select, & .MuiAutocomplete-input": {
+      padding: "8px 12px", // Adjust padding to match the height
+    },
+  };
+
   return (
     <Box>
       <Grid container spacing={2} sx={{ mt: 2 }}>
@@ -125,15 +161,15 @@ const FirstComponent = ({
           <CustomTextField
             fullWidth
             size="small"
-            label="Event_title"
+            label="Event_Title"
             variant="outlined"
             value={formData.Event_title}
-            onChange={(e) => handleInputChange("Event_title", e.target.value)}
+            onChange={(e) => handleInputChange("Event_Title", e.target.value)}
           />
         </Grid>
 
         <Grid size={12}>
-          <FormControl fullWidth size="small">
+          <FormControl fullWidth size="small" sx={commonStyles}>
             <InputLabel
               id="demo-simple-select-standard-label"
               sx={{ top: "-5px" }}
@@ -186,6 +222,7 @@ const FirstComponent = ({
 
         <Grid size={4}>
           <Datepicker
+            controls={["calendar", "time"]}
             display="center"
             inputComponent={() =>
               customInputComponent(
@@ -213,7 +250,7 @@ const FirstComponent = ({
           />
         </Grid>
         <Grid size={4}>
-          <FormControl fullWidth size="small">
+          <FormControl fullWidth size="small" sx={commonStyles}>
             <InputLabel
               id="demo-simple-select-standard-label"
               // sx={{ top: "-5px" }}
@@ -264,7 +301,7 @@ const FirstComponent = ({
           />
         </Grid>
         <Grid size={6}>
-          <FormControl fullWidth size="small" sx={{ minHeight: "20px" }}>
+          <FormControl fullWidth size="small" sx={commonStyles}>
             <Autocomplete
               id="schedule-for-autocomplete"
               size="small"
@@ -305,12 +342,12 @@ const FirstComponent = ({
             placeholder="Location"
             variant="outlined"
             value={formData.location}
-            onChange={(e) => handleInputChange("location", e.target.value)}
+            onChange={(e) => handleInputChange("Venue", e.target.value)}
           />
         </Grid>
 
         <Grid size={3}>
-          <FormControl fullWidth size="small" sx={{ minHeight: "20px" }}>
+          <FormControl fullWidth size="small" sx={commonStyles}>
             <InputLabel
               id="demo-simple-select-standard-label"
               sx={{ top: "-5px" }}
@@ -338,14 +375,14 @@ const FirstComponent = ({
                 },
               }}
             >
-              <MenuItem value={10}>Low</MenuItem>
-              <MenuItem value={20}>Medium</MenuItem>
-              <MenuItem value={30}>High</MenuItem>
+              <MenuItem value="low">Low</MenuItem>
+              <MenuItem value="medium">Medium</MenuItem>
+              <MenuItem value="high">High</MenuItem>
             </Select>
           </FormControl>
         </Grid>
         <Grid size={3}>
-          <FormControl fullWidth size="small">
+          <FormControl fullWidth size="small" sx={commonStyles}>
             <InputLabel
               id="demo-simple-select-standard-label"
               sx={{ top: "-5px" }}
@@ -373,13 +410,13 @@ const FirstComponent = ({
                 },
               }}
             >
-              <MenuItem value={10}>5 minutes</MenuItem>
-              <MenuItem value={20}>10 minutes</MenuItem>
-              <MenuItem value={30}>15 minutes</MenuItem>
+              <MenuItem value={5}>5 minutes</MenuItem>
+              <MenuItem value={10}>10 minutes</MenuItem>
+              <MenuItem value={15}>15 minutes</MenuItem>
             </Select>
           </FormControl>
         </Grid>
-        <Grid size={4}>
+        <Grid size={6}>
           <RegardingField />
         </Grid>
         <Grid container spacing={2} alignItems="center">
@@ -407,7 +444,10 @@ const FirstComponent = ({
 
           {/* Banner/Timeless Checkbox */}
           <Grid item xs={12} sm={6} md={2}>
-            <FormControlLabel control={<Checkbox />} label="Banner/Timeless" />
+            <FormControlLabel
+              control={<Checkbox onChange={handleBannerChecked} />}
+              label="Banner/Timeless"
+            />
           </Grid>
         </Grid>
         {/* <Grid size={3}>
