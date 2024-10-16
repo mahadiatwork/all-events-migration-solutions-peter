@@ -53,13 +53,13 @@ function formatDateWithOffset(dateString) {
 function transformFormSubmission(data) {
   // Function to transform scheduleWith data into the Participants format
   const transformScheduleWithToParticipants = (scheduleWith) => {
-    return scheduleWith.map(contact => ({
+    return scheduleWith.map((contact) => ({
       Email: contact.Email || null, // Use Email if available, or set to null
       name: contact.Full_Name || null, // Use Full_Name for the name
       invited: false, // Default to false
       type: "contact", // Default type to "contact"
       participant: contact.id || null, // Use id as participant ID
-      status: "not_known" // Default status to "not_known"
+      status: "not_known", // Default status to "not_known"
     }));
   };
 
@@ -67,37 +67,38 @@ function transformFormSubmission(data) {
     ? transformScheduleWithToParticipants(data.scheduleWith)
     : [];
 
-  return {
+  let transformedData = {
     ...data,
     Start_DateTime: formatDateWithOffset(data.start), // Format `start` to ISO with timezone
     End_DateTime: formatDateWithOffset(data.end), // Format `end` to ISO with timezone
     Description: data.description, // Map `description` to `Description`
     Event_Priority: data.priority, // Map `priority` to `Event_Priority`
-    
+
     // Updated `What_Id` with both name and id from `associateWith`
     What_Id: data.associateWith
       ? {
-          name: data.associateWith.Account_Name || null, // Assign name from associateWith
           id: data.associateWith.id || null, // Assign id from associateWith
         }
       : null,
+    se_module: "Accounts",
 
-    // Remove old fields
-    start: undefined,
-    end: undefined,
-    description: undefined,
-    priority: undefined,
-    associateWith: undefined, // Remove associateWith completely
-    
     // Combine the manually set participants and those from `scheduleWith`
-    Participants: [
-      {
-        type: "email",
-        participant: "mahadi.hanshan@gmail.com",
-      },
-      ...participantsFromScheduleWith, // Add participants from scheduleWith
-    ],
+    Participants: [...participantsFromScheduleWith],
   };
+
+  // Explicitly remove the scheduleWith, scheduleFor, and description keys
+  delete transformedData.scheduleWith;
+  delete transformedData.scheduleFor;
+  delete transformedData.description;
+
+  // Remove keys that have null or undefined values
+  Object.keys(transformedData).forEach((key) => {
+    if (transformedData[key] === null || transformedData[key] === undefined) {
+      delete transformedData[key];
+    }
+  });
+
+  return transformedData;
 }
 
 function TabPanel(props) {
@@ -179,18 +180,27 @@ const EditActivityModal = ({
   };
 
   const handleSubmit = async () => {
-    if(formData.Type_of_Activity !==   "call" && formData.Type_of_Activity !== "todo"){
-      const transformedData = transformFormSubmission(formData);
-      await ZOHO.CRM.API.insertRecord({
-        Entity: "Events",
-        APIData: transformedData,
-        Trigger: ["workflow"],
-      }).then(function (data) {
+    const transformedData = transformFormSubmission(formData);
+
+    await ZOHO.CRM.API.insertRecord({
+      Entity: "Events",
+      APIData: transformedData,
+      Trigger: ["workflow"],
+    })
+      .then(function (data) {
         console.log(data);
+        if (
+          data.data &&
+          data.data.length > 0 &&
+          data.data[0].code === "SUCCESS"
+        ) {
+          // If submission is successful, reload the page
+          window.location.reload();
+        }
+      })
+      .catch(function (error) {
+        console.error("Error submitting the form:", error);
       });
-    }else{
-      console.log({formData})
-    }
   };
 
   return (
