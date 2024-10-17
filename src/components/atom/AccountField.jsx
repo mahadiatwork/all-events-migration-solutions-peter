@@ -3,9 +3,9 @@ import React, { useEffect, useState } from "react";
 import SearchIcon from "@mui/icons-material/Search";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline"; // Icon for "Not Found" message
 
-export default function AccountField({ value, handleInputChange, ZOHO }) {
+export default function AccountField({ value, handleInputChange, ZOHO, selectedRowData }) {
   const [accounts, setAccounts] = useState([]);
-  const [inputValue, setInputValue] = useState(""); // Store the input text
+  const [inputValue, setInputValue] = useState(selectedRowData?.What_Id?.name || null); // Store the input text
   const [notFoundMessage, setNotFoundMessage] = useState(""); // Message if nothing is found
 
   useEffect(() => {

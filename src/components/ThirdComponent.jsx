@@ -91,7 +91,6 @@ const ThirdComponent = ({ formData, handleInputChange }) => {
               
               inputComponent={customInputComponent}
               onClose={() => setOpenDatepicker(false)}
-              onChange={(e) => console.log(e.value)}
               // className="mbsc-textfield"
               // inputProps={props}
               // maxHeight={"400px"}

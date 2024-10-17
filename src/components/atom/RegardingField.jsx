@@ -8,19 +8,23 @@ import {
   Box,
 } from "@mui/material";
 
-const RegardingField = () => {
+const RegardingField = ({ handleInputChange }) => {
   const [selectedValue, setSelectedValue] = useState("");
   const [manualInput, setManualInput] = useState("");
 
   const handleSelectChange = (event) => {
-    setSelectedValue(event.target.value);
-    if (event.target.value !== "Other") {
+    const value = event.target.value;
+    setSelectedValue(value);
+    if (value !== "Other") {
       setManualInput(""); // Clear manual input if predefined option is selected
+      handleInputChange("Regarding", value); // Pass the selected value to handleInputChange
     }
   };
 
   const handleManualInputChange = (event) => {
-    setManualInput(event.target.value);
+    const value = event.target.value;
+    setManualInput(value);
+    handleInputChange("Regarding", value); // Pass the manual input value to handleInputChange
   };
 
   return (

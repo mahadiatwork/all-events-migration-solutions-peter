@@ -15,10 +15,7 @@ import { useState } from "react";
 import FirstComponent from "./FirstComponent";
 import SecondComponent from "./SecondComponent";
 import ThirdComponent from "./ThirdComponent";
-import ReactQuill from "react-quill";
-import "react-quill/dist/quill.snow.css";
 import CloseIcon from "@mui/icons-material/Close";
-import { Description } from "@mui/icons-material";
 
 function formatDateWithOffset(dateString) {
   if (!dateString) return null;
@@ -124,17 +121,18 @@ const EditActivityModal = ({
   ZOHO,
   users,
 }) => {
+  console.log({testing: selectedRowData})
   const theme = useTheme();
   const [value, setValue] = useState(0);
   const [textvalue, setTextValue] = useState("");
   const [formData, setFormData] = useState({
     id: `${selectedRowData ? selectedRowData.id : "test"}`,
-    Type_of_Activity: "",
-    startTime: "",
-    endTime: "",
+    Type_of_Activity: `${selectedRowData ? selectedRowData?.Type_of_Activity : ""}`,
+    startTime: selectedRowData?.Start_DateTime,
+    endTime: selectedRowData?.End_DateTime,
     duration: "",
     associateWith: "",
-    Event_Title: "",
+    Event_Title: selectedRowData?.Event_Title,
     resource: 0,
     scheduleFor: "",
     scheduleWith: [],
@@ -145,8 +143,10 @@ const EditActivityModal = ({
     start: "",
     end: "",
     noEndDate: false,
-    description: "",
+    description:  selectedRowData?.Description,
     color: "#fff",
+    Regarding: "",
+    Duration_Min: ""
   });
 
   const handleChange = (event, newValue) => {
@@ -181,14 +181,12 @@ const EditActivityModal = ({
 
   const handleSubmit = async () => {
     const transformedData = transformFormSubmission(formData);
-
     await ZOHO.CRM.API.insertRecord({
       Entity: "Events",
       APIData: transformedData,
       Trigger: ["workflow"],
     })
       .then(function (data) {
-        console.log(data);
         if (
           data.data &&
           data.data.length > 0 &&
@@ -281,6 +279,7 @@ const EditActivityModal = ({
           multiline
           rows={10}
           fullWidth
+          value={selectedRowData?.Description}
           onChange={(event) =>
             handleInputChange("description", event.target.value)
           }

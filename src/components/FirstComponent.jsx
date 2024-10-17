@@ -42,22 +42,22 @@ const FirstComponent = ({
   ZOHO,
 }) => {
   const [activityType, setActivityType] = useState([
-    { type: "meeting", resource: 1 },
-    { type: "todo", resource: 2 },
-    { type: "appointment", resource: 3 },
-    { type: "boardroom", resource: 4 },
-    { type: "call billing", resource: 5 },
-    { type: "email billing", resource: 6 },
-    { type: "initial consultation", resource: 7 },
-    { type: "call", resource: 8 },
-    { type: "mail", resource: 9 },
-    { type: "meeting billing", resource: 10 },
-    { type: "personal activity", resource: 11 },
-    { type: "room 1", resource: 12 },
-    { type: "room 2", resource: 13 },
-    { type: "room 3", resource: 14 },
-    { type: "todo billing", resource: 15 },
-    { type: "vacation", resource: 16 },
+    { type: "Meeting", resource: 1 },
+    { type: "To-Do", resource: 2 },
+    { type: "Appointment", resource: 3 },
+    { type: "Boardroom", resource: 4 },
+    { type: "Call Billing", resource: 5 },
+    { type: "Email Billing", resource: 6 },
+    { type: "Initial Consultation", resource: 7 },
+    { type: "Call", resource: 8 },
+    { type: "Mail", resource: 9 },
+    { type: "Meeting Billing", resource: 10 },
+    { type: "Personal Activity", resource: 11 },
+    { type: "Room 1", resource: 12 },
+    { type: "Room 2", resource: 13 },
+    { type: "Room 3", resource: 14 },
+    { type: "To Do Billing", resource: 15 },
+    { type: "Vacation", resource: 16 },
   ]);
   const [openDatepicker, setOpenDatepicker] = useState(false);
   const [openStartDatepicker, setOpenStartDatepicker] = useState(false);
@@ -66,10 +66,8 @@ const FirstComponent = ({
   const handleBannerChecked = (e) => {
     handleInputChange("Banner", e.target.checked);
     const now = new Date();
-    console.log(now);
     const timeAt6AM = formatTime(now, 6);
     const timeAt7AM = formatTime(now, 7);
-    console.log("fahim", timeAt6AM, timeAt7AM);
     handleInputChange("start", timeAt6AM);
     handleInputChange("end", timeAt7AM);
   };
@@ -90,8 +88,6 @@ const FirstComponent = ({
   const handleAssociateWith = () => {
     handleInputChange("title", selectedActivity.type);
   };
-
-  console.log({ users });
   const customInputComponent = (field, placeholder, openDatepickerState) => {
     return (
       <CustomTextField
@@ -154,6 +150,8 @@ const FirstComponent = ({
     },
   };
 
+  console.log({selectedRowData})
+
   return (
     <Box>
       <Grid container spacing={2} sx={{ mt: 2 }}>
@@ -163,7 +161,7 @@ const FirstComponent = ({
             size="small"
             label="Event_Title"
             variant="outlined"
-            value={formData.Event_title}
+            value={selectedRowData?.Event_Title}
             onChange={(e) => handleInputChange("Event_Title", e.target.value)}
           />
         </Grid>
@@ -181,7 +179,7 @@ const FirstComponent = ({
               id="demo-simple-select-standard"
               label="Activity type"
               fullWidth
-              value={formData.Type_of_Activity}
+              value={selectedRowData?.Type_of_Activity}
               onChange={handleActivityChange}
               MenuProps={{
                 //   disablePortal: true,  // This ensures the dropdown is not restricted to the modal's container
@@ -251,10 +249,7 @@ const FirstComponent = ({
         </Grid>
         <Grid size={4}>
           <FormControl fullWidth size="small" sx={commonStyles}>
-            <InputLabel
-              id="demo-simple-select-standard-label"
-              // sx={{ top: "-5px" }}
-            >
+            <InputLabel id="demo-simple-select-standard-label">
               Duration
             </InputLabel>
             <Select
@@ -262,14 +257,12 @@ const FirstComponent = ({
               id="demo-simple-select-standard"
               label="Duration"
               fullWidth
-              value={formData.duration}
-              onChange={(e) => handleInputChange("duration", e.target.value)}
+              value={selectedRowData?.Duration_Min}
+              onChange={(e) =>
+                handleInputChange("Duration_Min", e.target.value)
+              }
               sx={{
-                // "& .MuiSelect-select": {
-                //   padding: "3px 10px", // Adjust the padding to shrink the Select content
-                // },
                 "& .MuiOutlinedInput-root": {
-                  // height: '40px', // Set a consistent height
                   padding: 0, // Ensure no extra padding
                 },
                 "& .MuiInputBase-input": {
@@ -278,9 +271,14 @@ const FirstComponent = ({
                 },
               }}
             >
-              <MenuItem value={10}>5 minutes</MenuItem>
-              <MenuItem value={20}>10 minutes</MenuItem>
-              <MenuItem value={30}>15 minutes</MenuItem>
+              {Array.from({ length: 24 }, (_, index) => {
+                const minutes = (index + 1) * 10;
+                return (
+                  <MenuItem key={minutes} value={minutes}>
+                    {minutes} minutes
+                  </MenuItem>
+                );
+              })}
             </Select>
           </FormControl>
         </Grid>
@@ -290,6 +288,7 @@ const FirstComponent = ({
             value={formData.associateWith}
             handleInputChange={handleInputChange}
             ZOHO={ZOHO}
+            selectedRowData={selectedRowData}
           />
         </Grid>
 
@@ -341,7 +340,7 @@ const FirstComponent = ({
             size="small"
             placeholder="Location"
             variant="outlined"
-            value={formData.location}
+            value={selectedRowData.Venue}
             onChange={(e) => handleInputChange("Venue", e.target.value)}
           />
         </Grid>
@@ -359,7 +358,7 @@ const FirstComponent = ({
               id="demo-simple-select-standard"
               label="Priority"
               fullWidth
-              value={formData.priority}
+              value={selectedRowData.Event_Priority}
               onChange={(e) => handleInputChange("priority", e.target.value)}
               sx={{
                 "& .MuiSelect-select": {
@@ -375,9 +374,9 @@ const FirstComponent = ({
                 },
               }}
             >
-              <MenuItem value="low">Low</MenuItem>
-              <MenuItem value="medium">Medium</MenuItem>
-              <MenuItem value="high">High</MenuItem>
+              <MenuItem value="Low">Low</MenuItem>
+              <MenuItem value="Medium">Medium</MenuItem>
+              <MenuItem value="High">High</MenuItem>
             </Select>
           </FormControl>
         </Grid>
@@ -417,7 +416,7 @@ const FirstComponent = ({
           </FormControl>
         </Grid>
         <Grid size={6}>
-          <RegardingField />
+          <RegardingField handleInputChange={handleInputChange} />
         </Grid>
         <Grid container spacing={2} alignItems="center">
           {/* Create separate activity for each contact */}

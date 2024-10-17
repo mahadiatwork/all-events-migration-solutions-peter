@@ -109,13 +109,57 @@ export default function ScheduleTable({ events, todo, ZOHO, users }) {
   // Handle checkbox change to open the ClearActivityModal
   const handleCheckboxChange = (index, row) => {
     setSelectedRowIndex(index);
-    setSelectedRowData(row);
-    setOpenClearModal(true);
+    if (row?.id) {
+      async function getData() {
+        try {
+          const response = await ZOHO.CRM.API.getRecord({
+            Entity: "Events",
+            approved: "both",
+            RecordID: row.id,   // Corrected to use row.meetingId instead of selectedRowData.meetingId
+          });
+  
+          if (response && response.data) {
+            setSelectedRowData(response.data[0]);  // Setting the row data after successfully fetching event data
+          }
+          setOpenClearModal(true);    // Open modal after data is fetched
+        } catch (error) {
+          console.error("Error fetching data:", error);
+        }
+      }
+      getData();
+      return; // Exit the function if data is being fetched
+    }
+  
+    // If no meetingId, just open the modal
+    setSelectedRowData(row);  // Directly set row data if no meetingId
+    setOpenClearModal(true);  // Open modal immediately
   };
+  
+  
 
   // Handle row click to open the EditActivityModal
   const handleRowClick = (index, row) => {
     setSelectedRowIndex(index);
+    if (row?.id) {
+      async function getData() {
+        try {
+          const response = await ZOHO.CRM.API.getRecord({
+            Entity: "Events",
+            approved: "both",
+            RecordID: row.id,   // Corrected to use row.meetingId instead of selectedRowData.meetingId
+          });
+  
+          if (response && response.data) {
+            setSelectedRowData(response.data[0]);  // Setting the row data after successfully fetching event data
+          }
+          setOpenEditModal(true);    // Open modal after data is fetched
+        } catch (error) {
+          console.error("Error fetching data:", error);
+        }
+      }
+      getData();
+      return; // Exit the function if data is being fetched
+    }
     setSelectedRowData(row);
     setOpenEditModal(true);
   };
@@ -179,7 +223,6 @@ export default function ScheduleTable({ events, todo, ZOHO, users }) {
     );
   });
 
-  console.log({events})
 
   return (
     <>
