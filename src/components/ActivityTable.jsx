@@ -80,7 +80,7 @@ function createData(event, type) {
   };
 }
 
-export default function ScheduleTable({ events, todo, ZOHO, users }) {
+export default function ScheduleTable({ events, ZOHO, users }) {
   const [selectedRowIndex, setSelectedRowIndex] = React.useState(null);
   const [openClearModal, setOpenClearModal] = React.useState(false);
   const [openEditModal, setOpenEditModal] = React.useState(false);
@@ -89,14 +89,10 @@ export default function ScheduleTable({ events, todo, ZOHO, users }) {
   // Combine events, todo, and calls into one dataset
   const rows = [
     ...events.map((event) => createData(event, "Meeting")),
-    ...todo.map((task) => createData(task, "To-Do")),
   ];
 
   // Get the min and max dates from the events, todo, and calls
-  const allDates = [...events, ...todo].map(
-    (item) =>
-      new Date(item.Start_DateTime || item.Due_Date || item.Call_Start_Time)
-  );
+  const allDates = [...events];
   const maxDate =
     allDates.length > 0 ? new Date(Math.max(...allDates)) : new Date();
 

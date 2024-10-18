@@ -33,14 +33,6 @@ function App() {
         });
         setEvents(allMeetings.data);
 
-        const todos = await ZOHO.CRM.API.getAllRecords({
-          Entity: "Tasks",
-          sort_order: "asc",
-          per_page: 100,
-          page: 1,
-        });
-        setTodo(todos.data);
-
         const usersResponse = await ZOHO.CRM.API.getAllRecords({
           Entity: "users",
           sort_order: "asc",
