@@ -17,6 +17,7 @@ import {
 } from "@mui/material";
 import ClearActivityModal from "./ClearActivityModal";
 import EditActivityModal from "./EditActivityModal";
+import CreateActivityModal from "./CreateActivityModal"
 import {
   subDays,
   startOfWeek,
@@ -25,6 +26,7 @@ import {
   isAfter,
   isBefore,
 } from "date-fns";
+
 
 // Function to create row data for To-Do, Meeting, and Call
 function createData(event, type) {
@@ -85,7 +87,7 @@ export default function ScheduleTable({ events, ZOHO, users }) {
   const [openClearModal, setOpenClearModal] = React.useState(false);
   const [openEditModal, setOpenEditModal] = React.useState(false);
   const [selectedRowData, setSelectedRowData] = React.useState(null);
-
+  const [openCreateModal, setOpenCreateModal] = React.useState(false); 
   // Combine events, todo, and calls into one dataset
   const rows = [
     ...events.map((event) => createData(event, "Meeting")),
@@ -164,6 +166,7 @@ export default function ScheduleTable({ events, ZOHO, users }) {
   const handleClose = () => {
     setOpenClearModal(false);
     setOpenEditModal(false);
+    setOpenCreateModal(false); // Close the CreateActivityModal
   };
 
   // Date Filter logic
@@ -296,7 +299,7 @@ export default function ScheduleTable({ events, ZOHO, users }) {
           <Button
             variant="contained"
             fullWidth
-            onClick={() => setOpenEditModal(true)}
+            onClick={() => setOpenCreateModal(true)}
           >
             Create New Event
           </Button>
@@ -418,6 +421,14 @@ export default function ScheduleTable({ events, ZOHO, users }) {
           open={openEditModal}
           handleClose={handleClose}
           selectedRowData={selectedRowData}
+          ZOHO={ZOHO}
+          users={users}
+        />
+      )}
+      {openCreateModal && (
+        <CreateActivityModal
+          open={openCreateModal}  // Pass the open state to the modal
+          handleClose={handleClose}  // Use handleClose to close the modal
           ZOHO={ZOHO}
           users={users}
         />
