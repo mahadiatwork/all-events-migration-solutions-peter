@@ -5,7 +5,7 @@ import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline"; // Icon for "No
 
 export default function AccountField({ value, handleInputChange, ZOHO, selectedRowData }) {
   const [accounts, setAccounts] = useState([]);
-  const [inputValue, setInputValue] = useState(selectedRowData?.What_Id?.name || null); // Store the input text
+  const [inputValue, setInputValue] = useState(selectedRowData?.What_Id?.name || ""); // Set default to What_Id name
   const [notFoundMessage, setNotFoundMessage] = useState(""); // Message if nothing is found
 
   useEffect(() => {
@@ -59,7 +59,9 @@ export default function AccountField({ value, handleInputChange, ZOHO, selectedR
         getOptionLabel={(option) =>
           typeof option === "string" ? option : option.Account_Name // Assuming accounts have an 'Account_Name' property
         }
-        value={value}
+        value={
+          value || selectedRowData?.What_Id.name || null // Set default value based on selectedRowData What_Id
+        }
         onChange={(event, newValue) => {
           handleInputChange("associateWith", newValue); // Handle the selected value
         }}

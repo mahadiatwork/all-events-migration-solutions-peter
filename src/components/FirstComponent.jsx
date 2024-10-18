@@ -150,8 +150,6 @@ const FirstComponent = ({
     },
   };
 
-  console.log({selectedRowData})
-
   return (
     <Box>
       <Grid container spacing={2} sx={{ mt: 2 }}>
@@ -297,6 +295,7 @@ const FirstComponent = ({
             value={formData.scheduledWith}
             handleInputChange={handleInputChange}
             ZOHO={ZOHO}
+            selectedRowData={selectedRowData}
           />
         </Grid>
         <Grid size={6}>
@@ -310,7 +309,9 @@ const FirstComponent = ({
                   : []
               } // Extract user names
               getOptionLabel={(option) => option || ""}
-              value={formData.scheduleFor}
+              value={
+                formData.scheduleFor || selectedRowData?.Owner?.name || "" // Set default value based on selectedRowData Owner name
+              }
               onChange={(event, newValue) => {
                 handleInputChange("scheduleFor", newValue || "");
               }}
@@ -340,7 +341,7 @@ const FirstComponent = ({
             size="small"
             placeholder="Location"
             variant="outlined"
-            value={selectedRowData.Venue}
+            value={selectedRowData?.Venue}
             onChange={(e) => handleInputChange("Venue", e.target.value)}
           />
         </Grid>
@@ -358,7 +359,7 @@ const FirstComponent = ({
               id="demo-simple-select-standard"
               label="Priority"
               fullWidth
-              value={selectedRowData.Event_Priority}
+              value={selectedRowData?.Event_Priority}
               onChange={(e) => handleInputChange("priority", e.target.value)}
               sx={{
                 "& .MuiSelect-select": {

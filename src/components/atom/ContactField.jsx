@@ -3,11 +3,14 @@ import React, { useEffect, useState } from "react";
 import SearchIcon from "@mui/icons-material/Search";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline"; // Import an icon for the "Not Found" message
 
-export default function ContactField({ value, handleInputChange, ZOHO }) {
+export default function ContactField({ value, handleInputChange, ZOHO, selectedRowData }) {
   const [contacts, setContacts] = useState([]);
   const [inputValue, setInputValue] = useState(""); // Store the input text
   const [advancedSearchActivated, setAdvancedSearchActivated] = useState(false);
   const [notFoundMessage, setNotFoundMessage] = useState("");
+
+  // Extract participants from selectedRowData and set as default values for the autocomplete
+  const defaultParticipants = selectedRowData?.Participants || [];
 
   useEffect(() => {
     async function getData() {
@@ -52,7 +55,8 @@ export default function ContactField({ value, handleInputChange, ZOHO }) {
       setNotFoundMessage("Please enter a valid search term.");
     }
   };
-  
+
+  console.log({defaultParticipants: selectedRowData  })
 
   return (
     <Box>
@@ -62,7 +66,10 @@ export default function ContactField({ value, handleInputChange, ZOHO }) {
         getOptionLabel={(option) =>
           typeof option === "string" ? option : option.Full_Name
         } // Assuming contacts have a 'Full_Name' property
-        value={value} // An array of selected values for multi-select
+        value={ defaultParticipants.map((participant) => ({
+          Full_Name: participant.name, // Set default value based on participant name
+          id: participant.participant, // Use participant ID as well for reference
+        }))} // Default value is mapped from selectedRowData Participants
         onChange={(event, newValue) => {
           handleInputChange("scheduleWith", newValue); // Set the entire array of selected values
         }}
