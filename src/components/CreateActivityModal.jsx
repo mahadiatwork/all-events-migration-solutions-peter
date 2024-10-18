@@ -53,6 +53,7 @@ function transformFormSubmission(data) {
     What_Id: data.associateWith
       ? { id: data.associateWith.id || null }
       : null,
+    Duration_Min: data.Duration_Min.toString(),
     se_module: "Accounts",
     Participants: [...participantsFromScheduleWith],
   };
@@ -148,6 +149,7 @@ const CreateActivityModal = ({ openCreateModal, handleClose, ZOHO, users }) => {
     })
       .then((data) => {
         if (data.data && data.data.length > 0 && data.data[0].code === "SUCCESS") {
+          alert("Event Created Successfully")  
           window.location.reload();
         }
       })

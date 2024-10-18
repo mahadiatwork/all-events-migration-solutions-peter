@@ -126,27 +126,21 @@ const EditActivityModal = ({
   const [value, setValue] = useState(0);
   const [textvalue, setTextValue] = useState("");
   const [formData, setFormData] = useState({
-    id: `${selectedRowData ? selectedRowData.id : "test"}`,
-    Type_of_Activity: `${selectedRowData ? selectedRowData?.Type_of_Activity : ""}`,
-    startTime: selectedRowData?.Start_DateTime,
-    endTime: selectedRowData?.End_DateTime,
-    duration: "",
-    associateWith: "",
-    Event_Title: selectedRowData?.Event_Title,
-    resource: 0,
-    scheduleFor: "",
-    scheduleWith: [],
-    Venue: "",
-    priority: "",
-    ringAlarm: "",
-    repeat: "once",
-    start: "",
-    end: "",
-    noEndDate: false,
-    description:  selectedRowData?.Description,
-    color: "#fff",
-    Regarding: "",
-    Duration_Min: ""
+    id: selectedRowData?.id,
+    Event_Title: selectedRowData?.Event_Title || "",
+    Type_of_Activity: selectedRowData?.Type_of_Activity || "",
+    start: selectedRowData?.Start_DateTime || "",
+    end: selectedRowData?.End_DateTime || "",
+    Duration_Min: selectedRowData?.Duration_Min || "",
+    associateWith: selectedRowData?.What_Id?.name || "",
+    scheduledWith: selectedRowData?.Participants
+      ? selectedRowData.Participants
+      : [], // Map 'name' and 'participant' to create the appropriate structure for Autocomplete
+    Venue: selectedRowData?.Venue || "",
+    priority: selectedRowData?.Event_Priority || "",
+    ringAlarm: selectedRowData?.ringAlarm || "",
+    Colour: selectedRowData?.Colour || "#ff0000",
+    Regarding: selectedRowData?.Regarding || "#ff0000",
   });
 
   const handleChange = (event, newValue) => {
@@ -181,7 +175,9 @@ const EditActivityModal = ({
 
   const handleSubmit = async () => {
     const transformedData = transformFormSubmission(formData);
-    await ZOHO.CRM.API.insertRecord({
+    console.log({transformedData})
+    return
+    await ZOHO.CRM.API.updateRecord({
       Entity: "Events",
       APIData: transformedData,
       Trigger: ["workflow"],
@@ -193,6 +189,7 @@ const EditActivityModal = ({
           data.data[0].code === "SUCCESS"
         ) {
           // If submission is successful, reload the page
+          alert("Event Updated Successfully")
           window.location.reload();
         }
       })

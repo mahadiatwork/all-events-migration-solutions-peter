@@ -11,10 +11,10 @@ export default function ContactField({ value, handleInputChange, ZOHO, selectedR
 
   // Extract participants from selectedRowData and set them as the default value
   useEffect(() => {
-    if (selectedRowData?.Participants) {
-      const defaultParticipants = selectedRowData.Participants.map((participant) => ({
-        Full_Name: participant.name,
-        id: participant.participant,
+    if (value) {
+      const defaultParticipants = value.map((participant) => ({
+        Full_Name: participant.name, // Use Full_Name to match contacts
+        id: participant.participant, // Map participant ID
       }));
       setSelectedParticipants(defaultParticipants);
     }
@@ -30,7 +30,14 @@ export default function ContactField({ value, handleInputChange, ZOHO, selectedR
           per_page: 100,
           page: 1,
         });
-        setContacts(usersResponse.data); // Assuming usersResponse contains 'data'
+        // Assuming Zoho returns contacts with Full_Name, map the result correctly
+        if (usersResponse?.data) {
+          const formattedContacts = usersResponse.data.map((contact) => ({
+            Full_Name: contact.Full_Name,
+            id: contact.id,
+          }));
+          setContacts(formattedContacts); // Store contacts in correct structure
+        }
       }
     }
     getData();
@@ -50,7 +57,11 @@ export default function ContactField({ value, handleInputChange, ZOHO, selectedR
         });
 
         if (searchResults.data && searchResults.data.length > 0) {
-          setContacts(searchResults.data); // Update contacts list with search results
+          const formattedContacts = searchResults.data.map((contact) => ({
+            Full_Name: contact.Full_Name,
+            id: contact.id,
+          }));
+          setContacts(formattedContacts); // Update contacts list with search results
           setNotFoundMessage(""); // Clear the "Not Found" message
         } else {
           setNotFoundMessage(`"${inputValue}" not found in the database`); // Show "Not Found" message
@@ -66,7 +77,14 @@ export default function ContactField({ value, handleInputChange, ZOHO, selectedR
 
   const handleSelectionChange = (event, newValue) => {
     setSelectedParticipants(newValue); // Update the selected values
-    handleInputChange("scheduleWith", newValue); // Pass selected values to parent via handleInputChange
+    // Update the parent component with the selected contacts
+    handleInputChange(
+      "scheduleWith",
+      newValue.map((contact) => ({
+        name: contact.Full_Name,
+        participant: contact.id,
+      }))
+    );
   };
 
   return (

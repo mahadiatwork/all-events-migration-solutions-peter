@@ -1,7 +1,6 @@
 import {
   Autocomplete,
   Box,
-  Button,
   Checkbox,
   FormControl,
   FormControlLabel,
@@ -12,8 +11,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import React from "react";
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import CustomTextField from "./atom/CustomTextField";
 import ContactField from "./atom/ContactField";
 import AccountField from "./atom/AccountField";
@@ -24,9 +22,8 @@ import RegardingField from "./atom/RegardingField";
 const formatTime = (date, hour) => {
   const newDate = new Date(date);
   newDate.setHours(hour, 0, 0, 0);
-  // Manually format the date in YYYY-MM-DDTHH:mm without converting to UTC
   const year = newDate.getFullYear();
-  const month = String(newDate.getMonth() + 1).padStart(2, "0"); // Months are 0-indexed
+  const month = String(newDate.getMonth() + 1).padStart(2, "0");
   const day = String(newDate.getDate()).padStart(2, "0");
   const hours = String(newDate.getHours()).padStart(2, "0");
   const minutes = String(newDate.getMinutes()).padStart(2, "0");
@@ -41,7 +38,8 @@ const FirstComponent = ({
   selectedRowData,
   ZOHO,
 }) => {
-  const [activityType, setActivityType] = useState([
+  // Add the missing activityType array back
+  const [activityType] = useState([
     { type: "Meeting", resource: 1 },
     { type: "To-Do", resource: 2 },
     { type: "Appointment", resource: 3 },
@@ -59,9 +57,38 @@ const FirstComponent = ({
     { type: "To Do Billing", resource: 15 },
     { type: "Vacation", resource: 16 },
   ]);
-  const [openDatepicker, setOpenDatepicker] = useState(false);
+
+  useEffect(() => {
+    if (selectedRowData) {
+      handleInputChange("Event_Title", selectedRowData.Event_Title || "");
+      handleInputChange("Type_of_Activity", selectedRowData.Type_of_Activity || "");
+      handleInputChange("start", selectedRowData.Start_DateTime || "");
+      handleInputChange("end", selectedRowData.End_DateTime || "");
+      handleInputChange("Duration_Min", selectedRowData.Duration_Min || "");
+      handleInputChange("Venue", selectedRowData.Venue || "");
+      handleInputChange("priority", selectedRowData.Event_Priority || "");
+      handleInputChange("ringAlarm", selectedRowData.ringAlarm || "");
+      handleInputChange("Colour", selectedRowData.Colour || "#ff0000");
+      handleInputChange(
+        "scheduleFor",
+        selectedRowData.Owner?.name || "" // Set the default value for scheduleFor
+      );
+      handleInputChange(
+        "scheduledWith",
+        selectedRowData.Participants
+          ? selectedRowData.Participants.map((participant) => ({
+              name: participant.name,
+              id: participant.participant,
+            }))
+          : []
+      ); // Map scheduledWith from selectedRowData Participants
+    }
+  }, [selectedRowData]);
+
   const [openStartDatepicker, setOpenStartDatepicker] = useState(false);
   const [openEndDatepicker, setOpenEndDatepicker] = useState(false);
+  const [displayColorPicker, setDisplayColorPicker] = useState(false);
+  const [color, setColor] = useState(formData.Colour || "#ff0000");
 
   const handleBannerChecked = (e) => {
     handleInputChange("Banner", e.target.checked);
@@ -77,32 +104,11 @@ const FirstComponent = ({
     const selectedActivity = activityType.find(
       (item) => item.type === selectedType
     );
-
     if (selectedActivity) {
-      // Update both the activity type and the resource
       handleInputChange("Type_of_Activity", selectedActivity.type);
       handleInputChange("resource", selectedActivity.resource);
     }
   };
-
-  const handleAssociateWith = () => {
-    handleInputChange("title", selectedActivity.type);
-  };
-  const customInputComponent = (field, placeholder, openDatepickerState) => {
-    return (
-      <CustomTextField
-        fullWidth
-        size="small"
-        placeholder={placeholder}
-        variant="outlined"
-        value={formData[field]}
-        onClick={() => openDatepickerState(true)}
-      />
-    );
-  };
-
-  const [displayColorPicker, setDisplayColorPicker] = useState(false);
-  const [color, setColor] = useState("#ff0000"); // Default color set to red
 
   const handleClick = () => {
     setDisplayColorPicker(!displayColorPicker);
@@ -114,7 +120,20 @@ const FirstComponent = ({
 
   const handleColorChange = (newColor) => {
     setColor(newColor.hex);
-    handleInputChange("color", newColor.hex);
+    handleInputChange("Colour", newColor.hex);
+  };
+
+  const customInputComponent = (field, placeholder, openDatepickerState) => {
+    return (
+      <CustomTextField
+        fullWidth
+        size="small"
+        placeholder={placeholder}
+        variant="outlined"
+        value={formData[field]} // Use formData
+        onClick={() => openDatepickerState(true)}
+      />
+    );
   };
 
   const popover = {
@@ -141,12 +160,12 @@ const FirstComponent = ({
   };
 
   const commonStyles = {
-    height: "40px", // You can adjust this value to your preferred height
+    height: "40px", 
     "& .MuiOutlinedInput-root": {
-      height: "100%", // Ensure the full height is applied to the input
+      height: "100%",
     },
     "& .MuiSelect-select, & .MuiAutocomplete-input": {
-      padding: "8px 12px", // Adjust padding to match the height
+      padding: "8px 12px",
     },
   };
 
@@ -159,59 +178,25 @@ const FirstComponent = ({
             size="small"
             label="Event_Title"
             variant="outlined"
-            value={selectedRowData?.Event_Title}
+            value={formData.Event_Title} // Use formData
             onChange={(e) => handleInputChange("Event_Title", e.target.value)}
           />
         </Grid>
 
         <Grid size={12}>
           <FormControl fullWidth size="small" sx={commonStyles}>
-            <InputLabel
-              id="demo-simple-select-standard-label"
-              sx={{ top: "-5px" }}
-            >
-              Activity type
-            </InputLabel>
+            <InputLabel>Activity type</InputLabel>
             <Select
-              labelId="demo-simple-select-standard-label"
-              id="demo-simple-select-standard"
               label="Activity type"
               fullWidth
-              value={selectedRowData?.Type_of_Activity}
+              value={formData.Type_of_Activity} // Use formData
               onChange={handleActivityChange}
-              MenuProps={{
-                //   disablePortal: true,  // This ensures the dropdown is not restricted to the modal's container
-                PaperProps: {
-                  style: {
-                    zIndex: 1300, // Increase this if necessary, depending on the z-index of your popup
-                  },
-                },
-              }}
-              sx={{
-                "& .MuiSelect-select": {
-                  padding: "3px 10px", // Adjust the padding to shrink the Select content
-                },
-                "& .MuiOutlinedInput-root": {
-                  // height: '40px', // Set a consistent height
-                  padding: 0, // Ensure no extra padding
-                },
-                "& .MuiInputBase-input": {
-                  display: "flex",
-                  alignItems: "center", // Align the content vertically
-                },
-              }}
             >
               {activityType.map((item, index) => (
                 <MenuItem value={item.type} key={index}>
                   {item.type}
                 </MenuItem>
               ))}
-              {/* <MenuItem value="">
-                <em>None</em>
-              </MenuItem>
-              
-              <MenuItem value={20}>Twenty</MenuItem>
-              <MenuItem value={30}>Thirty</MenuItem> */}
             </Select>
           </FormControl>
         </Grid>
@@ -221,11 +206,7 @@ const FirstComponent = ({
             controls={["calendar", "time"]}
             display="center"
             inputComponent={() =>
-              customInputComponent(
-                "start",
-                "Start Time",
-                setOpenStartDatepicker
-              )
+              customInputComponent("start", "Start Time", setOpenStartDatepicker)
             }
             onClose={() => setOpenStartDatepicker(false)}
             onChange={(e) => handleInputChange("start", e.value)}
@@ -247,27 +228,12 @@ const FirstComponent = ({
         </Grid>
         <Grid size={4}>
           <FormControl fullWidth size="small" sx={commonStyles}>
-            <InputLabel id="demo-simple-select-standard-label">
-              Duration
-            </InputLabel>
+            <InputLabel>Duration</InputLabel>
             <Select
-              labelId="demo-simple-select-standard-label"
-              id="demo-simple-select-standard"
               label="Duration"
               fullWidth
-              value={selectedRowData?.Duration_Min}
-              onChange={(e) =>
-                handleInputChange("Duration_Min", e.target.value)
-              }
-              sx={{
-                "& .MuiOutlinedInput-root": {
-                  padding: 0, // Ensure no extra padding
-                },
-                "& .MuiInputBase-input": {
-                  display: "flex",
-                  alignItems: "center", // Align the content vertically
-                },
-              }}
+              value={formData.Duration_Min} // Use formData
+              onChange={(e) => handleInputChange("Duration_Min", e.target.value)}
             >
               {Array.from({ length: 24 }, (_, index) => {
                 const minutes = (index + 1) * 10;
@@ -283,19 +249,17 @@ const FirstComponent = ({
 
         <Grid size={6}>
           <AccountField
-            value={formData.associateWith}
+            value={formData.associateWith} // Use formData
             handleInputChange={handleInputChange}
             ZOHO={ZOHO}
-            selectedRowData={selectedRowData}
           />
         </Grid>
 
         <Grid size={6}>
           <ContactField
-            value={formData.scheduledWith}
+            value={formData.scheduledWith} // Use formData
             handleInputChange={handleInputChange}
             ZOHO={ZOHO}
-            selectedRowData={selectedRowData}
           />
         </Grid>
         <Grid size={6}>
@@ -303,15 +267,9 @@ const FirstComponent = ({
             <Autocomplete
               id="schedule-for-autocomplete"
               size="small"
-              options={
-                users && users.length > 0
-                  ? users.map((user) => user.full_name)
-                  : []
-              } // Extract user names
+              options={users && users.length > 0 ? users.map((user) => user.full_name) : []}
               getOptionLabel={(option) => option || ""}
-              value={
-                formData.scheduleFor || selectedRowData?.Owner?.name || "" // Set default value based on selectedRowData Owner name
-              }
+              value={formData.scheduleFor || ""} // Use formData
               onChange={(event, newValue) => {
                 handleInputChange("scheduleFor", newValue || "");
               }}
@@ -322,12 +280,12 @@ const FirstComponent = ({
                   label="Schedule for ..."
                   sx={{
                     "& .MuiOutlinedInput-root": {
-                      padding: 0, // Adjust padding for consistent height
+                      padding: 0,
                     },
                     "& .MuiInputBase-input": {
-                      padding: "3px 10px", // Shrink input content padding
+                      padding: "3px 10px",
                       display: "flex",
-                      alignItems: "center", // Align content vertically
+                      alignItems: "center",
                     },
                   }}
                 />
@@ -341,39 +299,19 @@ const FirstComponent = ({
             size="small"
             placeholder="Location"
             variant="outlined"
-            value={selectedRowData?.Venue}
+            value={formData.Venue} // Use formData
             onChange={(e) => handleInputChange("Venue", e.target.value)}
           />
         </Grid>
 
         <Grid size={3}>
           <FormControl fullWidth size="small" sx={commonStyles}>
-            <InputLabel
-              id="demo-simple-select-standard-label"
-              sx={{ top: "-5px" }}
-            >
-              Priority
-            </InputLabel>
+            <InputLabel>Priority</InputLabel>
             <Select
-              labelId="demo-simple-select-standard-label"
-              id="demo-simple-select-standard"
               label="Priority"
               fullWidth
-              value={selectedRowData?.Event_Priority}
+              value={formData.priority} // Use formData
               onChange={(e) => handleInputChange("priority", e.target.value)}
-              sx={{
-                "& .MuiSelect-select": {
-                  padding: "3px 10px", // Adjust the padding to shrink the Select content
-                },
-                "& .MuiOutlinedInput-root": {
-                  // height: '40px', // Set a consistent height
-                  padding: 0, // Ensure no extra padding
-                },
-                "& .MuiInputBase-input": {
-                  display: "flex",
-                  alignItems: "center", // Align the content vertically
-                },
-              }}
             >
               <MenuItem value="Low">Low</MenuItem>
               <MenuItem value="Medium">Medium</MenuItem>
@@ -383,32 +321,12 @@ const FirstComponent = ({
         </Grid>
         <Grid size={3}>
           <FormControl fullWidth size="small" sx={commonStyles}>
-            <InputLabel
-              id="demo-simple-select-standard-label"
-              sx={{ top: "-5px" }}
-            >
-              Ring Alarm
-            </InputLabel>
+            <InputLabel>Ring Alarm</InputLabel>
             <Select
-              labelId="demo-simple-select-standard-label"
-              id="demo-simple-select-standard"
               label="Ring Alarm"
               fullWidth
-              value={formData.ringAlarm}
+              value={formData.ringAlarm} // Use formData
               onChange={(e) => handleInputChange("ringAlarm", e.target.value)}
-              sx={{
-                "& .MuiSelect-select": {
-                  padding: "3px 10px", // Adjust the padding to shrink the Select content
-                },
-                "& .MuiOutlinedInput-root": {
-                  // height: '40px', // Set a consistent height
-                  padding: 0, // Ensure no extra padding
-                },
-                "& .MuiInputBase-input": {
-                  display: "flex",
-                  alignItems: "center", // Align the content vertically
-                },
-              }}
             >
               <MenuItem value={5}>5 minutes</MenuItem>
               <MenuItem value={10}>10 minutes</MenuItem>
@@ -417,10 +335,9 @@ const FirstComponent = ({
           </FormControl>
         </Grid>
         <Grid size={6}>
-          <RegardingField handleInputChange={handleInputChange} />
+          <RegardingField formData={formData} handleInputChange={handleInputChange} />
         </Grid>
         <Grid container spacing={2} alignItems="center">
-          {/* Create separate activity for each contact */}
           <Grid item xs={12} sm={6} md={8}>
             <FormControlLabel
               control={<Checkbox />}
@@ -428,7 +345,6 @@ const FirstComponent = ({
             />
           </Grid>
 
-          {/* Color Picker and Text */}
           <Grid item xs={6} sm={4} md={2} display="flex" alignItems="center">
             <Typography variant="body1" sx={{ mr: 1 }}>
               Colour:
@@ -442,7 +358,6 @@ const FirstComponent = ({
             )}
           </Grid>
 
-          {/* Banner/Timeless Checkbox */}
           <Grid item xs={12} sm={6} md={2}>
             <FormControlLabel
               control={<Checkbox onChange={handleBannerChecked} />}
@@ -450,17 +365,6 @@ const FirstComponent = ({
             />
           </Grid>
         </Grid>
-        {/* <Grid size={3}>
-          <Button
-            variant="contained"
-            size="small"
-            sx={{ bgcolor: "gray" }}
-            fullWidth
-          >
-            {" "}
-            Schedule for
-          </Button>
-        </Grid> */}
       </Grid>
     </Box>
   );

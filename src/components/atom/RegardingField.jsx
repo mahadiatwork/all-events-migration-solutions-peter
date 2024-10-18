@@ -8,8 +8,8 @@ import {
   Box,
 } from "@mui/material";
 
-const RegardingField = ({ handleInputChange }) => {
-  const [selectedValue, setSelectedValue] = useState("");
+const RegardingField = ({ formData, handleInputChange }) => {
+  const [selectedValue, setSelectedValue] = useState(formData.Regarding || "");
   const [manualInput, setManualInput] = useState("");
 
   const handleSelectChange = (event) => {
