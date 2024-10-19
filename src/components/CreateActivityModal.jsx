@@ -1,6 +1,14 @@
 import React, { useState } from "react";
 import "@mobiscroll/react/dist/css/mobiscroll.min.css";
-import { Box, Button, IconButton, Tab, Tabs, TextField, Typography } from "@mui/material";
+import {
+  Box,
+  Button,
+  IconButton,
+  Tab,
+  Tabs,
+  TextField,
+  Typography,
+} from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import FirstComponent from "./FirstComponent";
 import SecondComponent from "./SecondComponent";
@@ -43,21 +51,25 @@ function transformFormSubmission(data) {
   const participantsFromScheduleWith = data.scheduleWith
     ? transformScheduleWithToParticipants(data.scheduleWith)
     : [];
-
   let transformedData = {
     ...data,
-    Start_DateTime: formatDateWithOffset(data.start),
-    End_DateTime: formatDateWithOffset(data.end),
-    Description: data.description,
-    Event_Priority: data.priority,
-    What_Id: data.associateWith
-      ? { id: data.associateWith.id || null }
-      : null,
-    Duration_Min: data.Duration_Min.toString(),
-    se_module: "Accounts",
-    Participants: [...participantsFromScheduleWith],
-  };
+    Start_DateTime: formatDateWithOffset(data.start), // Format `start` to ISO with timezone
+    End_DateTime: formatDateWithOffset(data.end), // Format `end` to ISO with timezone
+    Description: data.Description, // Map `description` to `Description`
+    Event_Priority: data.priority, // Map `priority` to `Event_Priority`
 
+    // Updated `What_Id` with both name and id from `associateWith`
+    What_Id: data.associateWith
+      ? {
+          id: data.associateWith.id || null, // Assign id from associateWith
+        }
+      : null,
+    se_module: "Accounts",
+
+    // Combine the manually set participants and those from `scheduleWith`
+    Participants: data.scheduledWith,
+    Duration_Min: data.Duration_Min.toString()
+  };
   delete transformedData.scheduleWith;
   delete transformedData.scheduleFor;
   delete transformedData.description;
@@ -148,8 +160,12 @@ const CreateActivityModal = ({ openCreateModal, handleClose, ZOHO, users }) => {
       Trigger: ["workflow"],
     })
       .then((data) => {
-        if (data.data && data.data.length > 0 && data.data[0].code === "SUCCESS") {
-          alert("Event Created Successfully")  
+        if (
+          data.data &&
+          data.data.length > 0 &&
+          data.data[0].code === "SUCCESS"
+        ) {
+          alert("Event Created Successfully");
           window.location.reload();
         }
       })
@@ -183,7 +199,12 @@ const CreateActivityModal = ({ openCreateModal, handleClose, ZOHO, users }) => {
         </IconButton>
       </Box>
       <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
-        <Tabs value={value} onChange={handleChange} textColor="inherit" aria-label="simple tabs example">
+        <Tabs
+          value={value}
+          onChange={handleChange}
+          textColor="inherit"
+          aria-label="simple tabs example"
+        >
           <Tab label="General" />
           <Tab label="Details" />
           <Tab label="Recurrence" />
@@ -200,7 +221,12 @@ const CreateActivityModal = ({ openCreateModal, handleClose, ZOHO, users }) => {
           <Button size="small" disabled>
             Back
           </Button>
-          <Button size="small" variant="contained" color="primary" onClick={handleNext}>
+          <Button
+            size="small"
+            variant="contained"
+            color="primary"
+            onClick={handleNext}
+          >
             Next
           </Button>
         </Box>
@@ -212,24 +238,49 @@ const CreateActivityModal = ({ openCreateModal, handleClose, ZOHO, users }) => {
           rows={10}
           fullWidth
           value={formData.description}
-          onChange={(event) => handleInputChange("description", event.target.value)}
+          onChange={(event) =>
+            handleInputChange("description", event.target.value)
+          }
         />
         <Box display="flex" justifyContent="space-between" mt={2}>
-          <Button size="small" variant="contained" color="primary" onClick={handleBack}>
+          <Button
+            size="small"
+            variant="contained"
+            color="primary"
+            onClick={handleBack}
+          >
             Back
           </Button>
-          <Button size="small" variant="contained" color="primary" onClick={handleNext}>
+          <Button
+            size="small"
+            variant="contained"
+            color="primary"
+            onClick={handleNext}
+          >
             Next
           </Button>
         </Box>
       </TabPanel>
       <TabPanel value={value} index={2}>
-        <ThirdComponent formData={formData} handleInputChange={handleInputChange} />
+        <ThirdComponent
+          formData={formData}
+          handleInputChange={handleInputChange}
+        />
         <Box display="flex" justifyContent="space-between" mt={2}>
-          <Button size="small" variant="contained" color="primary" onClick={handleBack}>
+          <Button
+            size="small"
+            variant="contained"
+            color="primary"
+            onClick={handleBack}
+          >
             Back
           </Button>
-          <Button size="small" variant="contained" color="secondary" onClick={handleSubmit}>
+          <Button
+            size="small"
+            variant="contained"
+            color="secondary"
+            onClick={handleSubmit}
+          >
             Submit
           </Button>
         </Box>

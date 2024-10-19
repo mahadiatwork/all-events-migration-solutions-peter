@@ -17,7 +17,7 @@ import {
 } from "@mui/material";
 import ClearActivityModal from "./ClearActivityModal";
 import EditActivityModal from "./EditActivityModal";
-import CreateActivityModal from "./CreateActivityModal"
+import CreateActivityModal from "./CreateActivityModal";
 import {
   subDays,
   startOfWeek,
@@ -27,49 +27,28 @@ import {
   isBefore,
 } from "date-fns";
 
-
 // Function to create row data for To-Do, Meeting, and Call
 function createData(event, type) {
   let startDateTime, endDateTime, time, duration, scheduledWith;
 
-  if (type === "Meeting") {
-    startDateTime = new Date(event.Start_DateTime);
-    endDateTime = new Date(event.End_DateTime);
-    time = startDateTime.toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-    duration = `${Math.round((endDateTime - startDateTime) / 60000)} minutes`;
-    scheduledWith = event.Owner ? event.Owner.name : "Unknown";
-  } else if (type === "To-Do") {
-    startDateTime = new Date(event.Due_Date);
-    time = "None"; // To-Do doesn't have time field
-    duration = "N/A";
-    scheduledWith = event.Owner ? event.Owner.name : "Unknown";
-  } else if (type === "Call") {
-    startDateTime = new Date(event.Call_Start_Time);
-    time = startDateTime.toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-    duration = event.Call_Duration || "N/A";
-    scheduledWith = event.Who_Id ? event.Who_Id.name : "Unknown";
-  }
+  startDateTime = new Date(event.Start_DateTime);
+  endDateTime = new Date(event.End_DateTime);
+  time = startDateTime.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  duration = `${Math.round((endDateTime - startDateTime) / 60000)} minutes`;
+  scheduledWith = event.Owner ? event.Owner.name : "Unknown";
 
   const date = startDateTime.toLocaleDateString();
-  const priority = event.Priority || "Low";
-  const regarding =
-    type === "Meeting"
-      ? event.Event_Title || "No Title"
-      : type === "To-Do"
-      ? event.Subject || "No Subject"
-      : type === "Call"
-      ? event.Subject || "No Subject"
-      : "No Info";
+  const priority = event.Event_Priority || "Low";
+  const regarding = event.Regarding || "No Data";
   const associateWith = event.What_Id ? event.What_Id.name : "";
   const id = event.id;
+  const title = event.Event_Title;
 
   return {
+    title,
     type,
     date,
     time,
@@ -87,10 +66,10 @@ export default function ScheduleTable({ events, ZOHO, users }) {
   const [openClearModal, setOpenClearModal] = React.useState(false);
   const [openEditModal, setOpenEditModal] = React.useState(false);
   const [selectedRowData, setSelectedRowData] = React.useState(null);
-  const [openCreateModal, setOpenCreateModal] = React.useState(false); 
+  const [openCreateModal, setOpenCreateModal] = React.useState(false);
   // Combine events, todo, and calls into one dataset
   const rows = [
-    ...events.map((event) => createData(event, "Meeting")),
+    ...events.map((event) => createData(event, event.Type_of_Activity)),
   ];
 
   // Get the min and max dates from the events, todo, and calls
@@ -113,13 +92,13 @@ export default function ScheduleTable({ events, ZOHO, users }) {
           const response = await ZOHO.CRM.API.getRecord({
             Entity: "Events",
             approved: "both",
-            RecordID: row.id,   // Corrected to use row.meetingId instead of selectedRowData.meetingId
+            RecordID: row.id, // Corrected to use row.meetingId instead of selectedRowData.meetingId
           });
-  
+
           if (response && response.data) {
-            setSelectedRowData(response.data[0]);  // Setting the row data after successfully fetching event data
+            setSelectedRowData(response.data[0]); // Setting the row data after successfully fetching event data
           }
-          setOpenClearModal(true);    // Open modal after data is fetched
+          setOpenClearModal(true); // Open modal after data is fetched
         } catch (error) {
           console.error("Error fetching data:", error);
         }
@@ -127,13 +106,11 @@ export default function ScheduleTable({ events, ZOHO, users }) {
       getData();
       return; // Exit the function if data is being fetched
     }
-  
+
     // If no meetingId, just open the modal
-    setSelectedRowData(row);  // Directly set row data if no meetingId
-    setOpenClearModal(true);  // Open modal immediately
+    setSelectedRowData(row); // Directly set row data if no meetingId
+    setOpenClearModal(true); // Open modal immediately
   };
-  
-  
 
   // Handle row click to open the EditActivityModal
   const handleRowClick = (index, row) => {
@@ -144,13 +121,13 @@ export default function ScheduleTable({ events, ZOHO, users }) {
           const response = await ZOHO.CRM.API.getRecord({
             Entity: "Events",
             approved: "both",
-            RecordID: row.id,   // Corrected to use row.meetingId instead of selectedRowData.meetingId
+            RecordID: row.id, // Corrected to use row.meetingId instead of selectedRowData.meetingId
           });
-  
+
           if (response && response.data) {
-            setSelectedRowData(response.data[0]);  // Setting the row data after successfully fetching event data
+            setSelectedRowData(response.data[0]); // Setting the row data after successfully fetching event data
           }
-          setOpenEditModal(true);    // Open modal after data is fetched
+          setOpenEditModal(true); // Open modal after data is fetched
         } catch (error) {
           console.error("Error fetching data:", error);
         }
@@ -221,7 +198,6 @@ export default function ScheduleTable({ events, ZOHO, users }) {
       matchesUserFilter
     );
   });
-
 
   return (
     <>
@@ -311,6 +287,7 @@ export default function ScheduleTable({ events, ZOHO, users }) {
           <TableHead sx={{ backgroundColor: "#F2F2F2" }}>
             <TableRow>
               <TableCell padding="checkbox">Select</TableCell>
+              <TableCell>Title</TableCell>
               <TableCell>Type</TableCell>
               <TableCell>Date</TableCell>
               <TableCell>Time</TableCell>
@@ -322,6 +299,7 @@ export default function ScheduleTable({ events, ZOHO, users }) {
             </TableRow>
           </TableHead>
           <TableBody>
+            {console.log({ filteredRows })}
             {filteredRows.map((row, index) => (
               <TableRow
                 key={index}
@@ -349,6 +327,13 @@ export default function ScheduleTable({ events, ZOHO, users }) {
                     color: selectedRowIndex === index ? "#FFFFFF" : "inherit",
                   }}
                 >
+                  {row.title}
+                </TableCell>
+                <TableCell
+                  sx={{
+                    color: selectedRowIndex === index ? "#FFFFFF" : "inherit",
+                  }}
+                >
                   {row.type}
                 </TableCell>
                 <TableCell
@@ -366,7 +351,9 @@ export default function ScheduleTable({ events, ZOHO, users }) {
                   {row.time}
                 </TableCell>
                 <TableCell
-                  style={{ color: row.priority === "Low" ? "red" : "black" }}
+                  style={{
+                    color: row.Event_Priority === "Low" ? "red" : "black",
+                  }}
                 >
                   {row.priority}
                 </TableCell>
@@ -427,8 +414,8 @@ export default function ScheduleTable({ events, ZOHO, users }) {
       )}
       {openCreateModal && (
         <CreateActivityModal
-          open={openCreateModal}  // Pass the open state to the modal
-          handleClose={handleClose}  // Use handleClose to close the modal
+          open={openCreateModal} // Pass the open state to the modal
+          handleClose={handleClose} // Use handleClose to close the modal
           ZOHO={ZOHO}
           users={users}
         />

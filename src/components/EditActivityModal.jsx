@@ -81,6 +81,7 @@ function transformFormSubmission(data) {
 
     // Combine the manually set participants and those from `scheduleWith`
     Participants: data.scheduledWith,
+    Duration_Min: data.Duration_Min.toString()
   };
 
   // Explicitly remove the scheduleWith, scheduleFor, and description keys
