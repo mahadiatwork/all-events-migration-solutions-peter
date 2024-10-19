@@ -14,7 +14,7 @@ export default function ContactField({ value, handleInputChange, ZOHO, selectedR
     if (value) {
       const defaultParticipants = value.map((participant) => ({
         Full_Name: participant.name, // Use Full_Name to match contacts
-        id: participant.participant, // Map participant ID
+        id: participant.participant,
       }));
       setSelectedParticipants(defaultParticipants);
     }
@@ -83,6 +83,7 @@ export default function ContactField({ value, handleInputChange, ZOHO, selectedR
       newValue.map((contact) => ({
         name: contact.Full_Name,
         participant: contact.id,
+        type: contact.type
       }))
     );
   };

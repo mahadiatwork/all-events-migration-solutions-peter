@@ -61,7 +61,10 @@ const FirstComponent = ({
   useEffect(() => {
     if (selectedRowData) {
       handleInputChange("Event_Title", selectedRowData.Event_Title || "");
-      handleInputChange("Type_of_Activity", selectedRowData.Type_of_Activity || "");
+      handleInputChange(
+        "Type_of_Activity",
+        selectedRowData.Type_of_Activity || ""
+      );
       handleInputChange("start", selectedRowData.Start_DateTime || "");
       handleInputChange("end", selectedRowData.End_DateTime || "");
       handleInputChange("Duration_Min", selectedRowData.Duration_Min || "");
@@ -69,6 +72,7 @@ const FirstComponent = ({
       handleInputChange("priority", selectedRowData.Event_Priority || "");
       handleInputChange("ringAlarm", selectedRowData.ringAlarm || "");
       handleInputChange("Colour", selectedRowData.Colour || "#ff0000");
+      handleInputChange("Banner", selectedRowData.Banner || false);
       handleInputChange(
         "scheduleFor",
         selectedRowData.Owner?.name || "" // Set the default value for scheduleFor
@@ -78,7 +82,8 @@ const FirstComponent = ({
         selectedRowData.Participants
           ? selectedRowData.Participants.map((participant) => ({
               name: participant.name,
-              id: participant.participant,
+              participant: participant.participant,
+              type: participant.type,
             }))
           : []
       ); // Map scheduledWith from selectedRowData Participants
@@ -160,7 +165,7 @@ const FirstComponent = ({
   };
 
   const commonStyles = {
-    height: "40px", 
+    height: "40px",
     "& .MuiOutlinedInput-root": {
       height: "100%",
     },
@@ -206,7 +211,11 @@ const FirstComponent = ({
             controls={["calendar", "time"]}
             display="center"
             inputComponent={() =>
-              customInputComponent("start", "Start Time", setOpenStartDatepicker)
+              customInputComponent(
+                "start",
+                "Start Time",
+                setOpenStartDatepicker
+              )
             }
             onClose={() => setOpenStartDatepicker(false)}
             onChange={(e) => handleInputChange("start", e.value)}
@@ -233,7 +242,9 @@ const FirstComponent = ({
               label="Duration"
               fullWidth
               value={formData.Duration_Min} // Use formData
-              onChange={(e) => handleInputChange("Duration_Min", e.target.value)}
+              onChange={(e) =>
+                handleInputChange("Duration_Min", e.target.value)
+              }
             >
               {Array.from({ length: 24 }, (_, index) => {
                 const minutes = (index + 1) * 10;
@@ -267,7 +278,11 @@ const FirstComponent = ({
             <Autocomplete
               id="schedule-for-autocomplete"
               size="small"
-              options={users && users.length > 0 ? users.map((user) => user.full_name) : []}
+              options={
+                users && users.length > 0
+                  ? users.map((user) => user.full_name)
+                  : []
+              }
               getOptionLabel={(option) => option || ""}
               value={formData.scheduleFor || ""} // Use formData
               onChange={(event, newValue) => {
@@ -335,7 +350,10 @@ const FirstComponent = ({
           </FormControl>
         </Grid>
         <Grid size={6}>
-          <RegardingField formData={formData} handleInputChange={handleInputChange} />
+          <RegardingField
+            formData={formData}
+            handleInputChange={handleInputChange}
+          />
         </Grid>
         <Grid container spacing={2} alignItems="center">
           <Grid item xs={12} sm={6} md={8}>
@@ -360,7 +378,12 @@ const FirstComponent = ({
 
           <Grid item xs={12} sm={6} md={2}>
             <FormControlLabel
-              control={<Checkbox onChange={handleBannerChecked} />}
+              control={
+                <Checkbox
+                  checked={formData.Banner}
+                  onChange={handleBannerChecked}
+                />
+              }
               label="Banner/Timeless"
             />
           </Grid>

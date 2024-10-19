@@ -68,7 +68,7 @@ function transformFormSubmission(data) {
     ...data,
     Start_DateTime: formatDateWithOffset(data.start), // Format `start` to ISO with timezone
     End_DateTime: formatDateWithOffset(data.end), // Format `end` to ISO with timezone
-    Description: data.description, // Map `description` to `Description`
+    Description: data.Description, // Map `description` to `Description`
     Event_Priority: data.priority, // Map `priority` to `Event_Priority`
 
     // Updated `What_Id` with both name and id from `associateWith`
@@ -80,13 +80,15 @@ function transformFormSubmission(data) {
     se_module: "Accounts",
 
     // Combine the manually set participants and those from `scheduleWith`
-    Participants: [...participantsFromScheduleWith],
+    Participants: data.scheduledWith,
   };
 
   // Explicitly remove the scheduleWith, scheduleFor, and description keys
-  delete transformedData.scheduleWith;
+  delete transformedData.scheduledWith;
   delete transformedData.scheduleFor;
   delete transformedData.description;
+  delete transformedData.associateWith;
+  
 
   // Remove keys that have null or undefined values
   Object.keys(transformedData).forEach((key) => {
@@ -121,7 +123,6 @@ const EditActivityModal = ({
   ZOHO,
   users,
 }) => {
-  console.log({testing: selectedRowData})
   const theme = useTheme();
   const [value, setValue] = useState(0);
   const [textvalue, setTextValue] = useState("");
@@ -132,7 +133,7 @@ const EditActivityModal = ({
     start: selectedRowData?.Start_DateTime || "",
     end: selectedRowData?.End_DateTime || "",
     Duration_Min: selectedRowData?.Duration_Min || "",
-    associateWith: selectedRowData?.What_Id?.name || "",
+    associateWith: selectedRowData?.What_Id || "",
     scheduledWith: selectedRowData?.Participants
       ? selectedRowData.Participants
       : [], // Map 'name' and 'participant' to create the appropriate structure for Autocomplete
@@ -141,6 +142,8 @@ const EditActivityModal = ({
     ringAlarm: selectedRowData?.ringAlarm || "",
     Colour: selectedRowData?.Colour || "#ff0000",
     Regarding: selectedRowData?.Regarding || "#ff0000",
+    Description: selectedRowData?.Description || "",
+    Banner:  selectedRowData?.Banner || false,
   });
 
   const handleChange = (event, newValue) => {
@@ -175,8 +178,6 @@ const EditActivityModal = ({
 
   const handleSubmit = async () => {
     const transformedData = transformFormSubmission(formData);
-    console.log({transformedData})
-    return
     await ZOHO.CRM.API.updateRecord({
       Entity: "Events",
       APIData: transformedData,
@@ -197,6 +198,8 @@ const EditActivityModal = ({
         console.error("Error submitting the form:", error);
       });
   };
+
+  console.log({selectedRowData})
 
   return (
     <Box
@@ -276,9 +279,9 @@ const EditActivityModal = ({
           multiline
           rows={10}
           fullWidth
-          value={selectedRowData?.Description}
+          value={formData?.Description}
           onChange={(event) =>
-            handleInputChange("description", event.target.value)
+            handleInputChange("Description", event.target.value)
           }
         />
         <Box display="flex" justifyContent="space-between" mt={2}>
