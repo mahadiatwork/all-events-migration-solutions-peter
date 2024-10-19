@@ -271,6 +271,7 @@ const FirstComponent = ({
             value={formData.scheduledWith} // Use formData
             handleInputChange={handleInputChange}
             ZOHO={ZOHO}
+            selectedRowData={selectedRowData}
           />
         </Grid>
         <Grid size={6}>

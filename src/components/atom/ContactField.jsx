@@ -11,11 +11,13 @@ export default function ContactField({ value, handleInputChange, ZOHO, selectedR
 
   // Extract participants from selectedRowData and set them as the default value
   useEffect(() => {
-    if (value) {
-      const defaultParticipants = value.map((participant) => ({
+    console.log({imTesting: selectedRowData})
+    if (selectedRowData?.Participants) {
+      const defaultParticipants = selectedRowData.Participants.map((participant) => ({
         Full_Name: participant.name, // Use Full_Name to match contacts
         id: participant.participant,
       }));
+      console.log({defaultParticipants})
       setSelectedParticipants(defaultParticipants);
     }
   }, [selectedRowData]);
@@ -78,15 +80,17 @@ export default function ContactField({ value, handleInputChange, ZOHO, selectedR
   const handleSelectionChange = (event, newValue) => {
     setSelectedParticipants(newValue); // Update the selected values
     // Update the parent component with the selected contacts
+    console.log({newValue})
     handleInputChange(
-      "scheduleWith",
+      "scheduledWith",
       newValue.map((contact) => ({
-        name: contact.Full_Name,
+        Full_Name: contact.Full_Name,
         participant: contact.id,
-        type: contact.type
+        type: "contact",
       }))
     );
   };
+
 
   return (
     <Box>

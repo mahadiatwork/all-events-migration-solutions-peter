@@ -177,7 +177,7 @@ const EditActivityModal = ({
     }));
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit =  async() => {
     const transformedData = transformFormSubmission(formData);
     await ZOHO.CRM.API.updateRecord({
       Entity: "Events",
@@ -199,8 +199,6 @@ const EditActivityModal = ({
         console.error("Error submitting the form:", error);
       });
   };
-
-  console.log({selectedRowData})
 
   return (
     <Box
