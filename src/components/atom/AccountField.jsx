@@ -5,9 +5,33 @@ import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline"; // Icon for "No
 
 export default function AccountField({ value, handleInputChange, ZOHO, selectedRowData }) {
   const [accounts, setAccounts] = useState([]);
-  const [inputValue, setInputValue] = useState(selectedRowData?.What_Id?.name || ""); // Set default to What_Id name
+  const [selectedAccount, setSelectedAccount] = useState(null); // Selected account object
+  const [inputValue, setInputValue] = useState(""); // Initialize inputValue without using selectedRowData here
   const [notFoundMessage, setNotFoundMessage] = useState(""); // Message if nothing is found
 
+  // Ensure `inputValue` and `selectedAccount` stays in sync with the `value` prop and fetched accounts
+  useEffect(() => {
+    if (value?.id) {
+      // If `value` is passed from parent (formData), find the account from fetched accounts
+      const matchedAccount = accounts.find(account => account.id === value.id);
+      if (matchedAccount) {
+        setSelectedAccount(matchedAccount);
+        setInputValue(matchedAccount.Account_Name); // Set the input to the matched account name
+      }
+    } else if (selectedRowData?.What_Id?.id) {
+      // If `selectedRowData` is provided, try to find the account by What_Id
+      const matchedAccount = accounts.find(account => account.id === selectedRowData.What_Id.id);
+      if (matchedAccount) {
+        setSelectedAccount(matchedAccount);
+        setInputValue(matchedAccount.Account_Name); // Set the input to the matched account name
+      }
+    } else {
+      setSelectedAccount(null);
+      setInputValue(""); // Reset inputValue if no value is available
+    }
+  }, [value, selectedRowData, accounts]); // Trigger when `value`, `selectedRowData`, or `accounts` change
+
+  // Fetch accounts from Zoho CRM when ZOHO is available
   useEffect(() => {
     async function getData() {
       if (ZOHO) {
@@ -17,7 +41,9 @@ export default function AccountField({ value, handleInputChange, ZOHO, selectedR
           per_page: 100,
           page: 1,
         });
-        setAccounts(accountsResponse.data); // assuming accountsResponse contains 'data'
+        if (accountsResponse?.data) {
+          setAccounts(accountsResponse.data); // Store fetched accounts
+        }
       }
     }
     getData();
@@ -57,15 +83,14 @@ export default function AccountField({ value, handleInputChange, ZOHO, selectedR
         freeSolo // Allows users to type custom values in addition to selecting from options
         options={accounts} // Array of accounts for the autocomplete
         getOptionLabel={(option) =>
-          typeof option === "string" ? option : option.Account_Name // Assuming accounts have an 'Account_Name' property
+          typeof option === "string" ? option : option.Account_Name || ""
         }
-        value={
-          value.name || selectedRowData?.What_Id.name || null // Set default value based on selectedRowData What_Id
-        }
+        value={selectedAccount || null} // Use `selectedAccount` directly for the selected account
         onChange={(event, newValue) => {
+          setSelectedAccount(newValue); // Set selected account
           handleInputChange("associateWith", newValue); // Handle the selected value
         }}
-        inputValue={inputValue}
+        inputValue={inputValue} // Controlled by inputValue state
         onInputChange={(event, newInputValue) => {
           setInputValue(newInputValue); // Update input value as the user types
           setNotFoundMessage(""); // Reset the "Not found" message when the user types again

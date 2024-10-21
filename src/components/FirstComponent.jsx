@@ -19,16 +19,56 @@ import { ChromePicker } from "react-color";
 import { Datepicker } from "@mobiscroll/react";
 import RegardingField from "./atom/RegardingField";
 
-const formatTime = (date, hour) => {
+const parseDateString = (dateString) => {
+  const [datePart, timePart, ampm] = dateString.split(" "); // Split date and time
+  const [day, month, year] = datePart.split("/").map(Number); // Split date part
+  let [hours, minutes] = timePart.split(":").map(Number); // Split time part
+
+  // Convert 12-hour format to 24-hour format
+  if (ampm === "PM" && hours < 12) {
+    hours += 12;
+  } else if (ampm === "AM" && hours === 12) {
+    hours = 0; // Convert 12 AM to 00 hours
+  }
+
+  // Create a new Date object with the parsed values
+  return new Date(year, month - 1, day, hours, minutes);
+};
+
+// Utility to format date
+const formatTime = (date) => {
   const newDate = new Date(date);
-  newDate.setHours(hour, 0, 0, 0);
+
   const year = newDate.getFullYear();
   const month = String(newDate.getMonth() + 1).padStart(2, "0");
   const day = String(newDate.getDate()).padStart(2, "0");
-  const hours = String(newDate.getHours()).padStart(2, "0");
-  const minutes = String(newDate.getMinutes()).padStart(2, "0");
 
-  return `${year}-${month}-${day}T${hours}:${minutes}`;
+  // Convert to 12-hour format and determine AM/PM
+  let hours = newDate.getHours();
+  const minutes = String(newDate.getMinutes()).padStart(2, "0");
+  const ampm = hours >= 12 ? "PM" : "AM";
+  hours = hours % 12 || 12; // Convert 0 hours to 12 for AM
+
+  return `${day}/${month}/${year} ${hours}:${minutes} ${ampm}`;
+};
+
+// Helper to calculate duration between two dates in minutes, rounded to the nearest 10
+const calculateDuration = (start, end) => {
+  const startDate = new Date(start);
+  const endDate = new Date(end);
+  const durationMinutes = (endDate - startDate) / (1000 * 60); // Convert milliseconds to minutes
+
+  // Round to the nearest multiple of 10
+  const roundedDuration = Math.round(durationMinutes / 10) * 10;
+
+  return Math.max(10, Math.min(roundedDuration, 240)); // Clamp duration between 10 and 240
+};
+
+// Helper to calculate end date based on start date and duration in minutes
+const calculateEndDate = (start, duration) => {
+  const startDate = new Date(start);
+  startDate.setMinutes(startDate.getMinutes() + duration);
+  return startDate;
 };
 
 const FirstComponent = ({
@@ -38,7 +78,6 @@ const FirstComponent = ({
   selectedRowData,
   ZOHO,
 }) => {
-  // Add the missing activityType array back
   const [activityType] = useState([
     { type: "Meeting", resource: 1 },
     { type: "To-Do", resource: 2 },
@@ -65,9 +104,22 @@ const FirstComponent = ({
         "Type_of_Activity",
         selectedRowData.Type_of_Activity || ""
       );
-      handleInputChange("start", selectedRowData.Start_DateTime || "");
-      handleInputChange("end", selectedRowData.End_DateTime || "");
-      handleInputChange("Duration_Min", selectedRowData.Duration_Min || "");
+      // Ensure existing dates are formatted with `formatTime`
+      const formattedStart = selectedRowData.Start_DateTime
+        ? formatTime(selectedRowData.Start_DateTime)
+        : "";
+      const formattedEnd = selectedRowData.End_DateTime
+        ? formatTime(selectedRowData.End_DateTime)
+        : "";
+      handleInputChange("start", formattedStart || "");
+      handleInputChange("end", formattedEnd || "");
+      handleInputChange(
+        "Duration_Min",
+        calculateDuration(
+          selectedRowData.Start_DateTime,
+          selectedRowData.End_DateTime
+        ) || ""
+      );
       handleInputChange("Venue", selectedRowData.Venue || "");
       handleInputChange("priority", selectedRowData.Event_Priority || "");
       handleInputChange("ringAlarm", selectedRowData.ringAlarm || "");
@@ -86,7 +138,7 @@ const FirstComponent = ({
               type: participant.type,
             }))
           : []
-      ); // Map scheduledWith from selectedRowData Participants
+      );
     }
   }, [selectedRowData]);
 
@@ -95,13 +147,18 @@ const FirstComponent = ({
   const [displayColorPicker, setDisplayColorPicker] = useState(false);
   const [color, setColor] = useState(formData.Colour || "#ff0000");
 
+  // Handle Banner checked logic
   const handleBannerChecked = (e) => {
     handleInputChange("Banner", e.target.checked);
-    const now = new Date();
-    const timeAt6AM = formatTime(now, 6);
-    const timeAt7AM = formatTime(now, 7);
-    handleInputChange("start", timeAt6AM);
-    handleInputChange("end", timeAt7AM);
+    if (e.target.checked) {
+      const now = new Date();
+      const timeAt6AM = formatTime(now.setHours(6, 0));
+      const timeAt7AM = formatTime(now.setHours(7, 0));
+
+      handleInputChange("start", timeAt6AM);
+      handleInputChange("end", timeAt7AM);
+      handleInputChange("Duration_Min", 60);
+    }
   };
 
   const handleActivityChange = (event) => {
@@ -128,6 +185,7 @@ const FirstComponent = ({
     handleInputChange("Colour", newColor.hex);
   };
 
+  // Custom input for datepicker
   const customInputComponent = (field, placeholder, openDatepickerState) => {
     return (
       <CustomTextField
@@ -137,8 +195,39 @@ const FirstComponent = ({
         variant="outlined"
         value={formData[field]} // Use formData
         onClick={() => openDatepickerState(true)}
+        disabled={formData.Banner} // Disable if Banner is checked
       />
     );
+  };
+
+  // Handle input change for start date and calculate end date & duration
+  const handleInputChangeWithEnd = (field, value) => {
+    if (field === "start") {
+      const startDate = new Date(value);
+      let endDate = new Date(formData.end);
+      // If there's no valid end date or it's before the start, set 1 hour later as default
+      if (isNaN(endDate.getTime()) || endDate <= startDate) {
+        endDate = calculateEndDate(startDate, 60);
+      }
+      const duration = calculateDuration(startDate, endDate);
+
+      handleInputChange("start", formatTime(startDate));
+      handleInputChange("end", formatTime(endDate));
+      handleInputChange("Duration_Min", duration); // Auto-update duration
+    } else if (field === "end") {
+      const startDate = parseDateString(formData.start);
+      const duration = calculateDuration(startDate, value);
+      handleInputChange("end", formatTime(value));
+      handleInputChange("Duration_Min", duration);
+    } else if (field === "Duration_Min") {
+      const startDate = parseDateString(formData.start);
+      console.log({ start: formData.start });
+      const newEndDate = calculateEndDate(startDate, value);
+      handleInputChange("Duration_Min", value);
+      handleInputChange("end", formatTime(newEndDate));
+    } else {
+      handleInputChange(field, value);
+    }
   };
 
   const popover = {
@@ -218,7 +307,7 @@ const FirstComponent = ({
               )
             }
             onClose={() => setOpenStartDatepicker(false)}
-            onChange={(e) => handleInputChange("start", e.value)}
+            onChange={(e) => handleInputChangeWithEnd("start", e.value)} // Auto-populate end date and duration
             isOpen={openStartDatepicker}
             touchUi={true}
           />
@@ -231,8 +320,9 @@ const FirstComponent = ({
               customInputComponent("end", "End Time", setOpenEndDatepicker)
             }
             onClose={() => setOpenEndDatepicker(false)}
-            onChange={(e) => handleInputChange("end", e.value)}
+            onChange={(e) => handleInputChangeWithEnd("end", e.value)} // Calculate duration when end is updated
             isOpen={openEndDatepicker}
+            disabled={formData.Banner} // Disable if Banner is checked
           />
         </Grid>
         <Grid size={4}>
@@ -242,9 +332,10 @@ const FirstComponent = ({
               label="Duration"
               fullWidth
               value={formData.Duration_Min} // Use formData
-              onChange={(e) =>
-                handleInputChange("Duration_Min", e.target.value)
+              onChange={
+                (e) => handleInputChangeWithEnd("Duration_Min", e.target.value) // Update end date when duration is changed
               }
+              disabled={formData.Banner} // Disable if Banner is checked
             >
               {Array.from({ length: 24 }, (_, index) => {
                 const minutes = (index + 1) * 10;
@@ -257,16 +348,18 @@ const FirstComponent = ({
             </Select>
           </FormControl>
         </Grid>
-
-        <Grid size={6}>
-          <AccountField
-            value={formData.associateWith} // Use formData
-            handleInputChange={handleInputChange}
-            ZOHO={ZOHO}
+        <Grid item xs={12} sm={6} md={2}>
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={formData.Banner}
+                onChange={handleBannerChecked}
+              />
+            }
+            label="Banner/Timeless"
           />
         </Grid>
-
-        <Grid size={6}>
+        <Grid size={12}>
           <ContactField
             value={formData.scheduledWith} // Use formData
             handleInputChange={handleInputChange}
@@ -274,7 +367,20 @@ const FirstComponent = ({
             selectedRowData={selectedRowData}
           />
         </Grid>
-        <Grid size={6}>
+        <Grid size={12}>
+          <AccountField
+            value={formData.associateWith} // Use formData
+            handleInputChange={handleInputChange}
+            ZOHO={ZOHO}
+          />
+        </Grid>
+        <Grid size={12}>
+          <RegardingField
+            formData={formData}
+            handleInputChange={handleInputChange}
+          />
+        </Grid>
+        <Grid size={12}>
           <FormControl fullWidth size="small" sx={commonStyles}>
             <Autocomplete
               id="schedule-for-autocomplete"
@@ -309,17 +415,6 @@ const FirstComponent = ({
             />
           </FormControl>
         </Grid>
-        <Grid size={6}>
-          <CustomTextField
-            fullWidth
-            size="small"
-            placeholder="Location"
-            variant="outlined"
-            value={formData.Venue} // Use formData
-            onChange={(e) => handleInputChange("Venue", e.target.value)}
-          />
-        </Grid>
-
         <Grid size={3}>
           <FormControl fullWidth size="small" sx={commonStyles}>
             <InputLabel>Priority</InputLabel>
@@ -337,29 +432,50 @@ const FirstComponent = ({
         </Grid>
         <Grid size={3}>
           <FormControl fullWidth size="small" sx={commonStyles}>
-            <InputLabel>Ring Alarm</InputLabel>
+            <InputLabel>Reminder</InputLabel>
             <Select
               label="Ring Alarm"
               fullWidth
               value={formData.ringAlarm} // Use formData
               onChange={(e) => handleInputChange("ringAlarm", e.target.value)}
             >
-              <MenuItem value={5}>5 minutes</MenuItem>
-              <MenuItem value={10}>10 minutes</MenuItem>
-              <MenuItem value={15}>15 minutes</MenuItem>
+              <MenuItem value={0}>None</MenuItem>
+              <MenuItem value={1}>At time of meeting</MenuItem>
+              <MenuItem value={5}>5 minutes before</MenuItem>
+              <MenuItem value={10}>10 minutes before</MenuItem>
+              <MenuItem value={15}>15 minutes before</MenuItem>
+              <MenuItem value={30}>30 minutes before</MenuItem>
+              <MenuItem value={60}>1 hour before</MenuItem>
+              <MenuItem value={120}>2 hours before</MenuItem>
+              <MenuItem value={1440}>1 day before</MenuItem>
+              <MenuItem value={2880}>2 days before</MenuItem>
             </Select>
           </FormControl>
         </Grid>
         <Grid size={6}>
-          <RegardingField
-            formData={formData}
-            handleInputChange={handleInputChange}
+          <CustomTextField
+            fullWidth
+            size="small"
+            placeholder="Location"
+            variant="outlined"
+            value={formData.Venue} // Use formData
+            onChange={(e) => handleInputChange("Venue", e.target.value)}
           />
         </Grid>
         <Grid container spacing={2} alignItems="center">
           <Grid item xs={12} sm={6} md={8}>
             <FormControlLabel
-              control={<Checkbox />}
+              control={
+                <Checkbox
+                  checked={formData.Create_Separate_Event_For_Each_Contact}
+                  onChange={(e) =>
+                    handleInputChange(
+                      "Create_Separate_Event_For_Each_Contact",
+                      e.target.checked
+                    )
+                  }
+                />
+              }
               label="Create separate activity for each contact"
             />
           </Grid>
@@ -375,18 +491,6 @@ const FirstComponent = ({
                 <ChromePicker color={color} onChange={handleColorChange} />
               </div>
             )}
-          </Grid>
-
-          <Grid item xs={12} sm={6} md={2}>
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={formData.Banner}
-                  onChange={handleBannerChecked}
-                />
-              }
-              label="Banner/Timeless"
-            />
           </Grid>
         </Grid>
       </Grid>

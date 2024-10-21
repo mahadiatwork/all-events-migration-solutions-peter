@@ -230,7 +230,24 @@ export default function ScheduleTable({ events, ZOHO, users }) {
               size="small"
             >
               <MenuItem value="All">All</MenuItem>
-              {["Meeting", "To-Do", "Call"].map((type) => (
+              {[
+                "Meeting",
+                "To-Do",
+                "Call",
+                "Appointment",
+                "Boardroom",
+                "Call Billing",
+                "Email Billing",
+                "Initial Consultation",
+                "Mail",
+                "Meeting Billing",
+                "Personal Activity",
+                "Room 1",
+                "Room 2",
+                "Room 3",
+                "Todo Billing",
+                "Vacation",
+              ].map((type) => (
                 <MenuItem key={type} value={type}>
                   {type}
                 </MenuItem>
@@ -352,7 +369,7 @@ export default function ScheduleTable({ events, ZOHO, users }) {
                 </TableCell>
                 <TableCell
                   style={{
-                    color: row.Event_Priority === "Low" ? "red" : "black",
+                    color: row.Event_Priority === "Low" ? "red" : "inherit",
                   }}
                 >
                   {row.priority}

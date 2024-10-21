@@ -9,18 +9,27 @@ export default function ContactField({ value, handleInputChange, ZOHO, selectedR
   const [inputValue, setInputValue] = useState(""); // Store the input text
   const [notFoundMessage, setNotFoundMessage] = useState("");
 
-  // Extract participants from selectedRowData and set them as the default value
+  // Sync `selectedParticipants` with `value` and `selectedRowData`
   useEffect(() => {
-    console.log({imTesting: selectedRowData})
-    if (selectedRowData?.Participants) {
+    if (value?.length) {
+      // Map value with fetched contacts to find their Full_Name
+      const mappedParticipants = value.map((participant) => {
+        const matchedContact = contacts.find(contact => contact.id === participant.participant);
+        return {
+          Full_Name: matchedContact ? matchedContact.Full_Name : 'Unknown',
+          id: participant.participant,
+        };
+      });
+      setSelectedParticipants(mappedParticipants);
+    } else if (selectedRowData?.Participants) {
+      // Otherwise, if `selectedRowData` is available, use it as the default
       const defaultParticipants = selectedRowData.Participants.map((participant) => ({
-        Full_Name: participant.name, // Use Full_Name to match contacts
+        Full_Name: participant.name, // Match with `Full_Name` for Autocomplete
         id: participant.participant,
       }));
-      console.log({defaultParticipants})
       setSelectedParticipants(defaultParticipants);
     }
-  }, [selectedRowData]);
+  }, [value, selectedRowData, contacts]); // Also depend on contacts to ensure matching
 
   // Fetch contacts from Zoho CRM
   useEffect(() => {
@@ -80,13 +89,12 @@ export default function ContactField({ value, handleInputChange, ZOHO, selectedR
   const handleSelectionChange = (event, newValue) => {
     setSelectedParticipants(newValue); // Update the selected values
     // Update the parent component with the selected contacts
-    console.log({newValue})
     handleInputChange(
       "scheduledWith",
       newValue.map((contact) => ({
         Full_Name: contact.Full_Name,
         participant: contact.id,
-        type: "contact",
+        type: "contact"
       }))
     );
   };

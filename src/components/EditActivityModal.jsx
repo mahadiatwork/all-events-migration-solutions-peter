@@ -19,32 +19,22 @@ import CloseIcon from "@mui/icons-material/Close";
 
 function formatDateWithOffset(dateString) {
   if (!dateString) return null;
-
   const date = new Date(dateString);
-
-  // Check if the date is valid
-  if (isNaN(date.getTime())) {
-    return null;
-  }
+  if (isNaN(date.getTime())) return null;
 
   const pad = (num) => String(num).padStart(2, "0");
 
-  // Format the date part
   const year = date.getFullYear();
   const month = pad(date.getMonth() + 1);
   const day = pad(date.getDate());
-  const hours = pad(date.getHours());
+
+  // Convert to 12-hour format and determine AM/PM
+  let hours = date.getHours();
   const minutes = pad(date.getMinutes());
-  const seconds = pad(date.getSeconds());
+  const ampm = hours >= 12 ? "PM" : "AM";
+  hours = hours % 12 || 12; // Convert 0 hours to 12 for AM
 
-  // Get the timezone offset in minutes and convert to hours and minutes
-  const timezoneOffset = -date.getTimezoneOffset(); // In minutes
-  const offsetSign = timezoneOffset >= 0 ? "+" : "-";
-  const offsetHours = pad(Math.floor(Math.abs(timezoneOffset) / 60));
-  const offsetMinutes = pad(Math.abs(timezoneOffset) % 60);
-
-  // Combine everything to return the correctly formatted string
-  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}${offsetSign}${offsetHours}:${offsetMinutes}`;
+  return `${day}/${month}/${year} ${hours}:${minutes} ${ampm}`;
 }
 
 function transformFormSubmission(data) {
@@ -200,6 +190,7 @@ const EditActivityModal = ({
       });
   };
 
+console.log({selectedRowData})
   return (
     <Box
       sx={{
@@ -215,20 +206,18 @@ const EditActivityModal = ({
         borderRadius: 5,
       }}
     >
-      <Box height={15}>
-        <IconButton
-          aria-label="close"
-          onClick={() => {
-            handleClose();
-          }}
-          sx={{
-            position: "absolute",
-            right: 8,
-            top: 8,
-          }}
+      <Box display="flex" justifyContent="space-between" mb={2}>
+        <Typography variant="h6">Edit Activity</Typography>
+
+        {/* Replacing IconButton with Cancel Button */}
+        <Button
+          variant="outlined"
+          color="error"
+          onClick={handleClose}
+          endIcon={<CloseIcon />}
         >
-          <CloseIcon />
-        </IconButton>
+          Cancel
+        </Button>
       </Box>
       <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
         <Tabs
@@ -322,7 +311,7 @@ const EditActivityModal = ({
             color="secondary"
             onClick={handleSubmit}
           >
-            Submit
+            Update
           </Button>{" "}
           {/* Next is disabled on the last tab */}
         </Box>
