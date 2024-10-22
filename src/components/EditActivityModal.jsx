@@ -240,18 +240,30 @@ console.log({selectedRowData})
           ZOHO={ZOHO}
         />
         <Box display="flex" justifyContent="space-between" mt={2}>
+          {/* First button aligned to the left */}
           <Button size="small" disabled>
             Back
-          </Button>{" "}
-          {/* Back is disabled on first tab */}
-          <Button
-            size="small"
-            variant="contained"
-            color="primary"
-            onClick={handleNext}
-          >
-            Next
           </Button>
+
+          {/* Wrapper for the other two buttons aligned to the right */}
+          <Box display="flex" gap={1}>
+            <Button
+              size="small"
+              variant="contained"
+              color="secondary"
+              onClick={handleSubmit}
+            >
+              Update
+            </Button>
+            <Button
+              size="small"
+              variant="contained"
+              color="primary"
+              onClick={handleNext}
+            >
+              Next
+            </Button>
+          </Box>
         </Box>
       </TabPanel>
       <TabPanel value={value} index={1}>
@@ -273,6 +285,7 @@ console.log({selectedRowData})
           }
         />
         <Box display="flex" justifyContent="space-between" mt={2}>
+          {/* First button aligned to the left */}
           <Button
             size="small"
             variant="contained"
@@ -281,14 +294,26 @@ console.log({selectedRowData})
           >
             Back
           </Button>
-          <Button
-            size="small"
-            variant="contained"
-            color="primary"
-            onClick={handleNext}
-          >
-            Next
-          </Button>
+
+          {/* Wrapper for the other two buttons aligned to the right */}
+          <Box display="flex" gap={1}>
+            <Button
+              size="small"
+              variant="contained"
+              color="secondary"
+              onClick={handleSubmit}
+            >
+              Update
+            </Button>
+            <Button
+              size="small"
+              variant="contained"
+              color="primary"
+              onClick={handleNext}
+            >
+              Next
+            </Button>
+          </Box>
         </Box>
       </TabPanel>
       <TabPanel value={value} index={2}>
