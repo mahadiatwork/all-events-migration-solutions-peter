@@ -71,7 +71,10 @@ function transformFormSubmission(data) {
 
     // Combine the manually set participants and those from `scheduleWith`
     Participants: data.scheduledWith,
-    Duration_Min: data.Duration_Min.toString()
+    Duration_Min: data.Duration_Min.toString(),
+    Owner: {
+      id: data.scheduleFor.id,
+    },
   };
 
   // Explicitly remove the scheduleWith, scheduleFor, and description keys
@@ -79,7 +82,6 @@ function transformFormSubmission(data) {
   delete transformedData.scheduleFor;
   delete transformedData.description;
   delete transformedData.associateWith;
-  
 
   // Remove keys that have null or undefined values
   Object.keys(transformedData).forEach((key) => {
@@ -134,7 +136,9 @@ const EditActivityModal = ({
     Colour: selectedRowData?.Colour || "#ff0000",
     Regarding: selectedRowData?.Regarding || "#ff0000",
     Description: selectedRowData?.Description || "",
-    Banner:  selectedRowData?.Banner || false,
+    Banner: selectedRowData?.Banner || false,
+    scheduleFor: selectedRowData?.Owner || null,
+    Remind_Participants: selectedRowData?.Remind_Participants || null,
   });
 
   const handleChange = (event, newValue) => {
@@ -167,7 +171,7 @@ const EditActivityModal = ({
     }));
   };
 
-  const handleSubmit =  async() => {
+  const handleSubmit = async () => {
     const transformedData = transformFormSubmission(formData);
     await ZOHO.CRM.API.updateRecord({
       Entity: "Events",
@@ -181,7 +185,7 @@ const EditActivityModal = ({
           data.data[0].code === "SUCCESS"
         ) {
           // If submission is successful, reload the page
-          alert("Event Updated Successfully")
+          alert("Event Updated Successfully");
           window.location.reload();
         }
       })
@@ -190,7 +194,6 @@ const EditActivityModal = ({
       });
   };
 
-console.log({selectedRowData})
   return (
     <Box
       sx={{
@@ -238,6 +241,7 @@ console.log({selectedRowData})
           users={users}
           selectedRowData={selectedRowData}
           ZOHO={ZOHO}
+          isEditMode={true} // Pass true if it's the EditModal, false otherwise
         />
         <Box display="flex" justifyContent="space-between" mt={2}>
           {/* First button aligned to the left */}

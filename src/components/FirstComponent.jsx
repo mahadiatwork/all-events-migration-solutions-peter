@@ -77,6 +77,7 @@ const FirstComponent = ({
   users,
   selectedRowData,
   ZOHO,
+  isEditMode, // New prop to check if it's edit mode
 }) => {
   const [activityType] = useState([
     { type: "Meeting", resource: 1 },
@@ -104,13 +105,14 @@ const FirstComponent = ({
         "Type_of_Activity",
         selectedRowData.Type_of_Activity || ""
       );
-      // Ensure existing dates are formatted with `formatTime`
+
       const formattedStart = selectedRowData.Start_DateTime
         ? formatTime(selectedRowData.Start_DateTime)
         : "";
       const formattedEnd = selectedRowData.End_DateTime
         ? formatTime(selectedRowData.End_DateTime)
         : "";
+
       handleInputChange("start", formattedStart || "");
       handleInputChange("end", formattedEnd || "");
       handleInputChange(
@@ -125,10 +127,18 @@ const FirstComponent = ({
       handleInputChange("ringAlarm", selectedRowData.ringAlarm || "");
       handleInputChange("Colour", selectedRowData.Colour || "#ff0000");
       handleInputChange("Banner", selectedRowData.Banner || false);
-      handleInputChange(
-        "scheduleFor",
-        selectedRowData.Owner?.name || "" // Set the default value for scheduleFor
+
+      // Find the corresponding user in the users array based on Owner's full_name
+      const owner = users.find(
+        (user) => user.full_name === selectedRowData.Owner?.name
       );
+      if (owner) {
+        handleInputChange("scheduleFor", owner); // Set the user object, not just the name
+      } else {
+        handleInputChange("scheduleFor", null); // Handle case where no matching user is found
+      }
+
+      // Populate scheduledWith
       handleInputChange(
         "scheduledWith",
         selectedRowData.Participants
@@ -140,7 +150,7 @@ const FirstComponent = ({
           : []
       );
     }
-  }, [selectedRowData]);
+  }, [selectedRowData, users]); // Ensure this runs when selectedRowData or users change
 
   const [openStartDatepicker, setOpenStartDatepicker] = useState(false);
   const [openEndDatepicker, setOpenEndDatepicker] = useState(false);
@@ -262,6 +272,8 @@ const FirstComponent = ({
       padding: "8px 12px",
     },
   };
+
+  console.log({ scheduleFor: formData?.Banner });
 
   return (
     <Box>
@@ -385,15 +397,11 @@ const FirstComponent = ({
             <Autocomplete
               id="schedule-for-autocomplete"
               size="small"
-              options={
-                users && users.length > 0
-                  ? users.map((user) => user.full_name)
-                  : []
-              }
-              getOptionLabel={(option) => option || ""}
-              value={formData.scheduleFor || ""} // Use formData
+              options={users} // Ensure users array is correctly passed
+              getOptionLabel={(option) => option.full_name || ""} // Use full_name to display
+              value={formData.scheduleFor || null} // Ensure it's an object, or null if not set
               onChange={(event, newValue) => {
-                handleInputChange("scheduleFor", newValue || "");
+                handleInputChange("scheduleFor", newValue || null); // Set the selected value
               }}
               renderInput={(params) => (
                 <TextField
@@ -474,6 +482,7 @@ const FirstComponent = ({
                       e.target.checked
                     )
                   }
+                  disabled={isEditMode} // Disable the checkbox in edit mode
                 />
               }
               label="Create separate activity for each contact"

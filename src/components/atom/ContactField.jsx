@@ -9,7 +9,7 @@ export default function ContactField({ value, handleInputChange, ZOHO, selectedR
   const [inputValue, setInputValue] = useState(""); // Store the input text
   const [notFoundMessage, setNotFoundMessage] = useState("");
 
-  // Sync `selectedParticipants` with `value` and `selectedRowData`
+  // Sync selectedParticipants with value and selectedRowData
   useEffect(() => {
     if (value?.length) {
       // Map value with fetched contacts to find their Full_Name
@@ -22,9 +22,9 @@ export default function ContactField({ value, handleInputChange, ZOHO, selectedR
       });
       setSelectedParticipants(mappedParticipants);
     } else if (selectedRowData?.Participants) {
-      // Otherwise, if `selectedRowData` is available, use it as the default
+      // Otherwise, if selectedRowData is available, use it as the default
       const defaultParticipants = selectedRowData.Participants.map((participant) => ({
-        Full_Name: participant.name, // Match with `Full_Name` for Autocomplete
+        Full_Name: participant.name, // Match with Full_Name for Autocomplete
         id: participant.participant,
       }));
       setSelectedParticipants(defaultParticipants);
@@ -99,7 +99,6 @@ export default function ContactField({ value, handleInputChange, ZOHO, selectedR
     );
   };
 
-
   return (
     <Box>
       <Autocomplete
@@ -114,12 +113,7 @@ export default function ContactField({ value, handleInputChange, ZOHO, selectedR
           setNotFoundMessage(""); // Clear the "Not found" message when user types again
         }}
         noOptionsText={
-          notFoundMessage ? (
-            <Box display="flex" alignItems="center" color="error.main">
-              <ErrorOutlineIcon sx={{ mr: 1 }} />
-              <Typography variant="body2">{notFoundMessage}</Typography>
-            </Box>
-          ) : (
+          <Box display="flex" alignItems="center">
             <Button
               variant="text"
               startIcon={<SearchIcon />}
@@ -128,7 +122,13 @@ export default function ContactField({ value, handleInputChange, ZOHO, selectedR
             >
               Search First Name
             </Button>
-          )
+            {notFoundMessage && (
+              <Box display="flex" alignItems="center" color="error.main" ml={2}>
+                <ErrorOutlineIcon sx={{ mr: 1 }} />
+                <Typography variant="body2">{notFoundMessage}</Typography>
+              </Box>
+            )}
+          </Box>
         }
         renderInput={(params) => (
           <TextField

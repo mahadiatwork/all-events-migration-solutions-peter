@@ -57,55 +57,54 @@ function formatDateWithOffset(dateString) {
 }
 
 
-function transformFormSubmission(data) {
-
-  console.log({dae: data.start})
-  // Function to transform scheduleWith data into the Participants format
+function transformFormSubmission(data, individualParticipant = null) {
   const transformScheduleWithToParticipants = (scheduleWith) => {
     return scheduleWith.map((contact) => ({
-      Email: contact.Email || null, // Use Email if available, or set to null
-      name: contact.Full_Name || null, // Use Full_Name for the name
-      invited: false, // Default to false
-      type: "contact", // Default type to "contact"
-      participant: contact.id || null, // Use id as participant ID
-      status: "not_known", // Default status to "not_known"
+      name: contact.Full_Name || null,
+      invited: false,
+      type: "contact",
+      participant: contact.participant || null,
+      status: "not_known",
     }));
   };
 
-  const participantsFromScheduleWith = data.scheduleWith
-    ? transformScheduleWithToParticipants(data.scheduleWith)
-    : [];
+  const participants = individualParticipant
+    ? [
+        {
+          name: individualParticipant.Full_Name || null,
+          invited: false,
+          type: "contact",
+          participant: individualParticipant.participant || null,
+          status: "not_known",
+        },
+      ]
+    : transformScheduleWithToParticipants(data.scheduledWith || []);
 
   let transformedData = {
     ...data,
-    Start_DateTime: formatDateWithOffset(data.start), // Format `start` to ISO with timezone
-    End_DateTime: formatDateWithOffset(data.end), // Format `end` to ISO with timezone
+    Start_DateTime: formatDateWithOffset(data.start),
+    End_DateTime: formatDateWithOffset(data.end),
+    Description: data.Description || "",
+    Event_Priority: data.priority || "",
 
-    // Map `What_Id` correctly
-    What_Id: data.associateWith
-      ? {
-          id: data.associateWith.id || null, // Assign id from associateWith
-        }
-      : null,
+    // Update Event_Title to include participant's name if creating separate events
+    Event_Title: individualParticipant
+      ? `${data.Event_Title} - ${individualParticipant.Full_Name}`
+      : data.Event_Title, // If no individual participant, use the default title
+
+    What_Id: data.associateWith?.id ? { id: data.associateWith.id } : null,
     se_module: "Accounts",
-
-    // Use only the manually set participants or those from `scheduleWith`
-    Participants: participantsFromScheduleWith.length
-      ? participantsFromScheduleWith
-      : data.scheduledWith,
-
-    Duration_Min: data.Duration_Min.toString() || "0", // Ensure this field is included
+    Participants: participants,
+    Duration_Min: data.Duration_Min ? data.Duration_Min.toString() : "0",
   };
 
-  // Remove unnecessary fields (to avoid duplicates)
-  delete transformedData.scheduledWith;
-  delete transformedData.scheduleFor;
-  delete transformedData.description; // Avoid adding `Description` twice
-  delete transformedData.associateWith;
-  delete transformedData.start;
-  delete transformedData.end;
+  const keysToRemove = [
+    "scheduledWith",
+    "description",
+    "Create_Separate_Event_For_Each_Contact",
+  ];
+  keysToRemove.forEach((key) => delete transformedData[key]);
 
-  // Remove keys that have null or undefined values
   Object.keys(transformedData).forEach((key) => {
     if (transformedData[key] === null || transformedData[key] === undefined) {
       delete transformedData[key];
@@ -115,68 +114,6 @@ function transformFormSubmission(data) {
   return transformedData;
 }
 
-// function transformFormSubmission(data, individualParticipant = null) {
-//   const transformScheduleWithToParticipants = (scheduleWith) => {
-//     return scheduleWith.map((contact) => ({
-//       name: contact.Full_Name || null,
-//       invited: false,
-//       type: "contact",
-//       participant: contact.participant || null,
-//       status: "not_known",
-//     }));
-//   };
-
-//   console.log({individualParticipant})
-
-//   // If individualParticipant is provided, create a separate record for that participant
-//   const participants = individualParticipant
-//     ? [
-//         {
-//           Email: individualParticipant.Email || null,
-//           name: individualParticipant.Full_Name || null,
-//           invited: false,
-//           type: "contact",
-//           participant: individualParticipant.participant || null,
-//           status: "not_known",
-//         },
-//       ]
-//     : transformScheduleWithToParticipants(data.scheduledWith);
-
-//   let transformedData = {
-//     ...data,
-//     Start_DateTime: formatDateWithOffset(data.start), // Format `start` to ISO with timezone
-//     End_DateTime: formatDateWithOffset(data.end), // Format `end` to ISO with timezone
-//     Description: data.Description, // Map `description` to `Description`
-//     Event_Priority: data.priority, // Map `priority` to `Event_Priority`
-
-//     // Updated `What_Id` with both name and id from `associateWith`
-//     What_Id: data.associateWith
-//       ? {
-//           id: data.associateWith.id || null, // Assign id from associateWith
-//         }
-//       : null,
-//     se_module: "Accounts",
-
-//     // Use only the individual participant if available, otherwise all
-//     Participants: participants,
-//     Duration_Min: data.Duration_Min.toString(),
-//   };
-
-//   // Remove unnecessary fields
-//   delete transformedData.scheduledWith;
-//   delete transformedData.scheduleFor;
-//   delete transformedData.description;
-//   delete transformedData.Create_Separate_Event_For_Each_Contact;
-
-//   // Remove any null or undefined values
-//   Object.keys(transformedData).forEach((key) => {
-//     if (transformedData[key] === null || transformedData[key] === undefined) {
-//       delete transformedData[key];
-//     }
-//   });
-
-//   return transformedData;
-// }
 
 function TabPanel(props) {
   const { children, value, index, ...other } = props;
@@ -218,11 +155,11 @@ const CreateActivityModal = ({ openCreateModal, handleClose, ZOHO, users }) => {
     Regarding: "",
     Duration_Min: "",
     Create_Separate_Event_For_Each_Contact: false,
+    Remind_Participants: ""
   });
 
   const isFormValid = () => {
     const {
-      priority, // Use the correct field name
       Type_of_Activity,
       start, // Use raw formData fields
       end,
@@ -235,7 +172,6 @@ const CreateActivityModal = ({ openCreateModal, handleClose, ZOHO, users }) => {
     console.log(formData);
     // Ensure all required fields are not empty or null
     return (
-      priority &&
       Type_of_Activity &&
       start &&
       end &&
@@ -325,6 +261,7 @@ const CreateActivityModal = ({ openCreateModal, handleClose, ZOHO, users }) => {
         });
     }
   };
+  
   const [isSubmitEnabled, setIsSubmitEnabled] = useState(false);
 
   // Validate form data whenever it changes

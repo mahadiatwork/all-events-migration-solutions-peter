@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   FormControl,
   InputLabel,
@@ -9,8 +9,23 @@ import {
 } from "@mui/material";
 
 const RegardingField = ({ formData, handleInputChange }) => {
+  const predefinedOptions = [
+    "Hourly Consult $220",
+    "Initial Consultation Fee $165",
+    "No appointments today",
+    "No appointments tonight",
+  ]; // The predefined options
+
   const [selectedValue, setSelectedValue] = useState(formData.Regarding || "");
   const [manualInput, setManualInput] = useState("");
+
+  useEffect(() => {
+    // Check if the selected value is part of the predefined options
+    if (selectedValue && !predefinedOptions.includes(selectedValue)) {
+      setSelectedValue("Other"); // Set to "Other" if it doesn't match any predefined option
+      setManualInput(formData.Regarding); // Populate manual input with the custom value
+    }
+  }, [selectedValue, formData.Regarding]);
 
   const handleSelectChange = (event) => {
     const value = event.target.value;
@@ -51,17 +66,12 @@ const RegardingField = ({ formData, handleInputChange }) => {
             },
           }}
         >
-          <MenuItem value={"Hourly Consult $220"}>Hourly Consult $220</MenuItem>
-          <MenuItem value={"Initial Consultation Fee $165"}>
-            Initial Consultation Fee $165
-          </MenuItem>
-          <MenuItem value={"No appointments today"}>
-            No appointments today
-          </MenuItem>
-          <MenuItem value={"No appointments tonight"}>
-            No appointments tonight
-          </MenuItem>
-          <MenuItem value={"Other"}>Other (Manually enter)</MenuItem>
+          {predefinedOptions.map((option) => (
+            <MenuItem key={option} value={option}>
+              {option}
+            </MenuItem>
+          ))}
+          <MenuItem value="Other">Other (Manually enter)</MenuItem>
         </Select>
       </FormControl>
 
