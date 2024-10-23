@@ -6,56 +6,55 @@ import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline"; // Icon for "No
 export default function AccountField({ value, handleInputChange, ZOHO, selectedRowData }) {
   const [accounts, setAccounts] = useState([]);
   const [selectedAccount, setSelectedAccount] = useState(null); // Selected account object
-  const [inputValue, setInputValue] = useState(""); // Initialize inputValue without using selectedRowData here
+  const [inputValue, setInputValue] = useState("");
   const [notFoundMessage, setNotFoundMessage] = useState(""); // Message if nothing is found
 
-  // Ensure `inputValue` and `selectedAccount` stays in sync with the `value` prop and fetched accounts
-  useEffect(() => {
-    if (value?.id) {
-      // If `value` is passed from parent (formData), find the account from fetched accounts
-      const matchedAccount = accounts.find(account => account.id === value.id);
-      if (matchedAccount) {
-        setSelectedAccount(matchedAccount);
-        setInputValue(matchedAccount.Account_Name); // Set the input to the matched account name
-      }
-    } else if (selectedRowData?.What_Id?.id) {
-      // If `selectedRowData` is provided, try to find the account by What_Id
-      const matchedAccount = accounts.find(account => account.id === selectedRowData.What_Id.id);
-      if (matchedAccount) {
-        setSelectedAccount(matchedAccount);
-        setInputValue(matchedAccount.Account_Name); // Set the input to the matched account name
-      }
-    } else {
-      setSelectedAccount(null);
-      setInputValue(""); // Reset inputValue if no value is available
-    }
-  }, [value, selectedRowData, accounts]); // Trigger when `value`, `selectedRowData`, or `accounts` change
+  // Utility to find matched account by id
+  const findMatchedAccount = (accountId) => accounts.find((account) => account.id === accountId);
 
-  // Fetch accounts from Zoho CRM when ZOHO is available
+  // Sync inputValue and selectedAccount with the provided value and selectedRowData
   useEffect(() => {
-    async function getData() {
+    let matchedAccount = null;
+
+    if (value?.id) {
+      matchedAccount = findMatchedAccount(value.id);
+    } else if (selectedRowData?.What_Id?.id) {
+      matchedAccount = findMatchedAccount(selectedRowData.What_Id.id);
+    }
+
+    setSelectedAccount(matchedAccount || null);
+    setInputValue(matchedAccount?.Account_Name || ""); // Set input value or reset
+  }, [value, selectedRowData, accounts]);
+
+  // Fetch accounts from Zoho CRM
+  useEffect(() => {
+    const fetchAccounts = async () => {
       if (ZOHO) {
-        const accountsResponse = await ZOHO.CRM.API.getAllRecords({
-          Entity: "Accounts",
-          sort_order: "asc",
-          per_page: 100,
-          page: 1,
-        });
-        if (accountsResponse?.data) {
-          setAccounts(accountsResponse.data); // Store fetched accounts
+        try {
+          const response = await ZOHO.CRM.API.getAllRecords({
+            Entity: "Accounts",
+            sort_order: "asc",
+            per_page: 100,
+            page: 1,
+          });
+          if (response?.data) {
+            setAccounts(response.data);
+          }
+        } catch (error) {
+          console.error("Failed to fetch accounts:", error);
         }
       }
-    }
-    getData();
-  }, [ZOHO]); // Add ZOHO as a dependency
+    };
+    fetchAccounts();
+  }, [ZOHO]);
 
+  // Handle advanced search when no accounts are found
   const handleAdvancedSearch = async () => {
-    setNotFoundMessage(""); // Reset the message before new search
+    setNotFoundMessage(""); // Reset message before search
 
-    // Use the inputValue to perform the advanced search in Zoho CRM
     if (ZOHO && inputValue) {
       try {
-        const searchCriteria = `(Account_Name:equals:${inputValue})`; // Search criteria for the account name
+        const searchCriteria = `(Account_Name:equals:${inputValue})`;
         const searchResults = await ZOHO.CRM.API.searchRecord({
           Entity: "Accounts",
           Type: "criteria",
@@ -63,13 +62,13 @@ export default function AccountField({ value, handleInputChange, ZOHO, selectedR
         });
 
         if (searchResults.data && searchResults.data.length > 0) {
-          setAccounts(searchResults.data); // Update the accounts with the search results
-          setNotFoundMessage(""); // Clear the not found message since we found something
+          setAccounts(searchResults.data); // Update accounts with search results
+          setNotFoundMessage(""); // Clear the not-found message
         } else {
-          setNotFoundMessage(`"${inputValue}" not found in the database`); // Display "Not found" message
+          setNotFoundMessage(`"${inputValue}" not found in the database`);
         }
       } catch (error) {
-        console.error("Error during advanced search:", error);
+        console.error("Error during search:", error);
         setNotFoundMessage("An error occurred while searching. Please try again.");
       }
     } else {
@@ -77,40 +76,25 @@ export default function AccountField({ value, handleInputChange, ZOHO, selectedR
     }
   };
 
+  // Check if input value matches any account name
+  const showSearchButton = inputValue && !accounts.some(account => account.Account_Name === inputValue);
+
   return (
     <Box>
       <Autocomplete
-        freeSolo // Allows users to type custom values in addition to selecting from options
-        options={accounts} // Array of accounts for the autocomplete
-        getOptionLabel={(option) =>
-          typeof option === "string" ? option : option.Account_Name || ""
-        }
-        value={selectedAccount || null} // Use `selectedAccount` directly for the selected account
+        freeSolo
+        options={accounts}
+        getOptionLabel={(option) => option.Account_Name || ""}
+        value={selectedAccount}
         onChange={(event, newValue) => {
           setSelectedAccount(newValue); // Set selected account
-          handleInputChange("associateWith", newValue); // Handle the selected value
+          handleInputChange("associateWith", newValue); // Trigger change handler
         }}
-        inputValue={inputValue} // Controlled by inputValue state
+        inputValue={inputValue}
         onInputChange={(event, newInputValue) => {
-          setInputValue(newInputValue); // Update input value as the user types
-          setNotFoundMessage(""); // Reset the "Not found" message when the user types again
+          setInputValue(newInputValue); // Update input value
+          setNotFoundMessage(""); // Clear not-found message
         }}
-        noOptionsText={
-          inputValue ? (
-            <Button
-              variant="text"
-              startIcon={<SearchIcon />}
-              onClick={handleAdvancedSearch}
-              sx={{ color: "#1976d2", textTransform: "none" }}
-            >
-              Search First Name
-            </Button>
-          ) : (
-            <Typography variant="body2" color="textSecondary">
-              Start typing to search...
-            </Typography>
-          )
-        }
         renderInput={(params) => (
           <TextField
             {...params}
@@ -121,6 +105,20 @@ export default function AccountField({ value, handleInputChange, ZOHO, selectedR
           />
         )}
       />
+
+      {/* Display search button when input value does not match any account */}
+      {showSearchButton && (
+        <Box sx={{ mt: 2 }}>
+          <Button
+            variant="text"
+            startIcon={<SearchIcon />}
+            onClick={handleAdvancedSearch}
+            sx={{ color: "#1976d2", textTransform: "none" }}
+          >
+            Search Account Name
+          </Button>
+        </Box>
+      )}
 
       {/* Display "Not found" message if applicable */}
       {notFoundMessage && (

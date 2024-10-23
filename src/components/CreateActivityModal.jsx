@@ -155,7 +155,7 @@ const CreateActivityModal = ({ openCreateModal, handleClose, ZOHO, users }) => {
     Regarding: "",
     Duration_Min: "",
     Create_Separate_Event_For_Each_Contact: false,
-    Remind_Participants: ""
+    Reminder_Text: ""
   });
 
   const isFormValid = () => {

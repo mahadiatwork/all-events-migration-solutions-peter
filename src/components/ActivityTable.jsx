@@ -18,18 +18,25 @@ import {
 import ClearActivityModal from "./ClearActivityModal";
 import EditActivityModal from "./EditActivityModal";
 import CreateActivityModal from "./CreateActivityModal";
-import {
-  subDays,
-  startOfWeek,
-  startOfMonth,
-  addDays,
-  isAfter,
-  isBefore,
-} from "date-fns";
+import { subDays, startOfWeek, startOfMonth, addDays, isAfter } from "date-fns";
+
+const CustomTableCell = ({ children, selectedRowIndex, index, ...props }) => {
+  return (
+    <TableCell
+      sx={{
+        color: selectedRowIndex === index ? "#FFFFFF" : "inherit",
+        // You can extend this to add more custom styles if needed
+      }}
+      {...props} // Spread any additional props like onClick, className, etc.
+    >
+      {children}
+    </TableCell>
+  );
+};
 
 // Function to create row data for To-Do, Meeting, and Call
 function createData(event, type) {
-  let startDateTime, endDateTime, time, duration, scheduledWith;
+  let startDateTime, endDateTime, time, duration, scheduledFor;
 
   startDateTime = new Date(event.Start_DateTime);
   endDateTime = new Date(event.End_DateTime);
@@ -38,7 +45,7 @@ function createData(event, type) {
     minute: "2-digit",
   });
   duration = `${Math.round((endDateTime - startDateTime) / 60000)} minutes`;
-  scheduledWith = event.Owner ? event.Owner.name : "Unknown";
+  scheduledFor = event.Owner ? event.Owner.name : "Unknown";
 
   const date = startDateTime.toLocaleDateString();
   const priority = event.Event_Priority || "Low";
@@ -46,6 +53,7 @@ function createData(event, type) {
   const associateWith = event.What_Id ? event.What_Id.name : "";
   const id = event.id;
   const title = event.Event_Title;
+  const participants = event.Participants || []; // New Participants field
 
   return {
     title,
@@ -53,7 +61,8 @@ function createData(event, type) {
     date,
     time,
     priority,
-    scheduledWith,
+    scheduledFor, // Renamed from scheduledWith
+    participants, // Store participants
     regarding,
     duration,
     associateWith,
@@ -67,15 +76,11 @@ export default function ScheduleTable({ events, ZOHO, users }) {
   const [openEditModal, setOpenEditModal] = React.useState(false);
   const [selectedRowData, setSelectedRowData] = React.useState(null);
   const [openCreateModal, setOpenCreateModal] = React.useState(false);
-  // Combine events, todo, and calls into one dataset
+
+  // Combine events into one dataset
   const rows = [
     ...events.map((event) => createData(event, event.Type_of_Activity)),
   ];
-
-  // Get the min and max dates from the events, todo, and calls
-  const allDates = [...events];
-  const maxDate =
-    allDates.length > 0 ? new Date(Math.max(...allDates)) : new Date();
 
   // Filter states
   const [filterDate, setFilterDate] = React.useState("All");
@@ -92,7 +97,7 @@ export default function ScheduleTable({ events, ZOHO, users }) {
           const response = await ZOHO.CRM.API.getRecord({
             Entity: "Events",
             approved: "both",
-            RecordID: row.id, // Corrected to use row.meetingId instead of selectedRowData.meetingId
+            RecordID: row.id,
           });
 
           if (response && response.data) {
@@ -121,7 +126,7 @@ export default function ScheduleTable({ events, ZOHO, users }) {
           const response = await ZOHO.CRM.API.getRecord({
             Entity: "Events",
             approved: "both",
-            RecordID: row.id, // Corrected to use row.meetingId instead of selectedRowData.meetingId
+            RecordID: row.id,
           });
 
           if (response && response.data) {
@@ -152,8 +157,6 @@ export default function ScheduleTable({ events, ZOHO, users }) {
     { label: "Last 7 Days", value: "Last 7 Days" },
     { label: "Last 30 Days", value: "Last 30 Days" },
     { label: "Last 90 Days", value: "Last 90 Days" },
-    { label: "Last Week", value: "Last Week" },
-    { label: "Last Month", value: "Last Month" },
     { label: "Current Week", value: "Current Week" },
     { label: "Current Month", value: "Current Month" },
     { label: "Next Week", value: "Next Week" },
@@ -175,11 +178,7 @@ export default function ScheduleTable({ events, ZOHO, users }) {
       (filterDate === "Current Month" &&
         isAfter(rowDate, startOfMonth(new Date()))) ||
       (filterDate === "Next Week" &&
-        isAfter(rowDate, addDays(startOfWeek(new Date()), 7))) ||
-      (filterDate === "Last Week" &&
-        isAfter(rowDate, subDays(startOfWeek(new Date()), 7))) ||
-      (filterDate === "Last Month" &&
-        isAfter(rowDate, subDays(startOfMonth(new Date()), 30)));
+        isAfter(rowDate, addDays(startOfWeek(new Date()), 7)));
 
     const matchesTypeFilter =
       filterType === "All" ||
@@ -189,7 +188,7 @@ export default function ScheduleTable({ events, ZOHO, users }) {
       row.priority.toLowerCase() === filterPriority.toLowerCase();
     const matchesUserFilter =
       filterUser === "All" ||
-      row.scheduledWith.toLowerCase() === filterUser.toLowerCase();
+      row.scheduledFor.toLowerCase() === filterUser.toLowerCase();
 
     return (
       matchesDateFilter &&
@@ -201,7 +200,6 @@ export default function ScheduleTable({ events, ZOHO, users }) {
 
   return (
     <>
-      {/* Filter Row */}
       <Grid container spacing={2} style={{ marginTop: 20, marginBottom: 20 }}>
         <Grid item xs={3}>
           <FormControl fullWidth>
@@ -266,6 +264,7 @@ export default function ScheduleTable({ events, ZOHO, users }) {
             >
               <MenuItem value="All">All</MenuItem>
               <MenuItem value="Low">Low</MenuItem>
+              <MenuItem value="Medium">Medium</MenuItem>
               <MenuItem value="High">High</MenuItem>
             </Select>
           </FormControl>
@@ -309,14 +308,14 @@ export default function ScheduleTable({ events, ZOHO, users }) {
               <TableCell>Date</TableCell>
               <TableCell>Time</TableCell>
               <TableCell>Priority</TableCell>
-              <TableCell>Scheduled With</TableCell>
+              <TableCell>Scheduled For</TableCell>
+              <TableCell>Scheduled With</TableCell> {/* New column */}
               <TableCell>Regarding</TableCell>
               <TableCell>Duration</TableCell>
               <TableCell>Associate With</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {console.log({ filteredRows })}
             {filteredRows.map((row, index) => (
               <TableRow
                 key={index}
@@ -325,83 +324,101 @@ export default function ScheduleTable({ events, ZOHO, users }) {
                     selectedRowIndex === index ? "#0072DC" : "transparent",
                   color: selectedRowIndex === index ? "#FFFFFF" : "inherit",
                 }}
-                onClick={() => handleRowClick(index, row)} // Handle row click here
+                onClick={() => handleRowClick(index, row)}
               >
                 <TableCell
                   padding="checkbox"
-                  onClick={(e) => e.stopPropagation()} // Prevent checkbox from triggering row click
+                  onClick={(e) => e.stopPropagation()}
                 >
                   <Checkbox
                     checked={selectedRowIndex === index && openClearModal}
-                    onChange={() => handleCheckboxChange(index, row)} // Handle checkbox click here
+                    onChange={() => handleCheckboxChange(index, row)}
                     sx={{
-                      color: selectedRowIndex === index ? "#FFFFFF" : "inherit",
+                      color: selectedRowIndex === index ? "#fff" : "inherit",
                     }}
                   />
                 </TableCell>
-                <TableCell
-                  sx={{
-                    color: selectedRowIndex === index ? "#FFFFFF" : "inherit",
-                  }}
+                <CustomTableCell
+                  selectedRowIndex={selectedRowIndex}
+                  index={index}
                 >
                   {row.title}
-                </TableCell>
-                <TableCell
-                  sx={{
-                    color: selectedRowIndex === index ? "#FFFFFF" : "inherit",
-                  }}
+                </CustomTableCell>
+                <CustomTableCell
+                  selectedRowIndex={selectedRowIndex}
+                  index={index}
                 >
                   {row.type}
-                </TableCell>
-                <TableCell
-                  sx={{
-                    color: selectedRowIndex === index ? "#FFFFFF" : "inherit",
-                  }}
+                </CustomTableCell>
+                <CustomTableCell
+                  selectedRowIndex={selectedRowIndex}
+                  index={index}
                 >
                   {row.date}
-                </TableCell>
-                <TableCell
-                  sx={{
-                    color: selectedRowIndex === index ? "#FFFFFF" : "inherit",
-                  }}
+                </CustomTableCell>
+                <CustomTableCell
+                  selectedRowIndex={selectedRowIndex}
+                  index={index}
                 >
                   {row.time}
-                </TableCell>
-                <TableCell
-                  style={{
-                    color: row.Event_Priority === "Low" ? "red" : "inherit",
-                  }}
+                </CustomTableCell>
+                <CustomTableCell
+                  selectedRowIndex={selectedRowIndex}
+                  index={index}
                 >
                   {row.priority}
-                </TableCell>
+                </CustomTableCell>
+                <CustomTableCell
+                  selectedRowIndex={selectedRowIndex}
+                  index={index}
+                >
+                  {row.scheduledFor}
+                </CustomTableCell>
                 <TableCell
                   sx={{
                     color: selectedRowIndex === index ? "#FFFFFF" : "inherit",
                   }}
                 >
-                  {row.scheduledWith}
+                  {console.log(row.participants)}
+                  {/* Display each participant as a hyperlink */}
+                  {row.participants.length > 0
+                    ? row.participants
+                        .map((participant, i) => (
+                          <a
+                            key={i}
+                            href={`https://crm.zoho.com.au/crm/org7004396182/tab/Contacts/${participant.participant}/canvas/76775000000287551`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{
+                              color:
+                                selectedRowIndex === index ? "#fff" : "#0072DC",
+                              textDecoration: "underline",
+                            }}
+                          >
+                            {participant.name}
+                          </a>
+                        ))
+                        .reduce((prev, curr) => [prev, ", ", curr]) // Join with commas
+                    : "No Participants"}
                 </TableCell>
-                <TableCell
-                  sx={{
-                    color: selectedRowIndex === index ? "#FFFFFF" : "inherit",
-                  }}
+                <CustomTableCell
+                  selectedRowIndex={selectedRowIndex}
+                  index={index}
                 >
                   {row.regarding}
-                </TableCell>
-                <TableCell
-                  sx={{
-                    color: selectedRowIndex === index ? "#FFFFFF" : "inherit",
-                  }}
+                </CustomTableCell>
+                <CustomTableCell
+                  selectedRowIndex={selectedRowIndex}
+                  index={index}
                 >
                   {row.duration}
-                </TableCell>
-                <TableCell
-                  sx={{
-                    color: selectedRowIndex === index ? "#FFFFFF" : "inherit",
-                  }}
+                </CustomTableCell>
+                <CustomTableCell
+                  selectedRowIndex={selectedRowIndex}
+                  index={index}
                 >
                   {row.associateWith}
-                </TableCell>
+                </CustomTableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -429,10 +446,12 @@ export default function ScheduleTable({ events, ZOHO, users }) {
           users={users}
         />
       )}
+
+      {/* Create Activity Modal */}
       {openCreateModal && (
         <CreateActivityModal
-          open={openCreateModal} // Pass the open state to the modal
-          handleClose={handleClose} // Use handleClose to close the modal
+          open={openCreateModal}
+          handleClose={handleClose}
           ZOHO={ZOHO}
           users={users}
         />

@@ -138,7 +138,7 @@ const EditActivityModal = ({
     Description: selectedRowData?.Description || "",
     Banner: selectedRowData?.Banner || false,
     scheduleFor: selectedRowData?.Owner || null,
-    Remind_Participants: selectedRowData?.Remind_Participants || null,
+    Reminder_Text: selectedRowData?.Reminder_Text || null,
   });
 
   const handleChange = (event, newValue) => {

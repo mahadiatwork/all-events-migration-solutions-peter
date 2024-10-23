@@ -100,6 +100,7 @@ const FirstComponent = ({
 
   useEffect(() => {
     if (selectedRowData) {
+      handleInputChange("Reminder_Text", selectedRowData.Reminder_Text || "");
       handleInputChange("Event_Title", selectedRowData.Event_Title || "");
       handleInputChange(
         "Type_of_Activity",
@@ -444,19 +445,19 @@ const FirstComponent = ({
             <Select
               label="Ring Alarm"
               fullWidth
-              value={formData.ringAlarm} // Use formData
-              onChange={(e) => handleInputChange("ringAlarm", e.target.value)}
+              value={formData.Reminder_Text} // Use formData
+              onChange={(e) => handleInputChange("Reminder_Text", e.target.value)}
             >
-              <MenuItem value={0}>None</MenuItem>
-              <MenuItem value={1}>At time of meeting</MenuItem>
-              <MenuItem value={5}>5 minutes before</MenuItem>
-              <MenuItem value={10}>10 minutes before</MenuItem>
-              <MenuItem value={15}>15 minutes before</MenuItem>
-              <MenuItem value={30}>30 minutes before</MenuItem>
-              <MenuItem value={60}>1 hour before</MenuItem>
-              <MenuItem value={120}>2 hours before</MenuItem>
-              <MenuItem value={1440}>1 day before</MenuItem>
-              <MenuItem value={2880}>2 days before</MenuItem>
+              <MenuItem value="None">None</MenuItem>
+              <MenuItem value="At time of meeting">At time of meeting</MenuItem>
+              <MenuItem value="5 minutes before">5 minutes before</MenuItem>
+              <MenuItem value="10 minutes before"></MenuItem>
+              <MenuItem value="15 minutes before">15 minutes before</MenuItem>
+              <MenuItem value="30 minutes before">30 minutes before</MenuItem>
+              <MenuItem value="1 hour before">1 hour before</MenuItem>
+              <MenuItem value="2 hours before"></MenuItem>
+              <MenuItem value="1 day before"></MenuItem>
+              <MenuItem value="2 days before"></MenuItem>
             </Select>
           </FormControl>
         </Grid>
