@@ -14,6 +14,7 @@ import {
   InputLabel,
   Grid,
   Button,
+  TablePagination,
 } from "@mui/material";
 import ClearActivityModal from "./ClearActivityModal";
 import EditActivityModal from "./EditActivityModal";
@@ -25,16 +26,14 @@ const CustomTableCell = ({ children, selectedRowIndex, index, ...props }) => {
     <TableCell
       sx={{
         color: selectedRowIndex === index ? "#FFFFFF" : "inherit",
-        // You can extend this to add more custom styles if needed
       }}
-      {...props} // Spread any additional props like onClick, className, etc.
+      {...props}
     >
       {children}
     </TableCell>
   );
 };
 
-// Function to create row data for To-Do, Meeting, and Call
 function createData(event, type) {
   let startDateTime, endDateTime, time, duration, scheduledFor;
 
@@ -61,8 +60,8 @@ function createData(event, type) {
     date,
     time,
     priority,
-    scheduledFor, // Renamed from scheduledWith
-    participants, // Store participants
+    scheduledFor,
+    participants,
     regarding,
     duration,
     associateWith,
@@ -77,82 +76,17 @@ export default function ScheduleTable({ events, ZOHO, users }) {
   const [selectedRowData, setSelectedRowData] = React.useState(null);
   const [openCreateModal, setOpenCreateModal] = React.useState(false);
 
+  // Pagination state
+  const [page, setPage] = React.useState(0);
+  const [rowsPerPage, setRowsPerPage] = React.useState(12);
+
   // Combine events into one dataset
   const rows = [
     ...events.map((event) => createData(event, event.Type_of_Activity)),
   ];
 
-  // Filter states
-  const [filterDate, setFilterDate] = React.useState("All");
-  const [filterType, setFilterType] = React.useState("All");
-  const [filterPriority, setFilterPriority] = React.useState("All");
-  const [filterUser, setFilterUser] = React.useState("All");
-
-  // Handle checkbox change to open the ClearActivityModal
-  const handleCheckboxChange = (index, row) => {
-    setSelectedRowIndex(index);
-    if (row?.id) {
-      async function getData() {
-        try {
-          const response = await ZOHO.CRM.API.getRecord({
-            Entity: "Events",
-            approved: "both",
-            RecordID: row.id,
-          });
-
-          if (response && response.data) {
-            setSelectedRowData(response.data[0]); // Setting the row data after successfully fetching event data
-          }
-          setOpenClearModal(true); // Open modal after data is fetched
-        } catch (error) {
-          console.error("Error fetching data:", error);
-        }
-      }
-      getData();
-      return; // Exit the function if data is being fetched
-    }
-
-    // If no meetingId, just open the modal
-    setSelectedRowData(row); // Directly set row data if no meetingId
-    setOpenClearModal(true); // Open modal immediately
-  };
-
-  // Handle row click to open the EditActivityModal
-  const handleRowClick = (index, row) => {
-    setSelectedRowIndex(index);
-    if (row?.id) {
-      async function getData() {
-        try {
-          const response = await ZOHO.CRM.API.getRecord({
-            Entity: "Events",
-            approved: "both",
-            RecordID: row.id,
-          });
-
-          if (response && response.data) {
-            setSelectedRowData(response.data[0]); // Setting the row data after successfully fetching event data
-          }
-          setOpenEditModal(true); // Open modal after data is fetched
-        } catch (error) {
-          console.error("Error fetching data:", error);
-        }
-      }
-      getData();
-      return; // Exit the function if data is being fetched
-    }
-    setSelectedRowData(row);
-    setOpenEditModal(true);
-  };
-
-  // Handle modal close
-  const handleClose = () => {
-    setOpenClearModal(false);
-    setOpenEditModal(false);
-    setOpenCreateModal(false); // Close the CreateActivityModal
-  };
-
-  // Date Filter logic
-  const filterDateOptions = [
+   // Date Filter logic
+   const filterDateOptions = [
     { label: "All", value: "All" },
     { label: "Last 7 Days", value: "Last 7 Days" },
     { label: "Last 30 Days", value: "Last 30 Days" },
@@ -162,7 +96,13 @@ export default function ScheduleTable({ events, ZOHO, users }) {
     { label: "Next Week", value: "Next Week" },
   ];
 
-  // Filter the rows based on selected filters
+  // Filter states
+  const [filterDate, setFilterDate] = React.useState("All");
+  const [filterType, setFilterType] = React.useState("All");
+  const [filterPriority, setFilterPriority] = React.useState("All");
+  const [filterUser, setFilterUser] = React.useState("All");
+
+  // Filtered rows logic
   const filteredRows = rows.filter((row) => {
     const rowDate = new Date(row.date);
     const matchesDateFilter =
@@ -198,8 +138,82 @@ export default function ScheduleTable({ events, ZOHO, users }) {
     );
   });
 
+  // Handle pagination change
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  };
+
+    // Handle modal close
+    const handleClose = () => {
+      setOpenClearModal(false);
+      setOpenEditModal(false);
+      setOpenCreateModal(false); // Close the CreateActivityModal
+    };
+
+    // Handle row click to open the EditActivityModal
+  const handleRowClick = (index, row) => {
+    setSelectedRowIndex(index);
+    if (row?.id) {
+      async function getData() {
+        try {
+          const response = await ZOHO.CRM.API.getRecord({
+            Entity: "Events",
+            approved: "both",
+            RecordID: row.id,
+          });
+
+          if (response && response.data) {
+            setSelectedRowData(response.data[0]); // Setting the row data after successfully fetching event data
+          }
+          setOpenEditModal(true); // Open modal after data is fetched
+        } catch (error) {
+          console.error("Error fetching data:", error);
+        }
+      }
+      getData();
+      return; // Exit the function if data is being fetched
+    }
+    setSelectedRowData(row);
+    setOpenEditModal(true);
+  };
+
+   // Handle checkbox change to open the ClearActivityModal
+   const handleCheckboxChange = (index, row) => {
+    setSelectedRowIndex(index);
+    if (row?.id) {
+      async function getData() {
+        try {
+          const response = await ZOHO.CRM.API.getRecord({
+            Entity: "Events",
+            approved: "both",
+            RecordID: row.id,
+          });
+
+          if (response && response.data) {
+            setSelectedRowData(response.data[0]); // Setting the row data after successfully fetching event data
+          }
+          setOpenClearModal(true); // Open modal after data is fetched
+        } catch (error) {
+          console.error("Error fetching data:", error);
+        }
+      }
+      getData();
+      return; // Exit the function if data is being fetched
+    }
+
+    // If no meetingId, just open the modal
+    setSelectedRowData(row); // Directly set row data if no meetingId
+    setOpenClearModal(true); // Open modal immediately
+  };
+
   return (
     <>
+      {/* Filters */}
       <Grid container spacing={2} style={{ marginTop: 20, marginBottom: 20 }}>
         <Grid item xs={3}>
           <FormControl fullWidth>
@@ -309,81 +323,77 @@ export default function ScheduleTable({ events, ZOHO, users }) {
               <TableCell>Time</TableCell>
               <TableCell>Priority</TableCell>
               <TableCell>Scheduled For</TableCell>
-              <TableCell>Scheduled With</TableCell> {/* New column */}
+              <TableCell>Scheduled With</TableCell>
               <TableCell>Regarding</TableCell>
               <TableCell>Duration</TableCell>
               <TableCell>Associate With</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {filteredRows.map((row, index) => (
-              <TableRow
-                key={index}
-                sx={{
-                  backgroundColor:
-                    selectedRowIndex === index ? "#0072DC" : "transparent",
-                  color: selectedRowIndex === index ? "#FFFFFF" : "inherit",
-                }}
-                onClick={() => handleRowClick(index, row)}
-              >
-                <TableCell
-                  padding="checkbox"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <Checkbox
-                    checked={selectedRowIndex === index && openClearModal}
-                    onChange={() => handleCheckboxChange(index, row)}
-                    sx={{
-                      color: selectedRowIndex === index ? "#fff" : "inherit",
-                    }}
-                  />
-                </TableCell>
-                <CustomTableCell
-                  selectedRowIndex={selectedRowIndex}
-                  index={index}
-                >
-                  {row.title}
-                </CustomTableCell>
-                <CustomTableCell
-                  selectedRowIndex={selectedRowIndex}
-                  index={index}
-                >
-                  {row.type}
-                </CustomTableCell>
-                <CustomTableCell
-                  selectedRowIndex={selectedRowIndex}
-                  index={index}
-                >
-                  {row.date}
-                </CustomTableCell>
-                <CustomTableCell
-                  selectedRowIndex={selectedRowIndex}
-                  index={index}
-                >
-                  {row.time}
-                </CustomTableCell>
-                <CustomTableCell
-                  selectedRowIndex={selectedRowIndex}
-                  index={index}
-                >
-                  {row.priority}
-                </CustomTableCell>
-                <CustomTableCell
-                  selectedRowIndex={selectedRowIndex}
-                  index={index}
-                >
-                  {row.scheduledFor}
-                </CustomTableCell>
-                <TableCell
+            {filteredRows
+              .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+              .map((row, index) => (
+                <TableRow
+                  key={index}
                   sx={{
+                    backgroundColor:
+                      selectedRowIndex === index ? "#0072DC" : "transparent",
                     color: selectedRowIndex === index ? "#FFFFFF" : "inherit",
                   }}
+                  onClick={() => handleRowClick(index, row)}
                 >
-                  {console.log(row.participants)}
-                  {/* Display each participant as a hyperlink */}
-                  {row.participants.length > 0
-                    ? row.participants
-                        .map((participant, i) => (
+                  <TableCell
+                    padding="checkbox"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <Checkbox
+                      checked={selectedRowIndex === index && openClearModal}
+                      onChange={() => handleCheckboxChange(index, row)}
+                      sx={{
+                        color: selectedRowIndex === index ? "#fff" : "inherit",
+                      }}
+                    />
+                  </TableCell>
+                  <CustomTableCell
+                    selectedRowIndex={selectedRowIndex}
+                    index={index}
+                  >
+                    {row.title}
+                  </CustomTableCell>
+                  <CustomTableCell
+                    selectedRowIndex={selectedRowIndex}
+                    index={index}
+                  >
+                    {row.type}
+                  </CustomTableCell>
+                  <CustomTableCell
+                    selectedRowIndex={selectedRowIndex}
+                    index={index}
+                  >
+                    {row.date}
+                  </CustomTableCell>
+                  <CustomTableCell
+                    selectedRowIndex={selectedRowIndex}
+                    index={index}
+                  >
+                    {row.time}
+                  </CustomTableCell>
+                  <CustomTableCell
+                    selectedRowIndex={selectedRowIndex}
+                    index={index}
+                  >
+                    {row.priority}
+                  </CustomTableCell>
+                  <CustomTableCell
+                    selectedRowIndex={selectedRowIndex}
+                    index={index}
+                  >
+                    {row.scheduledFor}
+                  </CustomTableCell>
+                  <TableCell>
+                    {/* Display participants */}
+                    {row.participants.length > 0
+                      ? row.participants.map((participant, i) => (
                           <a
                             key={i}
                             href={`https://crm.zoho.com.au/crm/org7004396182/tab/Contacts/${participant.participant}/canvas/76775000000287551`}
@@ -398,34 +408,45 @@ export default function ScheduleTable({ events, ZOHO, users }) {
                             {participant.name}
                           </a>
                         ))
-                        .reduce((prev, curr) => [prev, ", ", curr]) // Join with commas
-                    : "No Participants"}
-                </TableCell>
-                <CustomTableCell
-                  selectedRowIndex={selectedRowIndex}
-                  index={index}
-                >
-                  {row.regarding}
-                </CustomTableCell>
-                <CustomTableCell
-                  selectedRowIndex={selectedRowIndex}
-                  index={index}
-                >
-                  {row.duration}
-                </CustomTableCell>
-                <CustomTableCell
-                  selectedRowIndex={selectedRowIndex}
-                  index={index}
-                >
-                  {row.associateWith}
-                </CustomTableCell>
-              </TableRow>
-            ))}
+                      : "No Participants"}
+                  </TableCell>
+                  <CustomTableCell
+                    selectedRowIndex={selectedRowIndex}
+                    index={index}
+                  >
+                    {row.regarding}
+                  </CustomTableCell>
+                  <CustomTableCell
+                    selectedRowIndex={selectedRowIndex}
+                    index={index}
+                  >
+                    {row.duration}
+                  </CustomTableCell>
+                  <CustomTableCell
+                    selectedRowIndex={selectedRowIndex}
+                    index={index}
+                  >
+                    {row.associateWith}
+                  </CustomTableCell>
+                </TableRow>
+              ))}
           </TableBody>
         </Table>
       </TableContainer>
 
-      {/* Clear Activity Modal */}
+      {/* Pagination Component */}
+      {filteredRows.length > 12 && (
+        <TablePagination
+          component="div"
+          count={filteredRows.length}
+          page={page}
+          onPageChange={handleChangePage}
+          rowsPerPage={rowsPerPage}
+          onRowsPerPageChange={handleChangeRowsPerPage}
+        />
+      )}
+
+      {/* Modals */}
       {openClearModal && (
         <ClearActivityModal
           open={openClearModal}
@@ -436,7 +457,6 @@ export default function ScheduleTable({ events, ZOHO, users }) {
         />
       )}
 
-      {/* Edit Activity Modal */}
       {openEditModal && (
         <EditActivityModal
           open={openEditModal}
@@ -447,7 +467,6 @@ export default function ScheduleTable({ events, ZOHO, users }) {
         />
       )}
 
-      {/* Create Activity Modal */}
       {openCreateModal && (
         <CreateActivityModal
           open={openCreateModal}

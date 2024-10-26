@@ -274,7 +274,7 @@ const FirstComponent = ({
     },
   };
 
-  console.log({ scheduleFor: formData?.Banner });
+  console.log({formData})
 
   return (
     <Box>
@@ -455,9 +455,9 @@ const FirstComponent = ({
               <MenuItem value="15 minutes before">15 minutes before</MenuItem>
               <MenuItem value="30 minutes before">30 minutes before</MenuItem>
               <MenuItem value="1 hour before">1 hour before</MenuItem>
-              <MenuItem value="2 hours before"></MenuItem>
-              <MenuItem value="1 day before"></MenuItem>
-              <MenuItem value="2 days before"></MenuItem>
+              <MenuItem value="2 hours before">2 hours before</MenuItem>
+              <MenuItem value="1 day before">1 day before</MenuItem>
+              <MenuItem value="2 days before">2 days before</MenuItem>
             </Select>
           </FormControl>
         </Grid>

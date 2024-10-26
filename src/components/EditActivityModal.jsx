@@ -17,6 +17,68 @@ import SecondComponent from "./SecondComponent";
 import ThirdComponent from "./ThirdComponent";
 import CloseIcon from "@mui/icons-material/Close";
 
+
+// Helper function to format date with timezone offset
+function formatDateForRemindAt(date) {
+  if (!date) return null;
+
+  // Helper function to pad numbers with leading zeros
+  const pad = (num) => String(num).padStart(2, "0");
+
+  // Extract date and time components
+  const formattedYear = date.getFullYear();
+  const formattedMonth = pad(date.getMonth() + 1);
+  const formattedDay = pad(date.getDate());
+  const formattedHours = pad(date.getHours());
+  const formattedMinutes = pad(date.getMinutes());
+  const formattedSeconds = pad(date.getSeconds());
+
+  // Get timezone offset
+  const timezoneOffset = -date.getTimezoneOffset();
+  const offsetSign = timezoneOffset >= 0 ? "+" : "-";
+  const offsetHours = pad(Math.floor(Math.abs(timezoneOffset) / 60));
+  const offsetMinutes = pad(Math.abs(timezoneOffset) % 60);
+
+  // Return formatted date string with timezone offset
+  return `${formattedYear}-${formattedMonth}-${formattedDay}T${formattedHours}:${formattedMinutes}:${formattedSeconds}${offsetSign}${offsetHours}:${offsetMinutes}`;
+}
+
+// Function to calculate Remind_At based on Reminder_Text
+function calculateRemindAt(reminderText, startDateTime) {
+  const startDate = new Date(startDateTime);
+  // Calculate the amount of time to subtract based on Reminder_Text
+  switch (reminderText) {
+    case "At time of meeting":
+      return startDate.toISOString(); // No change
+    case "5 minutes before":
+      startDate.setMinutes(startDate.getMinutes() - 5);
+      break;
+    case "15 minutes before":
+      startDate.setMinutes(startDate.getMinutes() - 15);
+      break;
+    case "30 minutes before":
+      startDate.setMinutes(startDate.getMinutes() - 30);
+      break;
+    case "1 hour before":
+      startDate.setHours(startDate.getHours() - 1);
+      break;
+    case "2 hours before":
+      startDate.setHours(startDate.getHours() - 2);
+      break;
+    case "1 day before":
+      startDate.setDate(startDate.getDate() - 1);
+      break;
+    case "2 days before":
+      startDate.setDate(startDate.getDate() - 2);
+      break;
+    case "None":
+    default:
+      return null; // No reminder
+  }
+  // Format the updated date back into the required ISO string format
+  return formatDateForRemindAt(startDate);
+}
+
 function formatDateWithOffset(dateString) {
   if (!dateString) return null;
   const date = new Date(dateString);
@@ -76,6 +138,16 @@ function transformFormSubmission(data) {
       id: data.scheduleFor.id,
     },
   };
+
+  if (
+    data?.Reminder_Text !== null &&
+    data?.Reminder_Text !== "" &&
+    data?.Reminder_Text !== "None"
+  ) {
+    const remindAt = calculateRemindAt(data?.Reminder_Text, formatDateWithOffset(data.start));
+    transformedData['Remind_At'] = remindAt;
+    transformedData['$send_notification'] = true;
+  }
 
   // Explicitly remove the scheduleWith, scheduleFor, and description keys
   delete transformedData.scheduledWith;
@@ -202,11 +274,12 @@ const EditActivityModal = ({
         left: "50%",
         transform: "translate(-50%, -50%)",
         width: 600,
-        bgcolor: "background.paper",
+        bgcolor: "white",
         border: "2px solid #000",
         boxShadow: 24,
         p: 2,
         borderRadius: 5,
+        zIndex: 999
       }}
     >
       <Box display="flex" justifyContent="space-between" mb={2}>

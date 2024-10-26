@@ -1,7 +1,7 @@
 import React, { useEffect, useState, createContext, useContext } from "react";
 import "./App.css";
 import ActivityTable from "./components/ActivityTable";
-import ContactField from "./components/atom/ContactField";
+import { CircularProgress, Box } from "@mui/material"; // Add MUI CircularProgress for the loader
 import { subDays } from "date-fns";
 
 const ZOHO = window.ZOHO;
@@ -16,6 +16,7 @@ function App() {
   const [todo, setTodo] = useState([]);
   const [calls, setCalls] = useState([]);
   const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true); // Add loading state
 
   useEffect(() => {
     ZOHO.embeddedApp.init().then(() => {
@@ -26,69 +27,108 @@ function App() {
   useEffect(() => {
     async function getData() {
       if (zohoLoaded) {
-        const allMeetings = await ZOHO.CRM.API.getAllRecords({
-          Entity: "Events",
-          sort_order: "asc",
-          per_page: 100,
-          page: 1,
-        });
-        setEvents(allMeetings.data);
+        setLoading(true); // Set loading to true when data fetching starts
+        try {
+          // First request: Fetch all event records from Zoho CRM
+          const allMeetings = await ZOHO.CRM.API.getAllRecords({
+            Entity: "Events",
+            sort_order: "asc",
+            per_page: 100,
+            page: 1,
+          });
+          setEvents(allMeetings.data); // Set the events in the state
 
-        const usersResponse = await ZOHO.CRM.API.getAllRecords({
-          Entity: "users",
-          sort_order: "asc",
-          per_page: 100,
-          page: 1,
-        });
-        setUsers(usersResponse.users); // assuming users data is available here
+          // Second request: Fetch all users from Zoho CRM
+          const usersResponse = await ZOHO.CRM.API.getAllRecords({
+            Entity: "users",
+            sort_order: "asc",
+            per_page: 100,
+            page: 1,
+          });
+          setUsers(usersResponse.users); // Set the users in the state
 
-        // function formatDateToCOQL(date) {
-        //   const year = date.getFullYear();
-        //   const month = String(date.getMonth() + 1).padStart(2, "0");
-        //   const day = String(date.getDate()).padStart(2, "0");
-        //   const hours = String(date.getHours()).padStart(2, "0");
-        //   const minutes = String(date.getMinutes()).padStart(2, "0");
-        //   const seconds = String(date.getSeconds()).padStart(2, "0");
+          // Dynamic dates for event filtering using plain JavaScript
+          const conn_name1 = "zoho_crm_conn";
 
-        //   // Get timezone offset in '+hh:mm' or '-hh:mm' format
-        //   const timezoneOffset = -date.getTimezoneOffset();
-        //   const sign = timezoneOffset >= 0 ? "+" : "-";
-        //   const offsetHours = String(
-        //     Math.floor(Math.abs(timezoneOffset) / 60)
-        //   ).padStart(2, "0");
-        //   const offsetMinutes = String(Math.abs(timezoneOffset) % 60).padStart(
-        //     2,
-        //     "0"
-        //   );
+          // Get the start of the current month
+          const currentDate = new Date();
+          const beginDate1 = new Date(
+            currentDate.getFullYear(),
+            currentDate.getMonth(),
+            1
+          );
+          const closeDate1 = new Date(
+            currentDate.getFullYear(),
+            currentDate.getMonth() + 1,
+            0
+          );
 
-        //   return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}${sign}${offsetHours}:${offsetMinutes}`;
-        // }
+          // Format the dates to YYYY-MM-DDTHH:MM:SS+Timezone
+          const formattedBeginDate = `${beginDate1.getFullYear()}-${String(
+            beginDate1.getMonth() + 1
+          ).padStart(2, "0")}-${String(beginDate1.getDate()).padStart(
+            2,
+            "0"
+          )}T00:00:00+11:00`;
+          const formattedCloseDate = `${closeDate1.getFullYear()}-${String(
+            closeDate1.getMonth() + 1
+          ).padStart(2, "0")}-${String(closeDate1.getDate()).padStart(
+            2,
+            "0"
+          )}T23:59:59+11:00`;
 
-        // // Get the current date and subtract days as needed for your filter
-        // const today = new Date();
-        // const last7Days = subDays(today, 7); // Subtract 7 days from today
 
-        // // Format dates for COQL
-        // const startDate = formatDateToCOQL(last7Days);
-        // const endDate = formatDateToCOQL(today);
 
-        // // COQL query to fetch contacts created within the last 7 days
-        // var config = {
-        //   select_query: `select End_DateTime, Created_Time,Event_Priority,Event_Title,Description,id from Events where Created_Time between '${startDate}' and '${endDate}'`,
-        // };
+          // Custom event search with dynamic dates
+          const req_data_meetings1 = {
+            url: `https://www.zohoapis.com.au/crm/v3/Events/search?criteria=((Start_DateTime:greater_equal:${encodeURIComponent(
+              formattedBeginDate
+            )})and(End_DateTime:less_equal:${encodeURIComponent(
+              formattedCloseDate
+            )}))`,
+            method: "GET",
+            param_type: 1,
+          };
 
-        // await ZOHO.CRM.API.coql(config).then(function (data) {
-        //   console.log(data);
-        // });
+
+          // Fetching data with custom search criteria
+          const data1 = await ZOHO.CRM.CONNECTION.invoke(
+            conn_name1,
+            req_data_meetings1
+          );
+          console.log(
+            "Custom event search results:",
+            data1
+          );
+
+          // Ensure loading is turned off when the data fetching is complete
+          setLoading(false);
+        } catch (error) {
+          console.error("Error fetching data", error);
+          setLoading(false); // Ensure loading is turned off even if there's an error
+        }
       }
     }
     getData();
   }, [zohoLoaded]);
 
   return (
-    // Wrap your components with the ZohoContext.Provider
     <ZohoContext.Provider value={{ users, events, todo, ZOHO }}>
-      <ActivityTable events={events} todo={todo} ZOHO={ZOHO} users={users} />
+      {/* Conditionally render the loader or the main content */}
+      {loading ? (
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            height: "100vh",
+          }}
+        >
+          <CircularProgress /> {/* MUI loader */}
+        </Box>
+      ) : (
+        <ActivityTable events={events} todo={todo} ZOHO={ZOHO} users={users} />
+      )}
     </ZohoContext.Provider>
   );
 }

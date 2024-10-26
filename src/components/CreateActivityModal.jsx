@@ -1,9 +1,11 @@
 import React, { useState } from "react";
 import "@mobiscroll/react/dist/css/mobiscroll.min.css";
 import {
+  Alert,
   Box,
   Button,
   IconButton,
+  Snackbar,
   Tab,
   Tabs,
   TextField,
@@ -15,7 +17,69 @@ import SecondComponent from "./SecondComponent";
 import ThirdComponent from "./ThirdComponent";
 import CloseIcon from "@mui/icons-material/Close";
 
+// Helper function to format date with timezone offset
+function formatDateForRemindAt(date) {
+  if (!date) return null;
+
+  // Helper function to pad numbers with leading zeros
+  const pad = (num) => String(num).padStart(2, "0");
+
+  // Extract date and time components
+  const formattedYear = date.getFullYear();
+  const formattedMonth = pad(date.getMonth() + 1);
+  const formattedDay = pad(date.getDate());
+  const formattedHours = pad(date.getHours());
+  const formattedMinutes = pad(date.getMinutes());
+  const formattedSeconds = pad(date.getSeconds());
+
+  // Get timezone offset
+  const timezoneOffset = -date.getTimezoneOffset();
+  const offsetSign = timezoneOffset >= 0 ? "+" : "-";
+  const offsetHours = pad(Math.floor(Math.abs(timezoneOffset) / 60));
+  const offsetMinutes = pad(Math.abs(timezoneOffset) % 60);
+
+  // Return formatted date string with timezone offset
+  return `${formattedYear}-${formattedMonth}-${formattedDay}T${formattedHours}:${formattedMinutes}:${formattedSeconds}${offsetSign}${offsetHours}:${offsetMinutes}`;
+}
+
+// Function to calculate Remind_At based on Reminder_Text
+function calculateRemindAt(reminderText, startDateTime) {
+  const startDate = new Date(startDateTime);
+  // Calculate the amount of time to subtract based on Reminder_Text
+  switch (reminderText) {
+    case "At time of meeting":
+      return startDate.toISOString(); // No change
+    case "5 minutes before":
+      startDate.setMinutes(startDate.getMinutes() - 5);
+      break;
+    case "15 minutes before":
+      startDate.setMinutes(startDate.getMinutes() - 15);
+      break;
+    case "30 minutes before":
+      startDate.setMinutes(startDate.getMinutes() - 30);
+      break;
+    case "1 hour before":
+      startDate.setHours(startDate.getHours() - 1);
+      break;
+    case "2 hours before":
+      startDate.setHours(startDate.getHours() - 2);
+      break;
+    case "1 day before":
+      startDate.setDate(startDate.getDate() - 1);
+      break;
+    case "2 days before":
+      startDate.setDate(startDate.getDate() - 2);
+      break;
+    case "None":
+    default:
+      return null; // No reminder
+  }
+  // Format the updated date back into the required ISO string format
+  return formatDateForRemindAt(startDate);
+}
+
 function formatDateWithOffset(dateString) {
+  console.log({ dateString });
   if (!dateString) return null;
 
   // Split the date string into date and time parts
@@ -56,7 +120,6 @@ function formatDateWithOffset(dateString) {
   return `${formattedYear}-${formattedMonth}-${formattedDay}T${formattedHours}:${formattedMinutes}:${formattedSeconds}${offsetSign}${offsetHours}:${offsetMinutes}`;
 }
 
-
 function transformFormSubmission(data, individualParticipant = null) {
   const transformScheduleWithToParticipants = (scheduleWith) => {
     return scheduleWith.map((contact) => ({
@@ -80,6 +143,7 @@ function transformFormSubmission(data, individualParticipant = null) {
       ]
     : transformScheduleWithToParticipants(data.scheduledWith || []);
 
+
   let transformedData = {
     ...data,
     Start_DateTime: formatDateWithOffset(data.start),
@@ -96,7 +160,21 @@ function transformFormSubmission(data, individualParticipant = null) {
     se_module: "Accounts",
     Participants: participants,
     Duration_Min: data.Duration_Min ? data.Duration_Min.toString() : "0",
+    Owner: {
+      id: data?.scheduleFor?.id,
+    },
   };
+
+  if (
+    data?.Reminder_Text !== null &&
+    data?.Reminder_Text !== "" &&
+    data?.Reminder_Text !== "None"
+  ) {
+    const remindAt = calculateRemindAt(data?.Reminder_Text, formatDateWithOffset(data.start));
+    transformedData['Remind_At'] = remindAt;
+    transformedData['$send_notification'] = true;
+  }
+
 
   const keysToRemove = [
     "scheduledWith",
@@ -113,7 +191,6 @@ function transformFormSubmission(data, individualParticipant = null) {
 
   return transformedData;
 }
-
 
 function TabPanel(props) {
   const { children, value, index, ...other } = props;
@@ -145,7 +222,6 @@ const CreateActivityModal = ({ openCreateModal, handleClose, ZOHO, users }) => {
     scheduledWith: [],
     Venue: "",
     priority: "",
-    ringAlarm: "",
     repeat: "once",
     start: "",
     end: "",
@@ -155,7 +231,7 @@ const CreateActivityModal = ({ openCreateModal, handleClose, ZOHO, users }) => {
     Regarding: "",
     Duration_Min: "",
     Create_Separate_Event_For_Each_Contact: false,
-    Reminder_Text: ""
+    Reminder_Text: "None",
   });
 
   const isFormValid = () => {
@@ -209,11 +285,16 @@ const CreateActivityModal = ({ openCreateModal, handleClose, ZOHO, users }) => {
       [field]: value,
     }));
   };
+  const [isSnackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState("");
+  const [snackbarSeverity, setSnackbarSeverity] = useState("success");
+
+  const handleSnackbarClose = () => {
+    setSnackbarOpen(false);
+  };
 
   const handleSubmit = async () => {
-    // Check if we need to create separate events for each contact
     if (formData.Create_Separate_Event_For_Each_Contact) {
-      // Create a separate event for each participant
       for (let participant of formData.scheduledWith) {
         const transformedData = transformFormSubmission(formData, participant);
         await ZOHO.CRM.API.insertRecord({
@@ -234,12 +315,16 @@ const CreateActivityModal = ({ openCreateModal, handleClose, ZOHO, users }) => {
           })
           .catch((error) => {
             console.error("Error submitting the form:", error);
+            setSnackbarSeverity("error");
+            setSnackbarMessage("Error creating events.");
+            setSnackbarOpen(true);
           });
       }
-      alert("Events Created Successfully");
+      setSnackbarSeverity("success");
+      setSnackbarMessage("Events Created Successfully");
+      setSnackbarOpen(true);
       window.location.reload();
     } else {
-      // If not, create a single event with all participants
       const transformedData = transformFormSubmission(formData);
       await ZOHO.CRM.API.insertRecord({
         Entity: "Events",
@@ -252,16 +337,21 @@ const CreateActivityModal = ({ openCreateModal, handleClose, ZOHO, users }) => {
             data.data.length > 0 &&
             data.data[0].code === "SUCCESS"
           ) {
-            alert("Event Created Successfully");
+            setSnackbarSeverity("success");
+            setSnackbarMessage("Event Created Successfully");
+            setSnackbarOpen(true);
             window.location.reload();
           }
         })
         .catch((error) => {
           console.error("Error submitting the form:", error);
+          setSnackbarSeverity("error");
+          setSnackbarMessage("Error creating event.");
+          setSnackbarOpen(true);
         });
     }
   };
-  
+
   const [isSubmitEnabled, setIsSubmitEnabled] = useState(false);
 
   // Validate form data whenever it changes
@@ -285,6 +375,7 @@ const CreateActivityModal = ({ openCreateModal, handleClose, ZOHO, users }) => {
         boxShadow: 24,
         p: 2,
         borderRadius: 5,
+        zIndex: 999,
       }}
     >
       <Box display="flex" justifyContent="space-between" mb={2}>
@@ -416,6 +507,19 @@ const CreateActivityModal = ({ openCreateModal, handleClose, ZOHO, users }) => {
           </Button>
         </Box>
       </TabPanel>
+      <Snackbar
+        open={isSnackbarOpen}
+        autoHideDuration={6000}
+        onClose={handleSnackbarClose}
+      >
+        <Alert
+          onClose={handleSnackbarClose}
+          severity={snackbarSeverity}
+          sx={{ width: "100%" }}
+        >
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };
