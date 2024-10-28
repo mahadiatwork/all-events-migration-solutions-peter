@@ -108,7 +108,6 @@ export default function ContactField({
     );
   };
 
-  console.log({ data: selectedRowData?.Participants });
 
   return (
     <Box>

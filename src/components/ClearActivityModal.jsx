@@ -114,7 +114,6 @@ export default function ClearActivityModal({
             RecordID: selectedRowData?.id,
           }).then(function (data) {
             if (data.data[0].code === "SUCCESS") {
-              alert("Event cleared Successfully");
               window.location.reload();
             } else {
               alert(
@@ -133,7 +132,6 @@ export default function ClearActivityModal({
         RecordID: selectedRowData?.id,
       }).then(function (data) {
         if (data.data[0].code === "SUCCESS") {
-          alert("Event Erased Successfully");
           window.location.reload();
         } else {
           alert("There was an issue while erasing the event, try again!!!");

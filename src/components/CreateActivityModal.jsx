@@ -4,6 +4,7 @@ import {
   Alert,
   Box,
   Button,
+  CircularProgress,
   IconButton,
   Snackbar,
   Tab,
@@ -143,7 +144,6 @@ function transformFormSubmission(data, individualParticipant = null) {
       ]
     : transformScheduleWithToParticipants(data.scheduledWith || []);
 
-
   let transformedData = {
     ...data,
     Start_DateTime: formatDateWithOffset(data.start),
@@ -170,11 +170,13 @@ function transformFormSubmission(data, individualParticipant = null) {
     data?.Reminder_Text !== "" &&
     data?.Reminder_Text !== "None"
   ) {
-    const remindAt = calculateRemindAt(data?.Reminder_Text, formatDateWithOffset(data.start));
-    transformedData['Remind_At'] = remindAt;
-    transformedData['$send_notification'] = true;
+    const remindAt = calculateRemindAt(
+      data?.Reminder_Text,
+      formatDateWithOffset(data.start)
+    );
+    transformedData["Remind_At"] = remindAt;
+    transformedData["$send_notification"] = true;
   }
-
 
   const keysToRemove = [
     "scheduledWith",
@@ -207,7 +209,14 @@ function TabPanel(props) {
   );
 }
 
-const CreateActivityModal = ({ openCreateModal, handleClose, ZOHO, users }) => {
+const CreateActivityModal = ({
+  openCreateModal,
+  handleClose,
+  ZOHO,
+  users,
+  loggedInUser,
+  setEvents,
+}) => {
   const theme = useTheme();
   const [value, setValue] = useState(0);
   const [formData, setFormData] = useState({
@@ -218,15 +227,15 @@ const CreateActivityModal = ({ openCreateModal, handleClose, ZOHO, users }) => {
     associateWith: "",
     Event_Title: "",
     resource: 0,
-    scheduleFor: "",
+    scheduleFor: loggedInUser || "",
     scheduledWith: [],
     Venue: "",
-    priority: "",
+    priority: "Medium",
     repeat: "once",
     start: "",
     end: "",
     noEndDate: false,
-    description: "",
+    Description: "",
     color: "#fff",
     Regarding: "",
     Duration_Min: "",
@@ -240,19 +249,16 @@ const CreateActivityModal = ({ openCreateModal, handleClose, ZOHO, users }) => {
       start, // Use raw formData fields
       end,
       Duration_Min,
-      associateWith,
       Event_Title,
       scheduledWith, // scheduledWith instead of Participants
     } = formData;
 
-    console.log(formData);
     // Ensure all required fields are not empty or null
     return (
       Type_of_Activity &&
       start &&
       end &&
       Duration_Min &&
-      associateWith &&
       Event_Title &&
       scheduledWith.length > 0
     );
@@ -293,74 +299,103 @@ const CreateActivityModal = ({ openCreateModal, handleClose, ZOHO, users }) => {
     setSnackbarOpen(false);
   };
 
+  const [isSubmitting, setIsSubmitting] = useState(false); // State for form submission
+
   const handleSubmit = async () => {
+    setIsSubmitting(true); // Start the submission process
+
+    let success = true; // To track if all events are created successfully
+
     if (formData.Create_Separate_Event_For_Each_Contact) {
+      // Handle creating separate events for each participant
       for (let participant of formData.scheduledWith) {
         const transformedData = transformFormSubmission(formData, participant);
-        await ZOHO.CRM.API.insertRecord({
-          Entity: "Events",
-          APIData: transformedData,
-          Trigger: ["workflow"],
-        })
-          .then((data) => {
-            if (
-              data.data &&
-              data.data.length > 0 &&
-              data.data[0].code === "SUCCESS"
-            ) {
-              console.log(
-                `Event Created Successfully for ${participant.Full_Name}`
-              );
-            }
-          })
-          .catch((error) => {
-            console.error("Error submitting the form:", error);
-            setSnackbarSeverity("error");
-            setSnackbarMessage("Error creating events.");
-            setSnackbarOpen(true);
+        try {
+          const data = await ZOHO.CRM.API.insertRecord({
+            Entity: "Events",
+            APIData: transformedData,
+            Trigger: ["workflow"],
           });
-      }
-      setSnackbarSeverity("success");
-      setSnackbarMessage("Events Created Successfully");
-      setSnackbarOpen(true);
-      window.location.reload();
-    } else {
-      const transformedData = transformFormSubmission(formData);
-      await ZOHO.CRM.API.insertRecord({
-        Entity: "Events",
-        APIData: transformedData,
-        Trigger: ["workflow"],
-      })
-        .then((data) => {
+
           if (
             data.data &&
             data.data.length > 0 &&
             data.data[0].code === "SUCCESS"
           ) {
-            setSnackbarSeverity("success");
-            setSnackbarMessage("Event Created Successfully");
-            setSnackbarOpen(true);
-            window.location.reload();
+            const createdEvent = data.data[0].details; // Get the newly created event
+            // Append the created event to the events state
+            setEvents((prevEvents) => [createdEvent, ...prevEvents]);
+            console.log(
+              `Event Created Successfully for ${participant.Full_Name}`
+            );
+          } else {
+            success = false; // If any event fails, mark success as false
+            throw new Error("Failed to create event");
           }
-        })
-        .catch((error) => {
-          console.error("Error submitting the form:", error);
+        } catch (error) {
+          success = false; // Handle error for each participant
           setSnackbarSeverity("error");
-          setSnackbarMessage("Error creating event.");
+          setSnackbarMessage("Error creating events.");
           setSnackbarOpen(true);
-        });
-    }
-  };
+        }
+      }
 
-  const [isSubmitEnabled, setIsSubmitEnabled] = useState(false);
+      if (success) {
+        setSnackbarSeverity("success");
+        setSnackbarMessage("Events Created Successfully");
+        setSnackbarOpen(true);
+
+        setTimeout(() => {
+          window.location.reload(); // Reload after 1 second
+        }, 1000);
+      }
+    } else {
+      // Handle single event creation
+      const transformedData = transformFormSubmission(formData);
+      try {
+        const data = await ZOHO.CRM.API.insertRecord({
+          Entity: "Events",
+          APIData: transformedData,
+          Trigger: ["workflow"],
+        });
+
+        if (
+          data.data &&
+          data.data.length > 0 &&
+          data.data[0].code === "SUCCESS"
+        ) {
+          const createdEvent = data.data[0].details; // Get the newly created event
+          // Append the created event to the events state
+          setEvents((prevEvents) => [...prevEvents, createdEvent]);
+
+          setSnackbarSeverity("success");
+          setSnackbarMessage("Event Created Successfully");
+          setSnackbarOpen(true);
+
+          setTimeout(() => {
+            window.location.reload(); // Reload after 1 second
+          }, 1000);
+        } else {
+          throw new Error("Failed to create event");
+        }
+      } catch (error) {
+        console.error("Error submitting the form:", error);
+        setSnackbarSeverity("error");
+        setSnackbarMessage("Error creating event.");
+        setSnackbarOpen(true);
+      }
+    }
+
+    setIsSubmitting(false);
+  };
 
   // Validate form data whenever it changes
   React.useEffect(() => {
-    console.log({ formData });
     const data = isFormValid();
-    console.log(data);
     // setIsSubmitEnabled(isFormValid());
   }, [formData]); // Effect runs whenever formData changes
+
+  console.log({ formData });
 
   return (
     <Box
@@ -444,9 +479,9 @@ const CreateActivityModal = ({ openCreateModal, handleClose, ZOHO, users }) => {
           multiline
           rows={10}
           fullWidth
-          value={formData.description}
+          value={formData.Description}
           onChange={(event) =>
-            handleInputChange("description", event.target.value)
+            handleInputChange("Description", event.target.value)
           }
         />
         <Box display="flex" justifyContent="space-between" mt={2}>
@@ -460,22 +495,23 @@ const CreateActivityModal = ({ openCreateModal, handleClose, ZOHO, users }) => {
             Back
           </Button>
 
-          {/* Wrapper for the other two buttons aligned to the right */}
-          <Box display="flex" gap={1}>
+          <Box display="flex" gap={1} alignItems="center">
+            {/* Conditionally render CircularProgress next to the "Ok" button */}
             <Button
               size="small"
               variant="contained"
               color="secondary"
               onClick={handleSubmit}
-              disabled={!isFormValid()} // Disable button if form is not valid
+              disabled={!isFormValid() || isSubmitting} // Disable button when submitting
             >
               Ok
             </Button>
+            {isSubmitting && <CircularProgress size={24} />} {/* Loader */}
             <Button
               size="small"
               variant="contained"
               color="primary"
-              onClick={handleNext}
+              onClick={() => setValue((prev) => prev + 1)}
             >
               Next
             </Button>

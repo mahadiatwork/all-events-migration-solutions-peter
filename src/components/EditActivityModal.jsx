@@ -2,9 +2,11 @@ import React from "react";
 import "@mobiscroll/react/dist/css/mobiscroll.min.css";
 import { Input, Select, Textarea } from "@mobiscroll/react";
 import {
+  Alert,
   Box,
   Button,
   IconButton,
+  Snackbar,
   Tab,
   Tabs,
   TextField,
@@ -135,7 +137,7 @@ function transformFormSubmission(data) {
     Participants: data.scheduledWith,
     Duration_Min: data.Duration_Min.toString(),
     Owner: {
-      id: data.scheduleFor.id,
+      id: data?.scheduleFor?.id,
     },
   };
 
@@ -213,6 +215,10 @@ const EditActivityModal = ({
     Reminder_Text: selectedRowData?.Reminder_Text || null,
   });
 
+  const [isSnackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState("");
+  const [snackbarSeverity, setSnackbarSeverity] = useState("success");
+
   const handleChange = (event, newValue) => {
     setValue(newValue);
   };
@@ -245,26 +251,50 @@ const EditActivityModal = ({
 
   const handleSubmit = async () => {
     const transformedData = transformFormSubmission(formData);
-    await ZOHO.CRM.API.updateRecord({
-      Entity: "Events",
-      APIData: transformedData,
-      Trigger: ["workflow"],
-    })
-      .then(function (data) {
-        if (
-          data.data &&
-          data.data.length > 0 &&
-          data.data[0].code === "SUCCESS"
-        ) {
-          // If submission is successful, reload the page
-          alert("Event Updated Successfully");
-          window.location.reload();
-        }
-      })
-      .catch(function (error) {
-        console.error("Error submitting the form:", error);
+    let success = true; // To track if the update is successful
+  
+    try {
+      const data = await ZOHO.CRM.API.updateRecord({
+        Entity: "Events",
+        APIData: transformedData,
+        Trigger: ["workflow"],
       });
+  
+      if (data.data && data.data.length > 0 && data.data[0].code === "SUCCESS") {
+        // If submission is successful, set success to true
+        console.log("Event updated successfully");
+  
+        // Show success message
+        setSnackbarSeverity("success");
+        setSnackbarMessage("Event updated successfully.");
+        setSnackbarOpen(true);
+  
+        // Reload the page after 1 second
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      } else {
+        // If submission fails, set success to false
+        success = false;
+        throw new Error("Failed to update event");
+      }
+    } catch (error) {
+      success = false; // Handle failure case
+      console.error("Error submitting the form:", error);
+      
+      // Show error message
+      setSnackbarSeverity("error");
+      setSnackbarMessage("Error updating event.");
+      setSnackbarOpen(true);
+    }
+  
+    return success;
   };
+
+  const handleSnackbarClose = () => {
+    setSnackbarOpen(false);
+  };
+  
 
   return (
     <Box
@@ -330,7 +360,7 @@ const EditActivityModal = ({
               color="secondary"
               onClick={handleSubmit}
             >
-              Update
+              Ok
             </Button>
             <Button
               size="small"
@@ -380,7 +410,7 @@ const EditActivityModal = ({
               color="secondary"
               onClick={handleSubmit}
             >
-              Update
+              Ok
             </Button>
             <Button
               size="small"
@@ -413,11 +443,24 @@ const EditActivityModal = ({
             color="secondary"
             onClick={handleSubmit}
           >
-            Update
+            Ok
           </Button>{" "}
           {/* Next is disabled on the last tab */}
         </Box>
       </TabPanel>
+      <Snackbar
+        open={isSnackbarOpen}
+        autoHideDuration={6000}
+        onClose={handleSnackbarClose}
+      >
+        <Alert
+          onClose={handleSnackbarClose}
+          severity={snackbarSeverity}
+          sx={{ width: "100%" }}
+        >
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

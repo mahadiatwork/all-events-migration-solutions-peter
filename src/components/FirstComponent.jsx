@@ -11,13 +11,14 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import CustomTextField from "./atom/CustomTextField";
 import ContactField from "./atom/ContactField";
 import AccountField from "./atom/AccountField";
-import { ChromePicker } from "react-color";
+import { ChromePicker, SketchPicker } from "react-color";
 import { Datepicker } from "@mobiscroll/react";
 import RegardingField from "./atom/RegardingField";
+import { ZohoContext } from "../App";
 
 const parseDateString = (dateString) => {
   const [datePart, timePart, ampm] = dateString.split(" "); // Split date and time
@@ -79,6 +80,9 @@ const FirstComponent = ({
   ZOHO,
   isEditMode, // New prop to check if it's edit mode
 }) => {
+  const { events, filterDate, setFilterDate, recentColors, setRecentColor } =
+    useContext(ZohoContext);
+
   const [activityType] = useState([
     { type: "Meeting", resource: 1 },
     { type: "To-Do", resource: 2 },
@@ -274,7 +278,7 @@ const FirstComponent = ({
     },
   };
 
-  console.log({formData})
+  console.log({ scheduleFor: formData.scheduleFor });
 
   return (
     <Box>
@@ -446,7 +450,9 @@ const FirstComponent = ({
               label="Ring Alarm"
               fullWidth
               value={formData.Reminder_Text} // Use formData
-              onChange={(e) => handleInputChange("Reminder_Text", e.target.value)}
+              onChange={(e) =>
+                handleInputChange("Reminder_Text", e.target.value)
+              }
             >
               <MenuItem value="None">None</MenuItem>
               <MenuItem value="At time of meeting">At time of meeting</MenuItem>
@@ -498,7 +504,23 @@ const FirstComponent = ({
             {displayColorPicker && (
               <div style={popover}>
                 <div style={cover} onClick={handleClose} />
-                <ChromePicker color={color} onChange={handleColorChange} />
+                <SketchPicker
+                  presetColors={
+                    recentColors
+                      ? recentColors
+                      : [
+                          "#D0021B",
+                          "#F5A623",
+                          "#F8E71C",
+                          "#8B572A",
+                          "#7ED321",
+                          "#417505",
+                          "#BD10E0"
+                        ]
+                  }
+                  color={color}
+                  onChange={handleColorChange}
+                />
               </div>
             )}
           </Grid>
