@@ -49,7 +49,8 @@ function calculateRemindAt(reminderText, startDateTime) {
   // Calculate the amount of time to subtract based on Reminder_Text
   switch (reminderText) {
     case "At time of meeting":
-      return startDate.toISOString(); // No change
+      startDate.setMinutes(startDate.getMinutes());; // No change
+      break;
     case "5 minutes before":
       startDate.setMinutes(startDate.getMinutes() - 5);
       break;
