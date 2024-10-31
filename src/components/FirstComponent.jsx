@@ -19,6 +19,7 @@ import { ChromePicker, SketchPicker } from "react-color";
 import { Datepicker } from "@mobiscroll/react";
 import RegardingField from "./atom/RegardingField";
 import { ZohoContext } from "../App";
+import CustomColorPicker from "./atom/CustomColorPicker"
 
 const parseDateString = (dateString) => {
   const [datePart, timePart, ampm] = dateString.split(" "); // Split date and time
@@ -196,8 +197,8 @@ const FirstComponent = ({
   };
 
   const handleColorChange = (newColor) => {
-    setColor(newColor.hex);
-    handleInputChange("Colour", newColor.hex);
+    setColor(newColor);
+    handleInputChange("Colour", newColor);
   };
 
   // Custom input for datepicker
@@ -503,24 +504,8 @@ const FirstComponent = ({
             <div style={colorBoxStyle} onClick={handleClick} />
             {displayColorPicker && (
               <div style={popover}>
-                <div style={cover} onClick={handleClose} />
-                <SketchPicker
-                  presetColors={
-                    recentColors
-                      ? recentColors
-                      : [
-                          "#D0021B",
-                          "#F5A623",
-                          "#F8E71C",
-                          "#8B572A",
-                          "#7ED321",
-                          "#417505",
-                          "#BD10E0"
-                        ]
-                  }
-                  color={color}
-                  onChange={handleColorChange}
-                />
+                <div style={cover} />
+                <CustomColorPicker recentColors={recentColors} handleClose={handleClose} handleColorChange={handleColorChange} />
               </div>
             )}
           </Grid>

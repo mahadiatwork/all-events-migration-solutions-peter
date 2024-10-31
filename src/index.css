@@ -81,3 +81,8 @@ button:focus-visible {
   overflow-y: auto;
   width: 100%;
 }
+
+body {
+  min-height: 100vh;
+  overflow: hidden;
+}

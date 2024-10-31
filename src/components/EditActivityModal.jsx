@@ -296,6 +296,8 @@ const EditActivityModal = ({
   };
   
 
+  console.log({selectedRowData})
+
   return (
     <Box
       sx={{
