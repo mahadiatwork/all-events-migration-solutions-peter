@@ -19,7 +19,7 @@ import { ChromePicker, SketchPicker } from "react-color";
 import { Datepicker } from "@mobiscroll/react";
 import RegardingField from "./atom/RegardingField";
 import { ZohoContext } from "../App";
-import CustomColorPicker from "./atom/CustomColorPicker"
+import CustomColorPicker from "./atom/CustomColorPicker";
 
 const parseDateString = (dateString) => {
   const [datePart, timePart, ampm] = dateString.split(" "); // Split date and time
@@ -385,6 +385,17 @@ const FirstComponent = ({
             selectedRowData={selectedRowData}
           />
         </Grid>
+        <Grid item xs={12} sm={6} md={2}>
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={formData.Banner}
+                onChange={handleBannerChecked}
+              />
+            }
+            label="Don't send"
+          />
+        </Grid>
         <Grid size={12}>
           <AccountField
             value={formData.associateWith} // Use formData
@@ -505,7 +516,11 @@ const FirstComponent = ({
             {displayColorPicker && (
               <div style={popover}>
                 <div style={cover} />
-                <CustomColorPicker recentColors={recentColors} handleClose={handleClose} handleColorChange={handleColorChange} />
+                <CustomColorPicker
+                  recentColors={recentColors}
+                  handleClose={handleClose}
+                  handleColorChange={handleColorChange}
+                />
               </div>
             )}
           </Grid>

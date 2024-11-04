@@ -28,7 +28,13 @@ function formatDate(dateString) {
   return `${day}/${month}/${year}`;
 }
 
-const CustomTableCell = ({ children, selectedRowIndex, index,row, ...props }) => {
+const CustomTableCell = ({
+  children,
+  selectedRowIndex,
+  index,
+  row,
+  ...props
+}) => {
   return (
     <TableCell
       sx={{
@@ -69,6 +75,7 @@ function createData(event, type) {
   const title = event.Event_Title || "Untitled Event";
   const participants = event.Participants || [];
   const color = event.Colour || "black";
+  const isCleared = event.Cleared || false;
   return {
     title,
     type,
@@ -81,7 +88,8 @@ function createData(event, type) {
     duration,
     associateWith,
     id,
-    color
+    color,
+    isCleared,
   };
 }
 
@@ -239,7 +247,7 @@ export default function ScheduleTable({
           zIndex: 100,
           backgroundColor: "white",
           overflowY: "hidden",
-                  }}
+        }}
       >
         <Grid item xs={3}>
           <FormControl fullWidth>
@@ -334,7 +342,10 @@ export default function ScheduleTable({
       </Grid>
 
       {/* Table */}
-      <TableContainer component={Paper} sx={{ maxHeight: "100vh", overflowY: "auto" }}>
+      <TableContainer
+        component={Paper}
+        sx={{ maxHeight: "100vh", overflowY: "auto" }}
+      >
         <Table stickyHeader sx={{ minWidth: 650 }} aria-label="schedule table">
           <TableHead>
             <TableRow>
@@ -366,6 +377,8 @@ export default function ScheduleTable({
                     backgroundColor:
                       selectedRowIndex === index ? "#0072DC" : "transparent",
                     color: selectedRowIndex === index ? "#FFFFFF" : "inherit",
+                    position: "relative", // To position the strikethrough line
+                   textDecoration: row.isCleared ? "line-through" : "none"
                   }}
                   onDoubleClick={() => handleRowClick(index, row)}
                 >
@@ -381,22 +394,46 @@ export default function ScheduleTable({
                       }}
                     />
                   </TableCell>
-                  <CustomTableCell selectedRowIndex={selectedRowIndex} index={index} row={row}>
+                  <CustomTableCell
+                    selectedRowIndex={selectedRowIndex}
+                    index={index}
+                    row={row}
+                  >
                     {row.title}
                   </CustomTableCell>
-                  <CustomTableCell selectedRowIndex={selectedRowIndex} index={index} row={row}>
+                  <CustomTableCell
+                    selectedRowIndex={selectedRowIndex}
+                    index={index}
+                    row={row}
+                  >
                     {row.type}
                   </CustomTableCell>
-                  <CustomTableCell selectedRowIndex={selectedRowIndex} index={index} row={row}>
+                  <CustomTableCell
+                    selectedRowIndex={selectedRowIndex}
+                    index={index}
+                    row={row}
+                  >
                     {formatDate(row.date)}
                   </CustomTableCell>
-                  <CustomTableCell selectedRowIndex={selectedRowIndex} index={index} row={row}>
+                  <CustomTableCell
+                    selectedRowIndex={selectedRowIndex}
+                    index={index}
+                    row={row}
+                  >
                     {row.time}
                   </CustomTableCell>
-                  <CustomTableCell selectedRowIndex={selectedRowIndex} index={index} row={row}>
+                  <CustomTableCell
+                    selectedRowIndex={selectedRowIndex}
+                    index={index}
+                    row={row}
+                  >
                     {row.priority}
                   </CustomTableCell>
-                    <CustomTableCell selectedRowIndex={selectedRowIndex} index={index} row={row}>
+                  <CustomTableCell
+                    selectedRowIndex={selectedRowIndex}
+                    index={index}
+                    row={row}
+                  >
                     {row.scheduledFor}
                   </CustomTableCell>
                   <TableCell>
@@ -418,13 +455,25 @@ export default function ScheduleTable({
                         ))
                       : "No Participants"}
                   </TableCell>
-                  <CustomTableCell selectedRowIndex={selectedRowIndex} index={index} row={row}>
+                  <CustomTableCell
+                    selectedRowIndex={selectedRowIndex}
+                    index={index}
+                    row={row}
+                  >
                     {row.regarding}
                   </CustomTableCell>
-                  <CustomTableCell selectedRowIndex={selectedRowIndex} index={index} row={row}>
+                  <CustomTableCell
+                    selectedRowIndex={selectedRowIndex}
+                    index={index}
+                    row={row}
+                  >
                     {row.duration}
                   </CustomTableCell>
-                  <CustomTableCell selectedRowIndex={selectedRowIndex} index={index} row={row}>
+                  <CustomTableCell
+                    selectedRowIndex={selectedRowIndex}
+                    index={index}
+                    row={row}
+                  >
                     {row.associateWith}
                   </CustomTableCell>
                 </TableRow>
