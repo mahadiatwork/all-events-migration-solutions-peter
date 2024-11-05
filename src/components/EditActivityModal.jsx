@@ -213,6 +213,7 @@ const EditActivityModal = ({
     Banner: selectedRowData?.Banner || false,
     scheduleFor: selectedRowData?.Owner || null,
     Reminder_Text: selectedRowData?.Reminder_Text || null,
+    reminder: selectedRowData.$send_notification || false
   });
 
   const [isSnackbarOpen, setSnackbarOpen] = useState(false);

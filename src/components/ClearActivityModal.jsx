@@ -42,7 +42,9 @@ export default function ClearActivityModal({
   );
   const [result, setResult] = React.useState(selectedRowData?.result);
   const [addActivityToHistory, setAddActivityToHistory] = React.useState(false);
-  const [clearChecked, setClearChecked] = React.useState(selectedRowData?.Cleared);
+  const [clearChecked, setClearChecked] = React.useState(
+    selectedRowData?.Cleared
+  );
   const [eraseChecked, setEraseChecked] = React.useState(false);
   const [activityDetails, setActivityDetails] = React.useState(
     selectedRowData?.Description || ""
@@ -66,26 +68,28 @@ export default function ClearActivityModal({
   };
 
   const handleSubmit = async (e) => {
-    console.log(selectedRowData?.id)
     e.preventDefault();
-  
-    if (clearChecked && !eraseChecked) {
-      // Update the event with Cleared set to true and result
-      await ZOHO.CRM.API.updateRecord({
-        Entity: "Events",
-        RecordID: selectedRowData?.id,
-        APIData: {
-          id:  selectedRowData?.id,
-          Cleared: true,
-          result: result, // Push the result to the Events module
-        },
-      }).then(async function (updateResponse) {
-        console.log({dataIsThere: updateResponse})
+
+    try {
+      if (clearChecked && !eraseChecked) {
+        // Update the event with Cleared set to true and result
+        const updateResponse = await ZOHO.CRM.API.updateRecord({
+          Entity: "Events",
+          RecordID: selectedRowData?.id,
+          APIData: {
+            id: selectedRowData?.id,
+            Event_Status: "Closed",
+            result: result, // Push the result to the Events module
+          },
+        });
+
+        console.log({ dataIsThere: updateResponse });
+
         if (updateResponse.data[0].code === "SUCCESS") {
           setSnackbarMessage("Event marked as cleared successfully!");
           setSnackbarSeverity("success");
           setSnackbarOpen(true);
-  
+
           // Check if history creation is needed
           if (addActivityToHistory) {
             const recordData = {
@@ -104,50 +108,68 @@ export default function ClearActivityModal({
               History_Details_Plain: activityDetails,
               History_Result: result, // Push the result to the History module
             };
-  
-            await ZOHO.CRM.API.insertRecord({
+
+            const historyResponse = await ZOHO.CRM.API.insertRecord({
               Entity: "History1",
               APIData: recordData,
               Trigger: ["workflow"],
-            }).then(function (historyResponse) {
-              if (historyResponse.data[0].code === "SUCCESS") {
-                setSnackbarMessage(
-                  "Event marked as cleared and history created successfully!"
-                );
-                setSnackbarSeverity("success");
-                setSnackbarOpen(true);
-              } else {
-                setSnackbarMessage(
-                  "Event marked as cleared, but history creation failed."
-                );
-                setSnackbarSeverity("warning");
-                setSnackbarOpen(true);
-              }
             });
-          } else {
-            window.location.reload();
+
+            if (historyResponse.data[0].code === "SUCCESS") {
+              setSnackbarMessage(
+                "Event marked as cleared and history created successfully!"
+              );
+              setSnackbarSeverity("success");
+              setSnackbarOpen(true);
+
+              const historyRecordId = historyResponse.data[0].details.id;
+
+              if (selectedRowData.Participants.length > 0) {
+                const participantInsertPromises =
+                  selectedRowData.Participants.filter(
+                    (participant) => participant.type === "contact"
+                  ).map(async (participant) => {
+                    const participantData = {
+                      Contact_Details: { id: participant.participant },
+                      Contact_History_Info: { id: historyRecordId },
+                    };
+
+                    return await ZOHO.CRM.API.insertRecord({
+                      Entity: "History_X_Contacts",
+                      APIData: participantData,
+                      Trigger: ["workflow"],
+                    });
+                  });
+
+                await Promise.all(participantInsertPromises);
+              }
+            } else {
+              setSnackbarMessage(
+                "Event marked as cleared, but history creation failed."
+              );
+              setSnackbarSeverity("warning");
+              setSnackbarOpen(true);
+            }
           }
+
+          // Refresh the page to reflect changes
+          window.location.reload();
         } else {
-          setSnackbarMessage(
-            "There was an issue while marking the event as cleared, try again!"
-          );
-          setSnackbarSeverity("error");
-          setSnackbarOpen(true);
+          throw new Error("Failed to update the event.");
         }
-      });
-    }
-  
-    if (!clearChecked && eraseChecked) {
-      // Delete the event
-      await ZOHO.CRM.API.deleteRecord({
-        Entity: "Events",
-        RecordID: selectedRowData?.id,
-      }).then(async function (deleteResponse) {
+      }
+
+      if (!clearChecked && eraseChecked) {
+        // Delete the event
+        const deleteResponse = await ZOHO.CRM.API.deleteRecord({
+          Entity: "Events",
+          RecordID: selectedRowData?.id,
+        });
+
         if (deleteResponse.data[0].code === "SUCCESS") {
           setSnackbarMessage("Event erased successfully!");
           setSnackbarSeverity("success");
           setSnackbarOpen(true);
-  
           // Check if history creation is needed
           if (addActivityToHistory) {
             const recordData = {
@@ -166,41 +188,41 @@ export default function ClearActivityModal({
               History_Details_Plain: activityDetails,
               History_Result: result, // Push the result to the History module
             };
-  
-            await ZOHO.CRM.API.insertRecord({
+
+            const historyResponse = await ZOHO.CRM.API.insertRecord({
               Entity: "History1",
               APIData: recordData,
               Trigger: ["workflow"],
-            }).then(function (historyResponse) {
-              if (historyResponse.data[0].code === "SUCCESS") {
-                setSnackbarMessage(
-                  "Event erased and history created successfully!"
-                );
-                setSnackbarSeverity("success");
-                setSnackbarOpen(true);
-              } else {
-                setSnackbarMessage(
-                  "Event erased, but history creation failed."
-                );
-                setSnackbarSeverity("warning");
-                setSnackbarOpen(true);
-              }
             });
-          } else {
-            window.location.reload();
+
+            if (historyResponse.data[0].code === "SUCCESS") {
+              setSnackbarMessage(
+                "Event erased and history created successfully!"
+              );
+              setSnackbarSeverity("success");
+              setSnackbarOpen(true);
+              // Refresh the page to reflect changes
+              window.location.reload();
+            } else {
+              setSnackbarMessage("Event erased, but history creation failed.");
+              setSnackbarSeverity("warning");
+              setSnackbarOpen(true);
+            }
           }
+          // Refresh the page to reflect changes
+          window.location.reload();
         } else {
-          setSnackbarMessage(
-            "There was an issue while erasing the event, try again!"
-          );
-          setSnackbarSeverity("error");
-          setSnackbarOpen(true);
+          throw new Error("Failed to delete the event.");
         }
-      });
+      }
+    } catch (error) {
+      console.error("Error during submission:", error);
+      setSnackbarMessage("An unexpected error occurred, try again!");
+      setSnackbarSeverity("error");
+      setSnackbarOpen(true);
     }
   };
-  
-  
+
   const handleActivityDetailsChange = (e) => {
     setActivityDetails(e.target.value);
   };
@@ -302,7 +324,10 @@ export default function ClearActivityModal({
                   Results:
                 </Typography>
                 <FormGroup row>
-                  <Tooltip title="Mark this event as cleared and update its status" arrow>
+                  <Tooltip
+                    title="Mark this event as cleared and update its status"
+                    arrow
+                  >
                     <FormControlLabel
                       control={
                         <Checkbox
@@ -337,7 +362,9 @@ export default function ClearActivityModal({
                     </MenuItem>
                     <MenuItem value="Call Received">Call Received</MenuItem>
                     <MenuItem value="Meeting Held">Meeting Held</MenuItem>
-                    <MenuItem value="Meeting Not Held">Meeting Not Held</MenuItem>
+                    <MenuItem value="Meeting Not Held">
+                      Meeting Not Held
+                    </MenuItem>
                     <MenuItem value="To-do Done">To-do Done</MenuItem>
                     <MenuItem value="To-do Not Done">To-do Not Done</MenuItem>
                     <MenuItem value="Appointment Completed">
@@ -361,7 +388,9 @@ export default function ClearActivityModal({
                     <MenuItem value="Initial Consultation - Not Completed">
                       Initial Consultation - Not Completed
                     </MenuItem>
-                    <MenuItem value="Mail - Completed">Mail - Completed</MenuItem>
+                    <MenuItem value="Mail - Completed">
+                      Mail - Completed
+                    </MenuItem>
                     <MenuItem value="Mail - Not Completed">
                       Mail - Not Completed
                     </MenuItem>
@@ -383,7 +412,9 @@ export default function ClearActivityModal({
                     <MenuItem value="Email Received">Email Received</MenuItem>
                     <MenuItem value="Courier Sent">Courier Sent</MenuItem>
                     <MenuItem value="Email Sent">Email Sent</MenuItem>
-                    <MenuItem value="Payment Received">Payment Received</MenuItem>
+                    <MenuItem value="Payment Received">
+                      Payment Received
+                    </MenuItem>
                     <MenuItem value="Room 1 - Completed">
                       Room 1 - Completed
                     </MenuItem>
@@ -424,7 +455,10 @@ export default function ClearActivityModal({
                   </Select>
                 </FormGroup>
 
-                <Tooltip title="Add the activity details to history for future reference" arrow>
+                <Tooltip
+                  title="Add the activity details to history for future reference"
+                  arrow
+                >
                   <FormControlLabel
                     control={
                       <Checkbox
@@ -453,7 +487,11 @@ export default function ClearActivityModal({
               </DialogContent>
 
               <DialogActions>
-                <Button onClick={handleClose} color="primary" variant="outlined">
+                <Button
+                  onClick={handleClose}
+                  color="primary"
+                  variant="outlined"
+                >
                   Cancel
                 </Button>
                 <Button

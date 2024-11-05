@@ -279,7 +279,7 @@ const FirstComponent = ({
     },
   };
 
-  console.log({ scheduleFor: formData.scheduleFor });
+  console.log({ reminder: formData?.reminder });
 
   return (
     <Box>
@@ -389,11 +389,13 @@ const FirstComponent = ({
           <FormControlLabel
             control={
               <Checkbox
-                checked={formData.Banner}
-                onChange={handleBannerChecked}
+                checked={formData?.reminder}
+                onChange={
+                  (e) => handleInputChangeWithEnd("$send_notification", !e.target.checked) // Update end date when duration is changed
+                }
               />
             }
-            label="Don't send"
+            label="Don't send notification"
           />
         </Grid>
         <Grid size={12}>

@@ -33,12 +33,18 @@ const CustomTableCell = ({
   selectedRowIndex,
   index,
   row,
+  highlightedRow,
   ...props
 }) => {
   return (
     <TableCell
       sx={{
-        color: selectedRowIndex === index ? "#FFFFFF" : row?.color || "black",
+        color:
+          highlightedRow === index
+            ? "#FFFFFF"
+            : selectedRowIndex === index
+            ? "#FFFFFF"
+            : row?.color || "black",
       }}
       {...props}
     >
@@ -75,7 +81,7 @@ function createData(event, type) {
   const title = event.Event_Title || "Untitled Event";
   const participants = event.Participants || [];
   const color = event.Colour || "black";
-  const isCleared = event.Cleared || false;
+  const Event_Status = event.Event_Status || "";
   return {
     title,
     type,
@@ -89,7 +95,7 @@ function createData(event, type) {
     associateWith,
     id,
     color,
-    isCleared,
+    Event_Status,
   };
 }
 
@@ -103,6 +109,7 @@ export default function ScheduleTable({
   setEvents,
 }) {
   const [selectedRowIndex, setSelectedRowIndex] = React.useState(null);
+  const [highlightedRow, setHighlightedRow] = React.useState(null); // New state to manage highlighted row
   const [openClearModal, setOpenClearModal] = React.useState(false);
   const [openEditModal, setOpenEditModal] = React.useState(false);
   const [selectedRowData, setSelectedRowData] = React.useState(null);
@@ -179,36 +186,49 @@ export default function ScheduleTable({
     setOpenClearModal(false);
     setOpenEditModal(false);
     setOpenCreateModal(false);
+
+    // Reset selectedRowIndex if the clear modal is closed to revert the text color
+    if (selectedRowIndex !== null && !openClearModal) {
+      setSelectedRowIndex(null);
+    }
   };
 
   const handleRowClick = (index, row) => {
-    setSelectedRowIndex(index);
-    if (row?.id) {
-      async function getData() {
-        try {
-          const response = await ZOHO.CRM.API.getRecord({
-            Entity: "Events",
-            approved: "both",
-            RecordID: row.id,
-          });
-
-          if (response && response.data) {
-            setSelectedRowData(response.data[0]);
-          }
-          setOpenEditModal(true);
-        } catch (error) {
-          console.error("Error fetching data:", error);
-        }
-      }
-      getData();
-      return;
+    if (highlightedRow === index) {
+      setHighlightedRow(null); // Unhighlight if clicked again
+      setSelectedRowIndex(null);
+    } else {
+      setHighlightedRow(index); // Highlight the new row and reset any previously highlighted rows
+      setSelectedRowIndex(index);
     }
     setSelectedRowData(row);
-    setOpenEditModal(true);
+  };
+  
+
+  const handleRowDoubleClick = async (index, row) => {
+    setSelectedRowIndex(index);
+    setHighlightedRow(index); // Keep the row highlighted on double click
+    if (row?.id) {
+      try {
+        const response = await ZOHO.CRM.API.getRecord({
+          Entity: "Events",
+          approved: "both",
+          RecordID: row.id,
+        });
+
+        if (response && response.data) {
+          setSelectedRowData(response.data[0]);
+        }
+        setOpenEditModal(true);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      }
+    }
   };
 
   const handleCheckboxChange = (index, row) => {
     setSelectedRowIndex(index);
+    setHighlightedRow(index); // Highlight the new row and reset any previously highlighted rows
     if (row?.id) {
       async function getData() {
         try {
@@ -217,7 +237,7 @@ export default function ScheduleTable({
             approved: "both",
             RecordID: row.id,
           });
-
+  
           if (response && response.data) {
             setSelectedRowData(response.data[0]);
           }
@@ -232,6 +252,7 @@ export default function ScheduleTable({
     setSelectedRowData(row);
     setOpenClearModal(true);
   };
+  
 
   return (
     <>
@@ -349,17 +370,42 @@ export default function ScheduleTable({
         <Table stickyHeader sx={{ minWidth: 650 }} aria-label="schedule table">
           <TableHead>
             <TableRow>
-              <TableCell padding="checkbox">Select</TableCell>
-              <TableCell>Title</TableCell>
-              <TableCell>Type</TableCell>
-              <TableCell>Date</TableCell>
-              <TableCell>Time</TableCell>
-              <TableCell>Priority</TableCell>
-              <TableCell>Scheduled For</TableCell>
-              <TableCell>Scheduled With</TableCell>
-              <TableCell>Regarding</TableCell>
-              <TableCell>Duration</TableCell>
-              <TableCell>Associate With</TableCell>
+              <TableCell
+                padding="checkbox"
+                sx={{ bgcolor: "#efefef", fontWeight: "bold" }}
+              >
+                Select
+              </TableCell>
+              <TableCell sx={{ bgcolor: "#efefef", fontWeight: "bold" }}>
+                Title
+              </TableCell>
+              <TableCell sx={{ bgcolor: "#efefef", fontWeight: "bold" }}>
+                Type
+              </TableCell>
+              <TableCell sx={{ bgcolor: "#efefef", fontWeight: "bold" }}>
+                Date
+              </TableCell>
+              <TableCell sx={{ bgcolor: "#efefef", fontWeight: "bold" }}>
+                Time
+              </TableCell>
+              <TableCell sx={{ bgcolor: "#efefef", fontWeight: "bold" }}>
+                Priority
+              </TableCell>
+              <TableCell sx={{ bgcolor: "#efefef", fontWeight: "bold" }}>
+                Scheduled For
+              </TableCell>
+              <TableCell sx={{ bgcolor: "#efefef", fontWeight: "bold" }}>
+                Scheduled With
+              </TableCell>
+              <TableCell sx={{ bgcolor: "#efefef", fontWeight: "bold" }}>
+                Regarding
+              </TableCell>
+              <TableCell sx={{ bgcolor: "#efefef", fontWeight: "bold" }}>
+                Duration
+              </TableCell>
+              <TableCell sx={{ bgcolor: "#efefef", fontWeight: "bold" }}>
+                Associate With
+              </TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -375,12 +421,24 @@ export default function ScheduleTable({
                   key={index}
                   sx={{
                     backgroundColor:
-                      selectedRowIndex === index ? "#0072DC" : "transparent",
-                    color: selectedRowIndex === index ? "#FFFFFF" : "inherit",
-                    position: "relative", // To position the strikethrough line
-                   textDecoration: row.isCleared ? "line-through" : "none"
+                      highlightedRow === index ||
+                      (selectedRowIndex === index && openClearModal)
+                        ? "#0072DC" // Highlighted color when selected or when clearing is active
+                        : index % 2 === 0
+                        ? "white" // Original color for even rows
+                        : "#f9f9f9", // Original color for odd rows
+                    color:
+                      highlightedRow === index ||
+                      (selectedRowIndex === index && openClearModal)
+                        ? "#FFFFFF" // Text color when highlighted or clearing is active
+                        : "inherit",
+                    position: "relative",
+                    textDecoration:
+                      row.Event_Status === "Closed" ? "line-through" : "none",
+                    cursor: "pointer", // Add pointer cursor for better UX
                   }}
-                  onDoubleClick={() => handleRowClick(index, row)}
+                  onClick={() => handleRowClick(index, row)}
+                  onDoubleClick={() => handleRowDoubleClick(index, row)}
                 >
                   <TableCell
                     padding="checkbox"
@@ -398,6 +456,7 @@ export default function ScheduleTable({
                     selectedRowIndex={selectedRowIndex}
                     index={index}
                     row={row}
+                    highlightedRow={highlightedRow}
                   >
                     {row.title}
                   </CustomTableCell>
@@ -405,6 +464,7 @@ export default function ScheduleTable({
                     selectedRowIndex={selectedRowIndex}
                     index={index}
                     row={row}
+                    highlightedRow={highlightedRow}
                   >
                     {row.type}
                   </CustomTableCell>
@@ -412,6 +472,7 @@ export default function ScheduleTable({
                     selectedRowIndex={selectedRowIndex}
                     index={index}
                     row={row}
+                    highlightedRow={highlightedRow}
                   >
                     {formatDate(row.date)}
                   </CustomTableCell>
@@ -419,6 +480,7 @@ export default function ScheduleTable({
                     selectedRowIndex={selectedRowIndex}
                     index={index}
                     row={row}
+                    highlightedRow={highlightedRow}
                   >
                     {row.time}
                   </CustomTableCell>
@@ -426,6 +488,7 @@ export default function ScheduleTable({
                     selectedRowIndex={selectedRowIndex}
                     index={index}
                     row={row}
+                    highlightedRow={highlightedRow}
                   >
                     {row.priority}
                   </CustomTableCell>
@@ -433,25 +496,31 @@ export default function ScheduleTable({
                     selectedRowIndex={selectedRowIndex}
                     index={index}
                     row={row}
+                    highlightedRow={highlightedRow}
                   >
                     {row.scheduledFor}
                   </CustomTableCell>
                   <TableCell>
                     {row.participants.length > 0
                       ? row.participants.map((participant, i) => (
-                          <a
-                            key={i}
-                            href={`#`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            style={{
-                              color:
-                                selectedRowIndex === index ? "#fff" : "#0072DC",
-                              textDecoration: "underline",
-                            }}
-                          >
-                            {participant.name}
-                          </a>
+                          <React.Fragment key={i}>
+                            <a
+                              href={`https://crm.zoho.com.au/crm/org7004396182/tab/Contacts/${participant.participant}/canvas/76775000000287551`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{
+                                color:
+                                  selectedRowIndex === index
+                                    ? "#fff"
+                                    : "#0072DC",
+                                textDecoration: "underline",
+                              }}
+                            >
+                              {participant.name}
+                            </a>
+                            {i < row.participants.length - 1 && ", "}{" "}
+                            {/* Add a comma if it's not the last item */}
+                          </React.Fragment>
                         ))
                       : "No Participants"}
                   </TableCell>
@@ -459,6 +528,7 @@ export default function ScheduleTable({
                     selectedRowIndex={selectedRowIndex}
                     index={index}
                     row={row}
+                    highlightedRow={highlightedRow}
                   >
                     {row.regarding}
                   </CustomTableCell>
@@ -466,6 +536,7 @@ export default function ScheduleTable({
                     selectedRowIndex={selectedRowIndex}
                     index={index}
                     row={row}
+                    highlightedRow={highlightedRow}
                   >
                     {row.duration}
                   </CustomTableCell>
@@ -473,6 +544,7 @@ export default function ScheduleTable({
                     selectedRowIndex={selectedRowIndex}
                     index={index}
                     row={row}
+                    highlightedRow={highlightedRow}
                   >
                     {row.associateWith}
                   </CustomTableCell>
