@@ -96,6 +96,7 @@ export default function ContactField({
     );
   };
 
+  console.log({selectedRowDataRT: selectedRowData})
   return (
     <Box>
       <Autocomplete

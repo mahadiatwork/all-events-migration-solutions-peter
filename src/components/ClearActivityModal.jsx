@@ -83,7 +83,6 @@ export default function ClearActivityModal({
           },
         });
 
-        console.log({ dataIsThere: updateResponse });
 
         if (updateResponse.data[0].code === "SUCCESS") {
           setSnackbarMessage("Event marked as cleared successfully!");

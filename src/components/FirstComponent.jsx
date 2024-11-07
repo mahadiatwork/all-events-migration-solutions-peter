@@ -20,6 +20,9 @@ import { Datepicker } from "@mobiscroll/react";
 import RegardingField from "./atom/RegardingField";
 import { ZohoContext } from "../App";
 import CustomColorPicker from "./atom/CustomColorPicker";
+import { DateTimePicker, LocalizationProvider } from "@mui/x-date-pickers";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import dayjs from "dayjs";
 
 const parseDateString = (dateString) => {
   const [datePart, timePart, ampm] = dateString.split(" "); // Split date and time
@@ -41,6 +44,8 @@ const parseDateString = (dateString) => {
 const formatTime = (date) => {
   const newDate = new Date(date);
 
+  console.log({formatTime:newDate })
+
   const year = newDate.getFullYear();
   const month = String(newDate.getMonth() + 1).padStart(2, "0");
   const day = String(newDate.getDate()).padStart(2, "0");
@@ -51,7 +56,22 @@ const formatTime = (date) => {
   const ampm = hours >= 12 ? "PM" : "AM";
   hours = hours % 12 || 12; // Convert 0 hours to 12 for AM
 
+  console.log({formattedTime: `${day}/${month}/${year} ${hours}:${minutes} ${ampm}`})
+
   return `${day}/${month}/${year} ${hours}:${minutes} ${ampm}`;
+};
+
+const formatTimeForBanner = (date, hour) => {
+  const newDate = new Date(date);
+  newDate.setHours(hour, 0, 0, 0);
+  // Manually format the date in YYYY-MM-DDTHH:mm without converting to UTC
+  const year = newDate.getFullYear();
+  const month = String(newDate.getMonth() + 1).padStart(2, "0"); // Months are 0-indexed
+  const day = String(newDate.getDate()).padStart(2, "0");
+  const hours = String(newDate.getHours()).padStart(2, "0");
+  const minutes = String(newDate.getMinutes()).padStart(2, "0");
+
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
 };
 
 // Helper to calculate duration between two dates in minutes, rounded to the nearest 10
@@ -102,6 +122,39 @@ const FirstComponent = ({
     { type: "To Do Billing", resource: 15 },
     { type: "Vacation", resource: 16 },
   ]);
+
+  function addMinutesToDateTime(formatType, durationInMinutes) {
+    // // Create a new Date object using the start time from formData
+    // console.log(formatType,durationInMinutes)
+    if (formatType === "duration") {
+      let date = new Date(formData.start);
+
+      date.setMinutes(date.getMinutes() + parseInt(durationInMinutes, 10));
+      const localDate = new Date(
+        date.getTime() - date.getTimezoneOffset() * 60000
+      );
+
+      const modifiedDate = localDate.toISOString().slice(0, 16);
+
+      handleInputChange("end", modifiedDate);
+      setEndValue(dayjs(modifiedDate));
+    } else {
+      let date = new Date(formData.start);
+
+      date.setMinutes(
+        date.getMinutes() - parseInt(durationInMinutes.value, 10)
+      );
+
+      const localDate = new Date(
+        date.getTime() - date.getTimezoneOffset() * 60000
+      );
+
+      const modifiedDate = localDate.toISOString().slice(0, 16);
+
+      handleInputChange("Remind_At", modifiedDate);
+      handleInputChange("Reminder_Text", durationInMinutes.name);
+    }
+  }
 
   useEffect(() => {
     if (selectedRowData) {
@@ -163,17 +216,28 @@ const FirstComponent = ({
   const [displayColorPicker, setDisplayColorPicker] = useState(false);
   const [color, setColor] = useState(formData.Colour || "#ff0000");
 
-  // Handle Banner checked logic
   const handleBannerChecked = (e) => {
     handleInputChange("Banner", e.target.checked);
-    if (e.target.checked) {
-      const now = new Date();
-      const timeAt6AM = formatTime(now.setHours(6, 0));
-      const timeAt7AM = formatTime(now.setHours(7, 0));
-
+    const selectedDate = formData.start;
+    console.log({ selectedDate });
+    if (selectedDate) {
+      const timeAt6AM = formatTimeForBanner(selectedDate, 6);
+      const timeAt7AM = formatTimeForBanner(selectedDate, 7);
+      // console.log("fahim", timeAt6AM, timeAt7AM);
       handleInputChange("start", timeAt6AM);
       handleInputChange("end", timeAt7AM);
-      handleInputChange("Duration_Min", 60);
+      setStartValue(dayjs(timeAt6AM));
+      setEndValue(dayjs(timeAt7AM));
+    } else {
+      const now = new Date();
+      // console.log(now);
+      const timeAt6AM = formatTimeForBanner(now, 6);
+      const timeAt7AM = formatTimeForBanner(now, 7);
+      // console.log("fahim", timeAt6AM, timeAt7AM);
+      handleInputChange("start", timeAt6AM);
+      handleInputChange("end", timeAt7AM);
+      setStartValue(dayjs(timeAt6AM));
+      setEndValue(dayjs(timeAt7AM));
     }
   };
 
@@ -237,7 +301,7 @@ const FirstComponent = ({
       handleInputChange("Duration_Min", duration);
     } else if (field === "Duration_Min") {
       const startDate = parseDateString(formData.start);
-      console.log({ start: formData.start });
+
       const newEndDate = calculateEndDate(startDate, value);
       handleInputChange("Duration_Min", value);
       handleInputChange("end", formatTime(newEndDate));
@@ -279,7 +343,30 @@ const FirstComponent = ({
     },
   };
 
-  console.log({ reminder: formData?.reminder });
+  const durations = Array.from({ length: 24 }, (_, i) => (i + 1) * 10);
+
+  const [startValue, setStartValue] = useState(dayjs(formData.start));
+  const [endValue, setEndValue] = useState(dayjs(formData.end));
+
+  function getTimeDifference(end) {
+    const startDate = new Date(formData.start);
+    const endDate = new Date(end);
+    const diffInMs = endDate - startDate;
+    const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
+    return diffInMinutes;
+  }
+
+  const handleEndDateChange = (e) => {
+    console.log("fahim", e.$d);
+    handleInputChange("end", e.$d);
+    console.log("end", e.value);
+    const getDiffInMinutes = getTimeDifference(e.$d);
+    handleInputChange("duration", getDiffInMinutes);
+    console.log({ getDiffInMinutes });
+    // if (formData.end ) {
+    //   console.log('hello')
+    // }
+  };
 
   return (
     <Box>
@@ -314,7 +401,7 @@ const FirstComponent = ({
         </Grid>
 
         <Grid size={4}>
-          <Datepicker
+          {/* <Datepicker
             controls={["calendar", "time"]}
             display="center"
             inputComponent={() =>
@@ -328,10 +415,30 @@ const FirstComponent = ({
             onChange={(e) => handleInputChangeWithEnd("start", e.value)} // Auto-populate end date and duration
             isOpen={openStartDatepicker}
             touchUi={true}
-          />
+          /> */}
+          <LocalizationProvider dateAdapter={AdapterDayjs}>
+            <DateTimePicker
+              label="Start Time"
+              value={startValue}
+              disabled={formData.Banner ? true : false}
+              slotProps={{ textField: { size: "small" } }}
+              onChange={(e) => {
+                const addedHour = new Date(dayjs(e.$d).add(1, "hour").toDate());
+                handleInputChange("start", e.$d);
+                handleInputChange("end", addedHour);
+                setEndValue(dayjs(addedHour));
+                handleInputChange("duration", 60);
+                console.log(e.$d);
+                console.log(addedHour);
+              }}
+              sx={{ "& input": { py: 0 } }}
+              renderInput={(params) => <TextField {...params} size="small" />}
+              format="DD/MM/YYYY hh:mm A" // Ensures 24-hour format for clarity
+            />
+          </LocalizationProvider>
         </Grid>
         <Grid size={4}>
-          <Datepicker
+          {/* <Datepicker
             controls={["calendar", "time"]}
             display="center"
             inputComponent={() =>
@@ -341,28 +448,59 @@ const FirstComponent = ({
             onChange={(e) => handleInputChangeWithEnd("end", e.value)} // Calculate duration when end is updated
             isOpen={openEndDatepicker}
             disabled={formData.Banner} // Disable if Banner is checked
-          />
+          /> */}
+          <LocalizationProvider dateAdapter={AdapterDayjs}>
+            <DateTimePicker
+              label="End Time"
+              value={endValue}
+              disabled={formData.Banner ? true : false}
+              slotProps={{ textField: { size: "small" } }}
+              onChange={(e) => handleEndDateChange(e)}
+              sx={{ "& input": { py: 0 } }}
+              renderInput={(params) => <TextField {...params} size="small" />}
+              format="DD/MM/YYYY hh:mm A" // Ensures 24-hour format for clarity
+            />
+          </LocalizationProvider>
         </Grid>
         <Grid size={4}>
-          <FormControl fullWidth size="small" sx={commonStyles}>
-            <InputLabel>Duration</InputLabel>
+          <FormControl fullWidth size="small">
+            <InputLabel
+              id="demo-simple-select-standard-label"
+              // sx={{ top: "-5px" }}
+            >
+              Duration
+            </InputLabel>
             <Select
+              labelId="demo-simple-select-standard-label"
+              id="demo-simple-select-standard"
               label="Duration"
               fullWidth
-              value={formData.Duration_Min} // Use formData
-              onChange={
-                (e) => handleInputChangeWithEnd("Duration_Min", e.target.value) // Update end date when duration is changed
-              }
-              disabled={formData.Banner} // Disable if Banner is checked
+              value={formData.duration}
+              disabled={formData.Banner ? true : false}
+              InputLabelProps={{ shrink: true }}
+              onChange={(e) => {
+                handleInputChange("duration", e.target.value);
+                addMinutesToDateTime("duration", e.target.value);
+              }}
+              sx={{
+                "& .MuiSelect-select": {
+                  padding: "4px 5px", // Adjust the padding to shrink the Select content
+                },
+                "& .MuiOutlinedInput-root": {
+                  // height: '40px', // Set a consistent height
+                  padding: "3px 0px", // Ensure no extra padding
+                },
+                "& .MuiInputBase-input": {
+                  display: "flex",
+                  alignItems: "center", // Align the content vertically
+                },
+              }}
             >
-              {Array.from({ length: 24 }, (_, index) => {
-                const minutes = (index + 1) * 10;
-                return (
-                  <MenuItem key={minutes} value={minutes}>
-                    {minutes} minutes
-                  </MenuItem>
-                );
-              })}
+              {durations.map((minute, index) => (
+                <MenuItem key={index} value={minute}>
+                  {minute} minutes
+                </MenuItem>
+              ))}
             </Select>
           </FormControl>
         </Grid>
@@ -391,7 +529,11 @@ const FirstComponent = ({
               <Checkbox
                 checked={formData?.reminder}
                 onChange={
-                  (e) => handleInputChangeWithEnd("$send_notification", !e.target.checked) // Update end date when duration is changed
+                  (e) =>
+                    handleInputChangeWithEnd(
+                      "$send_notification",
+                      !e.target.checked
+                    ) // Update end date when duration is changed
                 }
               />
             }
@@ -403,6 +545,7 @@ const FirstComponent = ({
             value={formData.associateWith} // Use formData
             handleInputChange={handleInputChange}
             ZOHO={ZOHO}
+            selectedRowData={selectedRowData}
           />
         </Grid>
         <Grid size={12}>

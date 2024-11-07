@@ -2,7 +2,11 @@ import { Autocomplete, TextField, Box, Typography } from "@mui/material";
 import React, { useEffect, useState } from "react";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline"; // Icon for "Not Found" message
 
-export default function AccountField({ handleInputChange, ZOHO, selectedRowData }) {
+export default function AccountField({
+  handleInputChange,
+  ZOHO,
+  selectedRowData,
+}) {
   const [accounts, setAccounts] = useState([]); // No initial accounts
   const [selectedAccount, setSelectedAccount] = useState(null); // Selected account object
   const [inputValue, setInputValue] = useState("");
@@ -12,11 +16,17 @@ export default function AccountField({ handleInputChange, ZOHO, selectedRowData 
   // Sync selectedAccount with selectedRowData
   useEffect(() => {
     if (selectedRowData?.What_Id?.id) {
-      setSelectedAccount({
+      const selected = {
         Account_Name: selectedRowData.What_Id.name,
         id: selectedRowData.What_Id.id,
-      });
+      };
+      setSelectedAccount(selected);
       setInputValue(selectedRowData.What_Id.name || "");
+      setAccounts((prevAccounts) =>
+        [selected, ...prevAccounts].filter(
+          (v, i, a) => a.findIndex((t) => t.id === v.id) === i // Ensure no duplicates
+        )
+      );
     }
   }, [selectedRowData]);
 
@@ -45,7 +55,9 @@ export default function AccountField({ handleInputChange, ZOHO, selectedRowData 
         }
       } catch (error) {
         console.error("Error during search:", error);
-        setNotFoundMessage("An error occurred while searching. Please try again.");
+        setNotFoundMessage(
+          "An error occurred while searching. Please try again."
+        );
       } finally {
         setLoading(false); // End loading
       }
@@ -64,6 +76,8 @@ export default function AccountField({ handleInputChange, ZOHO, selectedRowData 
       handleAdvancedSearch(newInputValue);
     }
   };
+
+
 
   return (
     <Box>

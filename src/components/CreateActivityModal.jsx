@@ -17,6 +17,12 @@ import FirstComponent from "./FirstComponent";
 import SecondComponent from "./SecondComponent";
 import ThirdComponent from "./ThirdComponent";
 import CloseIcon from "@mui/icons-material/Close";
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
+import timezone from "dayjs/plugin/timezone";
+dayjs.extend(utc);  
+dayjs.extend(timezone);
+
 
 // Helper function to format date with timezone offset
 function formatDateForRemindAt(date) {
@@ -84,21 +90,8 @@ function formatDateWithOffset(dateString) {
   console.log({ dateString });
   if (!dateString) return null;
 
-  // Split the date string into date and time parts
-  const [datePart, timePart, ampm] = dateString.split(" ");
-  const [day, month, year] = datePart.split("/").map(Number);
-  let [hours, minutes] = timePart.split(":").map(Number);
-
-  // Convert 12-hour format to 24-hour format
-  if (ampm === "PM" && hours < 12) {
-    hours += 12;
-  } else if (ampm === "AM" && hours === 12) {
-    hours = 0; // Handle midnight
-  }
-
-  // Create the date object using the parsed values
-  const date = new Date(year, month - 1, day, hours, minutes);
-
+  // Parse the date string using JavaScript's Date constructor
+  const date = new Date(dateString);
   if (isNaN(date.getTime())) return null;
 
   // Helper function to pad numbers with leading zeros
@@ -121,6 +114,7 @@ function formatDateWithOffset(dateString) {
   // Return formatted date string with timezone offset
   return `${formattedYear}-${formattedMonth}-${formattedDay}T${formattedHours}:${formattedMinutes}:${formattedSeconds}${offsetSign}${offsetHours}:${offsetMinutes}`;
 }
+
 
 function transformFormSubmission(data, individualParticipant = null) {
   const transformScheduleWithToParticipants = (scheduleWith) => {
@@ -179,6 +173,11 @@ function transformFormSubmission(data, individualParticipant = null) {
     transformedData["$send_notification"] = true;
   }
 
+  // if (
+  //   transformedData.Recurring_Activity.RRULE ==="FREQ=ONCE;INTERVAL=1;UNTIL=Invalid Date;DTSTART=Invalid Date") {
+  //   delete transformedData.Recurring_Activity;
+  // }
+
   const keysToRemove = [
     "scheduledWith",
     "description",
@@ -220,13 +219,14 @@ const CreateActivityModal = ({
 }) => {
   const theme = useTheme();
   const [value, setValue] = useState(0);
+
   const [formData, setFormData] = useState({
-    Type_of_Activity: "",
+    Type_of_Activity: "Meeting",
     startTime: "",
     endTime: "",
     duration: "",
     associateWith: "",
-    Event_Title: "",
+    Event_Title: "New Meeting",
     resource: 0,
     scheduleFor: loggedInUser || "",
     scheduledWith: [],
@@ -249,17 +249,19 @@ const CreateActivityModal = ({
       Type_of_Activity,
       start, // Use raw formData fields
       end,
-      Duration_Min,
+      duration,
       Event_Title,
       scheduledWith, // scheduledWith instead of Participants
     } = formData;
+
+    console.log({formData})
 
     // Ensure all required fields are not empty or null
     return (
       Type_of_Activity &&
       start &&
       end &&
-      Duration_Min &&
+      duration &&
       Event_Title &&
       scheduledWith.length > 0
     );
@@ -304,9 +306,8 @@ const CreateActivityModal = ({
 
   const handleSubmit = async () => {
     setIsSubmitting(true); // Start the submission process
-
-    let success = true; // To track if all events are created successfully
-
+    let success = true;
+  
     if (formData.Create_Separate_Event_For_Each_Contact) {
       // Handle creating separate events for each participant
       for (let participant of formData.scheduledWith) {
@@ -317,38 +318,26 @@ const CreateActivityModal = ({
             APIData: transformedData,
             Trigger: ["workflow"],
           });
-
-          if (
-            data.data &&
-            data.data.length > 0 &&
-            data.data[0].code === "SUCCESS"
-          ) {
-            const createdEvent = data.data[0].details; // Get the newly created event
-            // Append the created event to the events state
-            setEvents((prevEvents) => [createdEvent, ...prevEvents]);
-            console.log(
-              `Event Created Successfully for ${participant.Full_Name}`
-            );
+  
+          if (data.data && data.data.length > 0 && data.data[0].code === "SUCCESS") {
+            const createdEvent = data.data[0].details;
+            setEvents((prevEvents) => [transformedData, ...prevEvents]); // Add the new event to the top of the list
+            setSnackbarSeverity("success");
+            setSnackbarMessage("Event Created Successfully");
+            setSnackbarOpen(true);
+            setTimeout(() => {
+              window.location.reload(); 
+            }, 1000);
           } else {
-            success = false; // If any event fails, mark success as false
+            success = false;
             throw new Error("Failed to create event");
           }
         } catch (error) {
-          success = false; // Handle error for each participant
+          success = false;
           setSnackbarSeverity("error");
           setSnackbarMessage("Error creating events.");
           setSnackbarOpen(true);
         }
-      }
-
-      if (success) {
-        setSnackbarSeverity("success");
-        setSnackbarMessage("Events Created Successfully");
-        setSnackbarOpen(true);
-
-        setTimeout(() => {
-          window.location.reload(); // Reload after 1 second
-        }, 1000);
       }
     } else {
       // Handle single event creation
@@ -359,22 +348,15 @@ const CreateActivityModal = ({
           APIData: transformedData,
           Trigger: ["workflow"],
         });
-
-        if (
-          data.data &&
-          data.data.length > 0 &&
-          data.data[0].code === "SUCCESS"
-        ) {
-          const createdEvent = data.data[0].details; // Get the newly created event
-          // Append the created event to the events state
-          setEvents((prevEvents) => [...prevEvents, createdEvent]);
-
+  
+        if (data.data && data.data.length > 0 && data.data[0].code === "SUCCESS") {
+          const createdEvent = data.data[0].details;
+          setEvents((prevEvents) => [transformedData, ...prevEvents]); // Add the new event to the top of the list
           setSnackbarSeverity("success");
           setSnackbarMessage("Event Created Successfully");
           setSnackbarOpen(true);
-
           setTimeout(() => {
-            window.location.reload(); // Reload after 1 second
+            window.location.reload(); 
           }, 1000);
         } else {
           throw new Error("Failed to create event");
@@ -386,26 +368,26 @@ const CreateActivityModal = ({
         setSnackbarOpen(true);
       }
     }
-
+  
     setIsSubmitting(false);
   };
-
+  
   // Validate form data whenever it changes
   React.useEffect(() => {
     const data = isFormValid();
+    console.log({isFormValid: data})
     // setIsSubmitEnabled(isFormValid());
   }, [formData]); // Effect runs whenever formData changes
 
-  console.log({ formData });
-
+  
   return (
     <Box
       sx={{
-        position: "absolute",
+      position: "absolute",
         top: "50%",
         left: "50%",
         transform: "translate(-50%, -50%)",
-        width: 600,
+        width: 750,
         bgcolor: "background.paper",
         border: "2px solid #000",
         boxShadow: 24,

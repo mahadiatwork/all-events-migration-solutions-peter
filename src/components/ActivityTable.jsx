@@ -15,11 +15,15 @@ import {
   Grid,
   Button,
   ListItemText,
+  Modal,
+  Box,
+  TextField,
 } from "@mui/material";
 import ClearActivityModal from "./ClearActivityModal";
 import EditActivityModal from "./EditActivityModal";
 import CreateActivityModal from "./CreateActivityModal";
 
+// Function to format dates
 function formatDate(dateString) {
   const date = new Date(dateString);
   const day = String(date.getDate()).padStart(2, "0");
@@ -28,6 +32,7 @@ function formatDate(dateString) {
   return `${day}/${month}/${year}`;
 }
 
+// Custom TableCell component for conditional styling
 const CustomTableCell = ({
   children,
   selectedRowIndex,
@@ -53,52 +58,144 @@ const CustomTableCell = ({
   );
 };
 
+// // Function to create table data
+// function createData(event, type) {
+//   let startDateTime, endDateTime, time, duration, scheduledFor;
+
+//   try {
+//     startDateTime = event.Start_DateTime
+//       ? new Date(event.Start_DateTime)
+//       : new Date();
+//     endDateTime = event.End_DateTime ? new Date(event.End_DateTime) : new Date();
+//     time = startDateTime.toLocaleTimeString([], {
+//       hour: "2-digit",
+//       minute: "2-digit",
+//     });
+//     duration = `${Math.round((endDateTime - startDateTime) / 60000)} minutes`;
+//     scheduledFor = event.Owner ? event.Owner.name : "Unknown";
+//   } catch (err) {
+//     console.error("Error processing event data", err);
+//   }
+
+//   const date = startDateTime ? startDateTime.toLocaleDateString() : "N/A";
+//   const priority = event.Event_Priority || "Low";
+//   const regarding = event.Regarding || "No Data";
+//   const associateWith = event.What_Id ? event.What_Id.name : "None";
+//   const id = event.id;
+//   const title = event.Event_Title || "Untitled Event";
+//   const participants = event.Participants || [];
+//   const color = event.Colour || "black";
+//   const Event_Status = event.Event_Status || "";
+//   return {
+//     title,
+//     type,
+//     date,
+//     time,
+//     priority,
+//     scheduledFor,
+//     participants,
+//     regarding,
+//     duration,
+//     associateWith,
+//     id,
+//     color,
+//     Event_Status,
+//   };
+// }
+
 function createData(event, type) {
-  let startDateTime, endDateTime, time, duration, scheduledFor;
-
-  try {
-    startDateTime = event.Start_DateTime
-      ? new Date(event.Start_DateTime)
-      : new Date();
-    endDateTime = event.End_DateTime
-      ? new Date(event.End_DateTime)
-      : new Date();
-    time = startDateTime.toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-    duration = `${Math.round((endDateTime - startDateTime) / 60000)} minutes`;
-    scheduledFor = event.Owner ? event.Owner.name : "Unknown";
-  } catch (err) {
-    console.error("Error processing event data", err);
-  }
-
-  const date = startDateTime ? startDateTime.toLocaleDateString() : "N/A";
-  const priority = event.Event_Priority || "Low";
-  const regarding = event.Regarding || "No Data";
+  const startDateTime = event.Start_DateTime ? new Date(event.Start_DateTime) : new Date();
+  const endDateTime = event.End_DateTime ? new Date(event.End_DateTime) : new Date();
+  const time = startDateTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  const duration = `${Math.round((endDateTime - startDateTime) / 60000)} minutes`;
+  const scheduledFor = event.Owner ? event.Owner.name : "Unknown";
   const associateWith = event.What_Id ? event.What_Id.name : "None";
-  const id = event.id;
   const title = event.Event_Title || "Untitled Event";
-  const participants = event.Participants || [];
-  const color = event.Colour || "black";
-  const Event_Status = event.Event_Status || "";
+
   return {
     title,
     type,
-    date,
+    date: startDateTime.toLocaleDateString(),
     time,
-    priority,
+    priority: event.Event_Priority || "Low",
     scheduledFor,
-    participants,
-    regarding,
+    participants: event.Participants || [],
+    regarding: event.Regarding || "No Data",
     duration,
     associateWith,
-    id,
-    color,
-    Event_Status,
+    id: event.id,
+    color: event.Colour || "black",
+    Event_Status: event.Event_Status || "",
   };
 }
 
+
+
+// Custom Range Modal Component
+const CustomRangeModal = ({ open, handleClose, setCustomDateRange }) => {
+  const [startDate, setStartDate] = React.useState("");
+  const [endDate, setEndDate] = React.useState("");
+
+  const handleSearch = () => {
+    setCustomDateRange({ startDate, endDate });
+    handleClose();
+  };
+
+  return (
+    <Modal open={open} onClose={handleClose}>
+      <Box
+        sx={{
+          position: "absolute",
+          top: "50%",
+          left: "50%",
+          transform: "translate(-50%, -50%)",
+          width: 400,
+          bgcolor: "background.paper",
+          borderRadius: 2,
+          boxShadow: 24,
+          p: 4,
+        }}
+      >
+        <h2>Select Date Range</h2>
+        <TextField
+          label="Start Date"
+          type="date"
+          fullWidth
+          value={startDate}
+          onChange={(e) => setStartDate(e.target.value)}
+          InputLabelProps={{
+            shrink: true,
+          }}
+          sx={{ marginBottom: 2 }}
+        />
+        <TextField
+          label="End Date"
+          type="date"
+          fullWidth
+          value={endDate}
+          onChange={(e) => setEndDate(e.target.value)}
+          InputLabelProps={{
+            shrink: true,
+          }}
+        />
+        <Grid container spacing={2} sx={{ marginTop: 2 }}>
+          <Grid item xs={6}>
+            <Button variant="outlined" fullWidth onClick={handleClose}>
+              Cancel
+            </Button>
+          </Grid>
+          <Grid item xs={6}>
+            <Button variant="contained" fullWidth onClick={handleSearch}>
+              Search
+            </Button>
+          </Grid>
+        </Grid>
+      </Box>
+    </Modal>
+  );
+};
+
+// Main ScheduleTable component
 export default function ScheduleTable({
   events = [],
   ZOHO,
@@ -107,13 +204,16 @@ export default function ScheduleTable({
   setFilterDate,
   loggedInUser,
   setEvents,
+  customDateRange,
+  setCustomDateRange,
 }) {
   const [selectedRowIndex, setSelectedRowIndex] = React.useState(null);
-  const [highlightedRow, setHighlightedRow] = React.useState(null); // New state to manage highlighted row
+  const [highlightedRow, setHighlightedRow] = React.useState(null);
   const [openClearModal, setOpenClearModal] = React.useState(false);
   const [openEditModal, setOpenEditModal] = React.useState(false);
   const [selectedRowData, setSelectedRowData] = React.useState(null);
   const [openCreateModal, setOpenCreateModal] = React.useState(false);
+  const [openCustomRangeModal, setOpenCustomRangeModal] = React.useState(false);
 
   const [filterType, setFilterType] = React.useState([]);
   const [filterPriority, setFilterPriority] = React.useState([]);
@@ -127,6 +227,7 @@ export default function ScheduleTable({
     { label: "Current Week", value: "Current Week" },
     { label: "Current Month", value: "Current Month" },
     { label: "Next Week", value: "Next Week" },
+    { label: "Custom Range", value: "Custom Range" }, // New custom range option
   ];
 
   const typeOptions = [
@@ -165,32 +266,48 @@ export default function ScheduleTable({
     setFilterUser(typeof value === "string" ? value.split(",") : value);
   };
 
+  const handleClearFilters = () => {
+    setFilterDate("All");
+    setFilterType([]);
+    setFilterPriority([]);
+    setFilterUser([]);
+    setCustomDateRange(null);
+  };
+
   const rows = Array.isArray(events)
-    ? events.map((event) =>
-        createData(event, event.Type_of_Activity || "Other")
-      )
+    ? events.map((event) => createData(event, event.Type_of_Activity || "Other"))
     : [];
 
-  const filteredRows = rows.filter((row) => {
-    const typeMatch = filterType.length === 0 || filterType.includes(row.type);
-    const priorityMatch =
-      filterPriority.length === 0 || filterPriority.includes(row.priority);
-    const userMatch =
-      filterUser.length === 0 ||
-      filterUser.some((user) => row.scheduledFor.includes(user));
+    const filteredRows = rows
+    .filter((row) => {
+      const typeMatch = filterType.length === 0 || filterType.includes(row.type);
+      const priorityMatch =
+        filterPriority.length === 0 || filterPriority.includes(row.priority);
+      const userMatch =
+        filterUser.length === 0 ||
+        filterUser.some((user) => row.scheduledFor.includes(user));
+      const dateMatch =
+        !customDateRange ||
+        (new Date(row.date) >= new Date(customDateRange.startDate) &&
+          new Date(row.date) <= new Date(customDateRange.endDate));
+  
+      return typeMatch && priorityMatch && userMatch && dateMatch;
+    })
+    .sort((a, b) => new Date(b.date) - new Date(a.date)); // Sort in descending order by date  
 
-    return typeMatch && priorityMatch && userMatch;
-  });
+  const handleDateFilterChange = (e) => {
+    const value = e.target.value;
+    setFilterDate(value);
+    if (value === "Custom Range") {
+      setOpenCustomRangeModal(true);
+    }
+  };
 
   const handleClose = () => {
     setOpenClearModal(false);
     setOpenEditModal(false);
     setOpenCreateModal(false);
-
-    // Reset selectedRowIndex if the clear modal is closed to revert the text color
-    if (selectedRowIndex !== null && !openClearModal) {
-      setSelectedRowIndex(null);
-    }
+    setOpenCustomRangeModal(false);
   };
 
   const handleRowClick = (index, row) => {
@@ -203,7 +320,6 @@ export default function ScheduleTable({
     }
     setSelectedRowData(row);
   };
-  
 
   const handleRowDoubleClick = async (index, row) => {
     setSelectedRowIndex(index);
@@ -252,7 +368,28 @@ export default function ScheduleTable({
     setSelectedRowData(row);
     setOpenClearModal(true);
   };
+
+  const updateEvent = (updatedEvent) => {
+    setEvents((prevEvents) =>
+      prevEvents.map((event) =>
+        event.id === updatedEvent.id
+          ? {
+              ...event,
+              Start_DateTime: updatedEvent.Start_DateTime,
+              End_DateTime: updatedEvent.End_DateTime,
+              Event_Priority: updatedEvent.Event_Priority,
+              Participants: updatedEvent.Participants || [], // Ensure Participants is updated
+              What_Id: updatedEvent.What_Id,
+              Description: updatedEvent.Description,
+              Duration_Min: updatedEvent.Duration_Min,
+              // Include other fields as needed
+            }
+          : event
+      )
+    );
+  };
   
+console.log({filteredRows})
 
   return (
     <>
@@ -270,12 +407,12 @@ export default function ScheduleTable({
           overflowY: "hidden",
         }}
       >
-        <Grid item xs={3}>
+        <Grid item xs={2}>
           <FormControl fullWidth>
             <InputLabel>Date</InputLabel>
             <Select
               value={filterDate}
-              onChange={(e) => setFilterDate(e.target.value)}
+              onChange={handleDateFilterChange}
               label="Date"
               size="small"
             >
@@ -287,7 +424,7 @@ export default function ScheduleTable({
             </Select>
           </FormControl>
         </Grid>
-
+        {/* Other filter controls */}
         <Grid item xs={2}>
           <FormControl fullWidth>
             <InputLabel>Type</InputLabel>
@@ -308,7 +445,6 @@ export default function ScheduleTable({
             </Select>
           </FormControl>
         </Grid>
-
         <Grid item xs={2}>
           <FormControl fullWidth>
             <InputLabel>Priority</InputLabel>
@@ -329,8 +465,7 @@ export default function ScheduleTable({
             </Select>
           </FormControl>
         </Grid>
-
-        <Grid item xs={3}>
+        <Grid item xs={2}>
           <FormControl fullWidth>
             <InputLabel>User</InputLabel>
             <Select
@@ -353,6 +488,16 @@ export default function ScheduleTable({
 
         <Grid item xs={2}>
           <Button
+            variant="outlined"
+            fullWidth
+            onClick={handleClearFilters}
+            color="secondary"
+          >
+            Clear Filters
+          </Button>
+        </Grid>
+        <Grid item xs={2}>
+          <Button
             variant="contained"
             fullWidth
             onClick={() => setOpenCreateModal(true)}
@@ -363,49 +508,23 @@ export default function ScheduleTable({
       </Grid>
 
       {/* Table */}
-      <TableContainer
-        component={Paper}
-        sx={{ maxHeight: "100vh", overflowY: "auto" }}
-      >
+      <TableContainer component={Paper} sx={{ maxHeight: "100vh", overflowY: "auto" }}>
         <Table stickyHeader sx={{ minWidth: 650 }} aria-label="schedule table">
           <TableHead>
             <TableRow>
-              <TableCell
-                padding="checkbox"
-                sx={{ bgcolor: "#efefef", fontWeight: "bold" }}
-              >
+              <TableCell padding="checkbox" sx={{ bgcolor: "#efefef", fontWeight: "bold" }}>
                 Select
               </TableCell>
-              <TableCell sx={{ bgcolor: "#efefef", fontWeight: "bold" }}>
-                Title
-              </TableCell>
-              <TableCell sx={{ bgcolor: "#efefef", fontWeight: "bold" }}>
-                Type
-              </TableCell>
-              <TableCell sx={{ bgcolor: "#efefef", fontWeight: "bold" }}>
-                Date
-              </TableCell>
-              <TableCell sx={{ bgcolor: "#efefef", fontWeight: "bold" }}>
-                Time
-              </TableCell>
-              <TableCell sx={{ bgcolor: "#efefef", fontWeight: "bold" }}>
-                Priority
-              </TableCell>
-              <TableCell sx={{ bgcolor: "#efefef", fontWeight: "bold" }}>
-                Scheduled For
-              </TableCell>
-              <TableCell sx={{ bgcolor: "#efefef", fontWeight: "bold" }}>
-                Scheduled With
-              </TableCell>
-              <TableCell sx={{ bgcolor: "#efefef", fontWeight: "bold" }}>
-                Regarding
-              </TableCell>
-              <TableCell sx={{ bgcolor: "#efefef", fontWeight: "bold" }}>
-                Duration
-              </TableCell>
-              <TableCell sx={{ bgcolor: "#efefef", fontWeight: "bold" }}>
-                Associate With
-              </TableCell>
+              <TableCell sx={{ bgcolor: "#efefef", fontWeight: "bold" }}>Title</TableCell>
+              <TableCell sx={{ bgcolor: "#efefef", fontWeight: "bold" }}>Type</TableCell>
+              <TableCell sx={{ bgcolor: "#efefef", fontWeight: "bold" }}>Date</TableCell>
+              <TableCell sx={{ bgcolor: "#efefef", fontWeight: "bold" }}>Time</TableCell>
+              <TableCell sx={{ bgcolor: "#efefef", fontWeight: "bold" }}>Priority</TableCell>
+              <TableCell sx={{ bgcolor: "#efefef", fontWeight: "bold" }}>Scheduled For</TableCell>
+              <TableCell sx={{ bgcolor: "#efefef", fontWeight: "bold" }}>Scheduled With</TableCell>
+              <TableCell sx={{ bgcolor: "#efefef", fontWeight: "bold" }}>Regarding</TableCell>
+              <TableCell sx={{ bgcolor: "#efefef", fontWeight: "bold" }}>Duration</TableCell>
+              <TableCell sx={{ bgcolor: "#efefef", fontWeight: "bold" }}>Associate With</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -423,27 +542,24 @@ export default function ScheduleTable({
                     backgroundColor:
                       highlightedRow === index ||
                       (selectedRowIndex === index && openClearModal)
-                        ? "#0072DC" // Highlighted color when selected or when clearing is active
+                        ? "#0072DC"
                         : index % 2 === 0
-                        ? "white" // Original color for even rows
-                        : "#f9f9f9", // Original color for odd rows
+                        ? "white"
+                        : "#f9f9f9",
                     color:
                       highlightedRow === index ||
                       (selectedRowIndex === index && openClearModal)
-                        ? "#FFFFFF" // Text color when highlighted or clearing is active
-                        : "inherit",
+                        ? "#FFFFFF"
+                        : "black",
                     position: "relative",
                     textDecoration:
                       row.Event_Status === "Closed" ? "line-through" : "none",
-                    cursor: "pointer", // Add pointer cursor for better UX
+                    cursor: "pointer",
                   }}
                   onClick={() => handleRowClick(index, row)}
                   onDoubleClick={() => handleRowDoubleClick(index, row)}
                 >
-                  <TableCell
-                    padding="checkbox"
-                    onClick={(e) => e.stopPropagation()}
-                  >
+                  <TableCell padding="checkbox" onClick={(e) => e.stopPropagation()}>
                     <Checkbox
                       checked={selectedRowIndex === index && openClearModal}
                       onChange={() => handleCheckboxChange(index, row)}
@@ -509,17 +625,13 @@ export default function ScheduleTable({
                               target="_blank"
                               rel="noopener noreferrer"
                               style={{
-                                color:
-                                  selectedRowIndex === index
-                                    ? "#fff"
-                                    : "#0072DC",
+                                color: selectedRowIndex === index ? "#fff" : "#0072DC",
                                 textDecoration: "underline",
                               }}
                             >
                               {participant.name}
                             </a>
-                            {i < row.participants.length - 1 && ", "}{" "}
-                            {/* Add a comma if it's not the last item */}
+                            {i < row.participants.length - 1 && ", "}
                           </React.Fragment>
                         ))
                       : "No Participants"}
@@ -573,6 +685,7 @@ export default function ScheduleTable({
           selectedRowData={selectedRowData}
           ZOHO={ZOHO}
           users={users}
+          updateEvent={updateEvent}
         />
       )}
 
@@ -586,6 +699,12 @@ export default function ScheduleTable({
           setEvents={setEvents}
         />
       )}
+
+      <CustomRangeModal
+        open={openCustomRangeModal}
+        handleClose={handleClose}
+        setCustomDateRange={setCustomDateRange}
+      />
     </>
   );
 }

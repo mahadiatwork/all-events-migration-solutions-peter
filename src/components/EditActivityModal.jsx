@@ -19,7 +19,6 @@ import SecondComponent from "./SecondComponent";
 import ThirdComponent from "./ThirdComponent";
 import CloseIcon from "@mui/icons-material/Close";
 
-
 // Helper function to format date with timezone offset
 function formatDateForRemindAt(date) {
   if (!date) return null;
@@ -86,20 +85,26 @@ function formatDateWithOffset(dateString) {
   const date = new Date(dateString);
   if (isNaN(date.getTime())) return null;
 
+  // Pad numbers with leading zeros
   const pad = (num) => String(num).padStart(2, "0");
 
   const year = date.getFullYear();
   const month = pad(date.getMonth() + 1);
   const day = pad(date.getDate());
-
-  // Convert to 12-hour format and determine AM/PM
-  let hours = date.getHours();
+  const hours = pad(date.getHours());
   const minutes = pad(date.getMinutes());
-  const ampm = hours >= 12 ? "PM" : "AM";
-  hours = hours % 12 || 12; // Convert 0 hours to 12 for AM
+  const seconds = pad(date.getSeconds());
 
-  return `${day}/${month}/${year} ${hours}:${minutes} ${ampm}`;
+  // Calculate timezone offset
+  const timezoneOffset = -date.getTimezoneOffset();
+  const offsetSign = timezoneOffset >= 0 ? "+" : "-";
+  const offsetHours = pad(Math.floor(Math.abs(timezoneOffset) / 60));
+  const offsetMinutes = pad(Math.abs(timezoneOffset) % 60);
+
+  // Return formatted date string with timezone offset
+  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}${offsetSign}${offsetHours}:${offsetMinutes}`;
 }
+
 
 function transformFormSubmission(data) {
   // Function to transform scheduleWith data into the Participants format
@@ -127,9 +132,7 @@ function transformFormSubmission(data) {
 
     // Updated `What_Id` with both name and id from `associateWith`
     What_Id: data.associateWith
-      ? {
-          id: data.associateWith.id || null, // Assign id from associateWith
-        }
+      ? { id: data.associateWith.id, name: data.associateWith.name }
       : null,
     se_module: "Accounts",
 
@@ -146,9 +149,12 @@ function transformFormSubmission(data) {
     data?.Reminder_Text !== "" &&
     data?.Reminder_Text !== "None"
   ) {
-    const remindAt = calculateRemindAt(data?.Reminder_Text, formatDateWithOffset(data.start));
-    transformedData['Remind_At'] = remindAt;
-    transformedData['$send_notification'] = true;
+    const remindAt = calculateRemindAt(
+      data?.Reminder_Text,
+      formatDateWithOffset(data.start)
+    );
+    transformedData["Remind_At"] = remindAt;
+    transformedData["$send_notification"] = true;
   }
 
   // Explicitly remove the scheduleWith, scheduleFor, and description keys
@@ -189,6 +195,7 @@ const EditActivityModal = ({
   selectedRowData,
   ZOHO,
   users,
+  updateEvent,
 }) => {
   const theme = useTheme();
   const [value, setValue] = useState(0);
@@ -213,7 +220,7 @@ const EditActivityModal = ({
     Banner: selectedRowData?.Banner || false,
     scheduleFor: selectedRowData?.Owner || null,
     Reminder_Text: selectedRowData?.Reminder_Text || null,
-    reminder: selectedRowData.$send_notification || false
+    reminder: selectedRowData.$send_notification || false,
   });
 
   const [isSnackbarOpen, setSnackbarOpen] = useState(false);
@@ -249,55 +256,45 @@ const EditActivityModal = ({
       [field]: value,
     }));
   };
+const handleSubmit = async () => {
+  const transformedData = transformFormSubmission(formData);
+  try {
+    const data = await ZOHO.CRM.API.updateRecord({
+      Entity: "Events",
+      APIData: transformedData,
+      Trigger: ["workflow"],
+    });
 
-  const handleSubmit = async () => {
-    const transformedData = transformFormSubmission(formData);
-    let success = true; // To track if the update is successful
-  
-    try {
-      const data = await ZOHO.CRM.API.updateRecord({
-        Entity: "Events",
-        APIData: transformedData,
-        Trigger: ["workflow"],
-      });
-  
-      if (data.data && data.data.length > 0 && data.data[0].code === "SUCCESS") {
-        // If submission is successful, set success to true
-        console.log("Event updated successfully");
-  
-        // Show success message
-        setSnackbarSeverity("success");
-        setSnackbarMessage("Event updated successfully.");
-        setSnackbarOpen(true);
-  
-        // Reload the page after 1 second
-        setTimeout(() => {
-          window.location.reload();
-        }, 1000);
-      } else {
-        // If submission fails, set success to false
-        success = false;
-        throw new Error("Failed to update event");
-      }
-    } catch (error) {
-      success = false; // Handle failure case
-      console.error("Error submitting the form:", error);
-      
-      // Show error message
-      setSnackbarSeverity("error");
-      setSnackbarMessage("Error updating event.");
+    if (data.data && data.data.length > 0 && data.data[0].code === "SUCCESS") {
+      setSnackbarSeverity("success");
+      setSnackbarMessage("Event updated successfully.");
       setSnackbarOpen(true);
+
+      // Ensure updateEvent always receives the latest associateWith value
+      // updateEvent({
+      //   ...transformedData,
+      //   What_Id: transformedData.What_Id, // Ensure What_Id contains both id and name
+      // });
+
+      setTimeout(() => {
+        window.location.reload(); 
+      }, 1000);
+    } else {
+      throw new Error("Failed to update event");
     }
-  
-    return success;
-  };
+  } catch (error) {
+    console.log(error)
+    setSnackbarSeverity("error");
+    setSnackbarMessage("Error updating event.");
+    setSnackbarOpen(true);
+  }
+};
 
   const handleSnackbarClose = () => {
     setSnackbarOpen(false);
   };
-  
 
-  console.log({selectedRowData})
+  
 
   return (
     <Box
@@ -306,13 +303,13 @@ const EditActivityModal = ({
         top: "50%",
         left: "50%",
         transform: "translate(-50%, -50%)",
-        width: 600,
-        bgcolor: "white",
+        width: 750,
+        bgcolor: "background.paper",
         border: "2px solid #000",
         boxShadow: 24,
         p: 2,
         borderRadius: 5,
-        zIndex: 999
+        zIndex: 999,
       }}
     >
       <Box display="flex" justifyContent="space-between" mb={2}>
