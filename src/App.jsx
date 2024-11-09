@@ -47,18 +47,55 @@ function App() {
 
           // Date range calculation
           if (filterDate === "Custom Range" && customDateRange) {
+            // Custom date range set by user
             beginDate1 = new Date(customDateRange.startDate);
             closeDate1 = new Date(customDateRange.endDate);
           } else if (filterDate === "All") {
+            // Show all records from the beginning of the year to now
             beginDate1 = new Date("2024-01-01");
             closeDate1 = new Date();
           } else if (filterDate === "Current Week") {
+            // Start of current week (Sunday to Saturday)
             beginDate1 = new Date(currentDate);
             beginDate1.setDate(currentDate.getDate() - currentDate.getDay());
             closeDate1 = new Date(beginDate1);
             closeDate1.setDate(beginDate1.getDate() + 6);
+          } else if (filterDate === "Last 7 Days") {
+            // Last 7 days up to the current date
+            closeDate1 = new Date(currentDate);
+            beginDate1 = new Date(currentDate);
+            beginDate1.setDate(currentDate.getDate() - 6);
+          } else if (filterDate === "Last 30 Days") {
+            // Last 30 days up to the current date
+            closeDate1 = new Date(currentDate);
+            beginDate1 = new Date(currentDate);
+            beginDate1.setDate(currentDate.getDate() - 29);
+          } else if (filterDate === "Last 90 Days") {
+            // Last 90 days up to the current date
+            closeDate1 = new Date(currentDate);
+            beginDate1 = new Date(currentDate);
+            beginDate1.setDate(currentDate.getDate() - 89);
+          } else if (filterDate === "Current Month") {
+            // First day of the current month to the last day of the current month
+            beginDate1 = new Date(
+              currentDate.getFullYear(),
+              currentDate.getMonth(),
+              1
+            );
+            closeDate1 = new Date(
+              currentDate.getFullYear(),
+              currentDate.getMonth() + 1,
+              0
+            );
+          } else if (filterDate === "Next Week") {
+            // Next week (from the next Sunday to the following Saturday)
+            beginDate1 = new Date(currentDate);
+            beginDate1.setDate(
+              currentDate.getDate() - currentDate.getDay() + 7
+            ); // Next Sunday
+            closeDate1 = new Date(beginDate1);
+            closeDate1.setDate(beginDate1.getDate() + 6); // Following Saturday
           }
-          // Other filter options...
 
           // Format dates for API request
           const formattedBeginDate = `${

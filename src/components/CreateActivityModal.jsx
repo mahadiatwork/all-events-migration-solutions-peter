@@ -151,7 +151,7 @@ function transformFormSubmission(data, individualParticipant = null) {
       ? `${data.Event_Title} - ${individualParticipant.Full_Name}`
       : data.Event_Title, // If no individual participant, use the default title
 
-    What_Id: data.associateWith?.id ? { id: data.associateWith.id } : null,
+    What_Id: data.What_Id,
     se_module: "Accounts",
     Participants: participants,
     Duration_Min: data.Duration_Min ? data.Duration_Min.toString() : "0",
@@ -216,6 +216,8 @@ const CreateActivityModal = ({
   users,
   loggedInUser,
   setEvents,
+  setSelectedRowIndex,
+  setHighlightedRow
 }) => {
   const theme = useTheme();
   const [value, setValue] = useState(0);
@@ -321,13 +323,15 @@ const CreateActivityModal = ({
   
           if (data.data && data.data.length > 0 && data.data[0].code === "SUCCESS") {
             const createdEvent = data.data[0].details;
-            setEvents((prevEvents) => [transformedData, ...prevEvents]); // Add the new event to the top of the list
+            setEvents((prev) => [
+              ...prev,
+              { ...formData, id: data?.data[0].details?.id },
+            ]);
+            setSelectedRowIndex(data?.data[0].details?.id)
+            setHighlightedRow(data?.data[0].details?.id)
             setSnackbarSeverity("success");
             setSnackbarMessage("Event Created Successfully");
             setSnackbarOpen(true);
-            setTimeout(() => {
-              window.location.reload(); 
-            }, 1000);
           } else {
             success = false;
             throw new Error("Failed to create event");
@@ -338,6 +342,10 @@ const CreateActivityModal = ({
           setSnackbarMessage("Error creating events.");
           setSnackbarOpen(true);
         }
+        setTimeout(() => {
+          // window.location.reload();
+          handleClose() 
+        }, 1000);
       }
     } else {
       // Handle single event creation
@@ -351,12 +359,18 @@ const CreateActivityModal = ({
   
         if (data.data && data.data.length > 0 && data.data[0].code === "SUCCESS") {
           const createdEvent = data.data[0].details;
-          setEvents((prevEvents) => [transformedData, ...prevEvents]); // Add the new event to the top of the list
+          setEvents((prev) => [
+            ...prev,
+            { ...formData, id: data?.data[0].details?.id },
+          ]);
+          setSelectedRowIndex(data?.data[0].details?.id)
+            setHighlightedRow(data?.data[0].details?.id)
           setSnackbarSeverity("success");
           setSnackbarMessage("Event Created Successfully");
           setSnackbarOpen(true);
           setTimeout(() => {
-            window.location.reload(); 
+            // window.location.reload(); 
+            handleClose()
           }, 1000);
         } else {
           throw new Error("Failed to create event");

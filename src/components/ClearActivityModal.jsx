@@ -25,6 +25,7 @@ export default function ClearActivityModal({
   handleClose,
   selectedRowData,
   ZOHO,
+  setEvents,
 }) {
   const calculateDuration = (durationInMinutes) => {
     if (!durationInMinutes) return "5 minutes";
@@ -69,151 +70,125 @@ export default function ClearActivityModal({
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
+  
     try {
+      // Helper to create history if required
+      const createHistory = async () => {
+        const recordData = {
+          Name:
+            selectedRowData.Participants.length > 0
+              ? selectedRowData.Participants.map((participant) => participant.name).join(", ")
+              : selectedRowData?.Event_Title,
+          Duration: selectedRowData?.Duration_Min,
+          History_Type: selectedRowData?.Type_of_Activity,
+          Stakeholder: { id: selectedRowData?.What_Id?.id },
+          Regarding: selectedRowData?.Regarding,
+          Date: selectedRowData?.Start_DateTime,
+          Owner: selectedRowData?.Owner,
+          History_Details_Plain: activityDetails,
+          History_Result: result,
+        };
+  
+        const historyResponse = await ZOHO.CRM.API.insertRecord({
+          Entity: "History1",
+          APIData: recordData,
+          Trigger: ["workflow"],
+        });
+  
+        if (historyResponse.data[0].code === "SUCCESS") {
+          setSnackbarMessage(
+            `${clearChecked ? "Event marked as cleared" : "Event erased"} and history created successfully!`
+          );
+          const historyRecordId = historyResponse.data[0].details.id;
+  
+          // Insert Participants for History
+          if (selectedRowData.Participants.length > 0) {
+            const participantInsertPromises = selectedRowData.Participants.filter(
+              (participant) => participant.type === "contact"
+            ).map(async (participant) => {
+              const participantData = {
+                Contact_Details: { id: participant.participant },
+                Contact_History_Info: { id: historyRecordId },
+              };
+  
+              return await ZOHO.CRM.API.insertRecord({
+                Entity: "History_X_Contacts",
+                APIData: participantData,
+                Trigger: ["workflow"],
+              });
+            });
+  
+            await Promise.all(participantInsertPromises);
+          }
+          return true;
+        } else {
+          setSnackbarMessage("History creation failed.");
+          setSnackbarSeverity("warning");
+          setSnackbarOpen(true);
+          return false;
+        }
+      };
+  
       if (clearChecked && !eraseChecked) {
-        // Update the event with Cleared set to true and result
+        // Update the event to "Closed"
         const updateResponse = await ZOHO.CRM.API.updateRecord({
           Entity: "Events",
           RecordID: selectedRowData?.id,
           APIData: {
             id: selectedRowData?.id,
             Event_Status: "Closed",
-            result: result, // Push the result to the Events module
+            result: result,
           },
         });
-
-
+  
         if (updateResponse.data[0].code === "SUCCESS") {
           setSnackbarMessage("Event marked as cleared successfully!");
           setSnackbarSeverity("success");
           setSnackbarOpen(true);
-
-          // Check if history creation is needed
+  
+          // Update events in state
+          setEvents((prevEvents) =>
+            prevEvents.map((event) =>
+              event.id === selectedRowData?.id
+                ? { ...event, Event_Status: "Closed", result: result }
+                : event
+            )
+          );
+  
           if (addActivityToHistory) {
-            const recordData = {
-              Name:
-                selectedRowData.Participants.length > 0
-                  ? selectedRowData.Participants.map(
-                      (participant) => participant.name
-                    ).join(", ")
-                  : selectedRowData?.Event_Title,
-              Duration: selectedRowData?.Duration_Min,
-              History_Type: selectedRowData?.Type_of_Activity,
-              Stakeholder: { id: selectedRowData?.What_Id?.id },
-              Regarding: selectedRowData?.Regarding,
-              Date: selectedRowData?.Start_DateTime,
-              Owner: selectedRowData?.Owner,
-              History_Details_Plain: activityDetails,
-              History_Result: result, // Push the result to the History module
-            };
-
-            const historyResponse = await ZOHO.CRM.API.insertRecord({
-              Entity: "History1",
-              APIData: recordData,
-              Trigger: ["workflow"],
-            });
-
-            if (historyResponse.data[0].code === "SUCCESS") {
-              setSnackbarMessage(
-                "Event marked as cleared and history created successfully!"
-              );
-              setSnackbarSeverity("success");
-              setSnackbarOpen(true);
-
-              const historyRecordId = historyResponse.data[0].details.id;
-
-              if (selectedRowData.Participants.length > 0) {
-                const participantInsertPromises =
-                  selectedRowData.Participants.filter(
-                    (participant) => participant.type === "contact"
-                  ).map(async (participant) => {
-                    const participantData = {
-                      Contact_Details: { id: participant.participant },
-                      Contact_History_Info: { id: historyRecordId },
-                    };
-
-                    return await ZOHO.CRM.API.insertRecord({
-                      Entity: "History_X_Contacts",
-                      APIData: participantData,
-                      Trigger: ["workflow"],
-                    });
-                  });
-
-                await Promise.all(participantInsertPromises);
-              }
-            } else {
-              setSnackbarMessage(
-                "Event marked as cleared, but history creation failed."
-              );
-              setSnackbarSeverity("warning");
-              setSnackbarOpen(true);
-            }
+            await createHistory();
           }
-
-          // Refresh the page to reflect changes
-          window.location.reload();
         } else {
           throw new Error("Failed to update the event.");
         }
       }
-
+  
       if (!clearChecked && eraseChecked) {
         // Delete the event
         const deleteResponse = await ZOHO.CRM.API.deleteRecord({
           Entity: "Events",
           RecordID: selectedRowData?.id,
         });
-
+  
         if (deleteResponse.data[0].code === "SUCCESS") {
           setSnackbarMessage("Event erased successfully!");
           setSnackbarSeverity("success");
           setSnackbarOpen(true);
-          // Check if history creation is needed
+  
+          // Remove the event from the events state
+          setEvents((prevEvents) => prevEvents.filter((event) => event.id !== selectedRowData?.id));
+  
           if (addActivityToHistory) {
-            const recordData = {
-              Name:
-                selectedRowData.Participants.length > 0
-                  ? selectedRowData.Participants.map(
-                      (participant) => participant.name
-                    ).join(", ")
-                  : selectedRowData?.Event_Title,
-              Duration: selectedRowData?.Duration_Min,
-              History_Type: selectedRowData?.Type_of_Activity,
-              Stakeholder: { id: selectedRowData?.What_Id?.id },
-              Regarding: selectedRowData?.Regarding,
-              Date: selectedRowData?.Start_DateTime,
-              Owner: selectedRowData?.Owner,
-              History_Details_Plain: activityDetails,
-              History_Result: result, // Push the result to the History module
-            };
-
-            const historyResponse = await ZOHO.CRM.API.insertRecord({
-              Entity: "History1",
-              APIData: recordData,
-              Trigger: ["workflow"],
-            });
-
-            if (historyResponse.data[0].code === "SUCCESS") {
-              setSnackbarMessage(
-                "Event erased and history created successfully!"
-              );
-              setSnackbarSeverity("success");
-              setSnackbarOpen(true);
-              // Refresh the page to reflect changes
-              window.location.reload();
-            } else {
-              setSnackbarMessage("Event erased, but history creation failed.");
-              setSnackbarSeverity("warning");
-              setSnackbarOpen(true);
-            }
+            await createHistory();
           }
-          // Refresh the page to reflect changes
-          window.location.reload();
         } else {
           throw new Error("Failed to delete the event.");
         }
       }
+  
+      setTimeout(() => {
+        handleClose(); // Close modal or any UI related to submission
+      }, 1000);
     } catch (error) {
       console.error("Error during submission:", error);
       setSnackbarMessage("An unexpected error occurred, try again!");
@@ -221,7 +196,7 @@ export default function ClearActivityModal({
       setSnackbarOpen(true);
     }
   };
-
+  
   const handleActivityDetailsChange = (e) => {
     setActivityDetails(e.target.value);
   };

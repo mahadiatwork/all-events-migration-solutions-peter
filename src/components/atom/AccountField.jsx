@@ -88,7 +88,8 @@ export default function AccountField({
         value={selectedAccount}
         onChange={(event, newValue) => {
           setSelectedAccount(newValue); // Set selected account
-          handleInputChange("associateWith", newValue); // Trigger change handler
+          // console.log({What_Id: {id: newValue.id, name: newValue.Account_Name} })
+          handleInputChange("What_Id", {id: newValue.id, name: newValue.Account_Name}); // Trigger change handler
         }}
         inputValue={inputValue}
         onInputChange={handleInputChangeWithDelay} // Use the custom handler

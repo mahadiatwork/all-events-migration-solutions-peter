@@ -18,6 +18,7 @@ import {
   Modal,
   Box,
   TextField,
+  FormControlLabel,
 } from "@mui/material";
 import ClearActivityModal from "./ClearActivityModal";
 import EditActivityModal from "./EditActivityModal";
@@ -45,9 +46,9 @@ const CustomTableCell = ({
     <TableCell
       sx={{
         color:
-          highlightedRow === index
+          highlightedRow === row.id
             ? "#FFFFFF"
-            : selectedRowIndex === index
+            : selectedRowIndex === row.id
             ? "#FFFFFF"
             : row?.color || "black",
       }}
@@ -104,13 +105,48 @@ const CustomTableCell = ({
 // }
 
 function createData(event, type) {
-  const startDateTime = event.Start_DateTime ? new Date(event.Start_DateTime) : new Date();
-  const endDateTime = event.End_DateTime ? new Date(event.End_DateTime) : new Date();
-  const time = startDateTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  const duration = `${Math.round((endDateTime - startDateTime) / 60000)} minutes`;
-  const scheduledFor = event.Owner ? event.Owner.name : "Unknown";
-  const associateWith = event.What_Id ? event.What_Id.name : "None";
+  const startDateTime = event.Start_DateTime
+    ? new Date(event.Start_DateTime)
+    : new Date();
+  const endDateTime = event.End_DateTime
+    ? new Date(event.End_DateTime)
+    : new Date();
+  const time = startDateTime.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  const duration = event.Duration_Min ? `${event.Duration_Min} minutes` : " - "
+    // startDateTime && endDateTime
+    //   ? `${Math.round((endDateTime - startDateTime) / 60000)} minutes`
+    //   : "Unknown duration";
+
+  // ScheduledFor field handling
+  const scheduledFor =
+    event.Owner?.name || event.scheduleFor?.full_name || "Unknown";
+
+  // AssociateWith field handling
+  let associateWith = "";
+  // const associateWith = event.What_Id?.name || event.associateWith?.Account_Name || "None";
+
+  if (event.What_Id !== null) {
+    associateWith = event.What_Id?.name;
+  } else if (event.associateWith !== null) {
+    console.log("associateWith", event);
+    associateWith = event.associateWith?.Account_Name;
+  } else {
+    associateWith = "none";
+  }
+
+  // if(event.associateWith !== null){
+  //   associateWith = event.associateWith?.Account_Name;
+  // }
+
+  // Participants field handling
+  const participants = event.Participants || event.scheduledWith || [];
+
   const title = event.Event_Title || "Untitled Event";
+  const color = event.Colour || "black";
+  const Event_Status = event.Event_Status || "";
 
   return {
     title,
@@ -119,17 +155,15 @@ function createData(event, type) {
     time,
     priority: event.Event_Priority || "Low",
     scheduledFor,
-    participants: event.Participants || [],
+    participants,
     regarding: event.Regarding || "No Data",
     duration,
     associateWith,
-    id: event.id,
-    color: event.Colour || "black",
-    Event_Status: event.Event_Status || "",
+    id: event.id || "No ID",
+    color,
+    Event_Status,
   };
 }
-
-
 
 // Custom Range Modal Component
 const CustomRangeModal = ({ open, handleClose, setCustomDateRange }) => {
@@ -219,8 +253,10 @@ export default function ScheduleTable({
   const [filterPriority, setFilterPriority] = React.useState([]);
   const [filterUser, setFilterUser] = React.useState([]);
 
+  const [showCleared, setShowCleared] = React.useState(false); // State for "Cleared" checkbox
+
   const filterDateOptions = [
-    { label: "All", value: "All" },
+    { label: "Default", value: "All" },
     { label: "Last 7 Days", value: "Last 7 Days" },
     { label: "Last 30 Days", value: "Last 30 Days" },
     { label: "Last 90 Days", value: "Last 90 Days" },
@@ -275,25 +311,47 @@ export default function ScheduleTable({
   };
 
   const rows = Array.isArray(events)
-    ? events.map((event) => createData(event, event.Type_of_Activity || "Other"))
+    ? events.map((event) =>
+        createData(event, event.Type_of_Activity || "Other")
+      )
     : [];
 
-    const filteredRows = rows
-    .filter((row) => {
-      const typeMatch = filterType.length === 0 || filterType.includes(row.type);
-      const priorityMatch =
-        filterPriority.length === 0 || filterPriority.includes(row.priority);
-      const userMatch =
-        filterUser.length === 0 ||
-        filterUser.some((user) => row.scheduledFor.includes(user));
-      const dateMatch =
-        !customDateRange ||
-        (new Date(row.date) >= new Date(customDateRange.startDate) &&
-          new Date(row.date) <= new Date(customDateRange.endDate));
-  
-      return typeMatch && priorityMatch && userMatch && dateMatch;
-    })
-    .sort((a, b) => new Date(b.date) - new Date(a.date)); // Sort in descending order by date  
+  // Filter rows based on selected filters and "Cleared" checkbox
+  const filteredRows = React.useMemo(() => {
+    return rows
+      .filter((row) => {
+        const typeMatch =
+          filterType.length === 0 || filterType.includes(row.type);
+        const priorityMatch =
+          filterPriority.length === 0 || filterPriority.includes(row.priority);
+        const userMatch =
+          filterUser.length === 0 ||
+          filterUser.some((user) => row.scheduledFor.includes(user));
+        const dateMatch =
+          !customDateRange ||
+          (new Date(row.date) >= new Date(customDateRange.startDate) &&
+            new Date(row.date) <= new Date(customDateRange.endDate));
+        const clearedMatch = !showCleared || row.Event_Status === "Closed";
+
+        return (
+          typeMatch && priorityMatch && userMatch && dateMatch && clearedMatch
+        );
+      })
+      .sort((a, b) => new Date(b.date) - new Date(a.date));
+  }, [
+    events,
+    rows,
+    filterType,
+    filterPriority,
+    filterUser,
+    customDateRange,
+    showCleared, // Include "Cleared" checkbox state in dependencies
+  ]);
+
+  // Checkbox handler
+  const handleClearedCheckboxChange = (event) => {
+    setShowCleared(event.target.checked);
+  };
 
   const handleDateFilterChange = (e) => {
     const value = e.target.value;
@@ -310,20 +368,20 @@ export default function ScheduleTable({
     setOpenCustomRangeModal(false);
   };
 
-  const handleRowClick = (index, row) => {
-    if (highlightedRow === index) {
+  const handleRowClick = (row) => {
+    if (highlightedRow === row.id) {
       setHighlightedRow(null); // Unhighlight if clicked again
       setSelectedRowIndex(null);
     } else {
-      setHighlightedRow(index); // Highlight the new row and reset any previously highlighted rows
-      setSelectedRowIndex(index);
+      setHighlightedRow(row.id); // Highlight the new row and reset any previously highlighted rows
+      setSelectedRowIndex(row.id);
     }
     setSelectedRowData(row);
   };
 
-  const handleRowDoubleClick = async (index, row) => {
-    setSelectedRowIndex(index);
-    setHighlightedRow(index); // Keep the row highlighted on double click
+  const handleRowDoubleClick = async (row) => {
+    setHighlightedRow(row.id); // Highlight the new row and reset any previously highlighted rows
+    setSelectedRowIndex(row.id);
     if (row?.id) {
       try {
         const response = await ZOHO.CRM.API.getRecord({
@@ -343,8 +401,8 @@ export default function ScheduleTable({
   };
 
   const handleCheckboxChange = (index, row) => {
-    setSelectedRowIndex(index);
-    setHighlightedRow(index); // Highlight the new row and reset any previously highlighted rows
+    setHighlightedRow(row.id); // Highlight the new row and reset any previously highlighted rows
+    setSelectedRowIndex(row.id);
     if (row?.id) {
       async function getData() {
         try {
@@ -353,7 +411,7 @@ export default function ScheduleTable({
             approved: "both",
             RecordID: row.id,
           });
-  
+
           if (response && response.data) {
             setSelectedRowData(response.data[0]);
           }
@@ -370,26 +428,26 @@ export default function ScheduleTable({
   };
 
   const updateEvent = (updatedEvent) => {
-    setEvents((prevEvents) =>
-      prevEvents.map((event) =>
+    setEvents((prevEvents) => {
+      const updatedEvents = prevEvents.map((event) =>
         event.id === updatedEvent.id
           ? {
               ...event,
+              ...updatedEvent,
               Start_DateTime: updatedEvent.Start_DateTime,
               End_DateTime: updatedEvent.End_DateTime,
               Event_Priority: updatedEvent.Event_Priority,
-              Participants: updatedEvent.Participants || [], // Ensure Participants is updated
-              What_Id: updatedEvent.What_Id,
               Description: updatedEvent.Description,
               Duration_Min: updatedEvent.Duration_Min,
-              // Include other fields as needed
+              // Add other fields as needed
             }
           : event
-      )
-    );
+      );
+      return [...updatedEvents]; // Return a new array reference to ensure re-rendering
+    });
   };
-  
-console.log({filteredRows})
+
+  console.log({ events, filteredRows });
 
   return (
     <>
@@ -465,7 +523,7 @@ console.log({filteredRows})
             </Select>
           </FormControl>
         </Grid>
-        <Grid item xs={2}>
+        <Grid item xs={1}>
           <FormControl fullWidth>
             <InputLabel>User</InputLabel>
             <Select
@@ -486,16 +544,28 @@ console.log({filteredRows})
           </FormControl>
         </Grid>
 
-        <Grid item xs={2}>
+        <Grid item xs={2} sx={{ display: "flex" }}>
           <Button
             variant="outlined"
             fullWidth
             onClick={handleClearFilters}
             color="secondary"
           >
-            Clear Filters
+            Clear filter
           </Button>
         </Grid>
+        <Grid item xs={1} sx={{ display: "flex" }}>
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={showCleared} // Bind to state
+                onChange={handleClearedCheckboxChange} // Checkbox change handler
+              />
+            }
+            label="Cleared"
+          />
+        </Grid>
+
         <Grid item xs={2}>
           <Button
             variant="contained"
@@ -508,23 +578,49 @@ console.log({filteredRows})
       </Grid>
 
       {/* Table */}
-      <TableContainer component={Paper} sx={{ maxHeight: "100vh", overflowY: "auto" }}>
+      <TableContainer
+        component={Paper}
+        sx={{ maxHeight: "100vh", overflowY: "auto" }}
+      >
         <Table stickyHeader sx={{ minWidth: 650 }} aria-label="schedule table">
           <TableHead>
             <TableRow>
-              <TableCell padding="checkbox" sx={{ bgcolor: "#efefef", fontWeight: "bold" }}>
+              <TableCell
+                padding="checkbox"
+                sx={{ bgcolor: "#efefef", fontWeight: "bold" }}
+              >
                 Select
               </TableCell>
-              <TableCell sx={{ bgcolor: "#efefef", fontWeight: "bold" }}>Title</TableCell>
-              <TableCell sx={{ bgcolor: "#efefef", fontWeight: "bold" }}>Type</TableCell>
-              <TableCell sx={{ bgcolor: "#efefef", fontWeight: "bold" }}>Date</TableCell>
-              <TableCell sx={{ bgcolor: "#efefef", fontWeight: "bold" }}>Time</TableCell>
-              <TableCell sx={{ bgcolor: "#efefef", fontWeight: "bold" }}>Priority</TableCell>
-              <TableCell sx={{ bgcolor: "#efefef", fontWeight: "bold" }}>Scheduled For</TableCell>
-              <TableCell sx={{ bgcolor: "#efefef", fontWeight: "bold" }}>Scheduled With</TableCell>
-              <TableCell sx={{ bgcolor: "#efefef", fontWeight: "bold" }}>Regarding</TableCell>
-              <TableCell sx={{ bgcolor: "#efefef", fontWeight: "bold" }}>Duration</TableCell>
-              <TableCell sx={{ bgcolor: "#efefef", fontWeight: "bold" }}>Associate With</TableCell>
+              <TableCell sx={{ bgcolor: "#efefef", fontWeight: "bold" }}>
+                Title
+              </TableCell>
+              <TableCell sx={{ bgcolor: "#efefef", fontWeight: "bold" }}>
+                Type
+              </TableCell>
+              <TableCell sx={{ bgcolor: "#efefef", fontWeight: "bold" }}>
+                Date
+              </TableCell>
+              <TableCell sx={{ bgcolor: "#efefef", fontWeight: "bold" }}>
+                Time
+              </TableCell>
+              <TableCell sx={{ bgcolor: "#efefef", fontWeight: "bold" }}>
+                Priority
+              </TableCell>
+              <TableCell sx={{ bgcolor: "#efefef", fontWeight: "bold" }}>
+                Scheduled For
+              </TableCell>
+              <TableCell sx={{ bgcolor: "#efefef", fontWeight: "bold" }}>
+                Scheduled With
+              </TableCell>
+              <TableCell sx={{ bgcolor: "#efefef", fontWeight: "bold" }}>
+                Regarding
+              </TableCell>
+              <TableCell sx={{ bgcolor: "#efefef", fontWeight: "bold" }}>
+                Duration
+              </TableCell>
+              <TableCell sx={{ bgcolor: "#efefef", fontWeight: "bold" }}>
+                Associate With
+              </TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -540,15 +636,15 @@ console.log({filteredRows})
                   key={index}
                   sx={{
                     backgroundColor:
-                      highlightedRow === index ||
-                      (selectedRowIndex === index && openClearModal)
+                      highlightedRow === row.id ||
+                      (selectedRowIndex === row.id && openClearModal)
                         ? "#0072DC"
                         : index % 2 === 0
                         ? "white"
                         : "#f9f9f9",
                     color:
-                      highlightedRow === index ||
-                      (selectedRowIndex === index && openClearModal)
+                      highlightedRow === row.id ||
+                      (selectedRowIndex === row.id && openClearModal)
                         ? "#FFFFFF"
                         : "black",
                     position: "relative",
@@ -556,10 +652,13 @@ console.log({filteredRows})
                       row.Event_Status === "Closed" ? "line-through" : "none",
                     cursor: "pointer",
                   }}
-                  onClick={() => handleRowClick(index, row)}
-                  onDoubleClick={() => handleRowDoubleClick(index, row)}
+                  onClick={() => handleRowClick(row)}
+                  onDoubleClick={() => handleRowDoubleClick(row)}
                 >
-                  <TableCell padding="checkbox" onClick={(e) => e.stopPropagation()}>
+                  <TableCell
+                    padding="checkbox"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <Checkbox
                       checked={selectedRowIndex === index && openClearModal}
                       onChange={() => handleCheckboxChange(index, row)}
@@ -625,11 +724,14 @@ console.log({filteredRows})
                               target="_blank"
                               rel="noopener noreferrer"
                               style={{
-                                color: selectedRowIndex === index ? "#fff" : "#0072DC",
+                                color:
+                                  selectedRowIndex === row.id
+                                    ? "#fff"
+                                    : "#0072DC",
                                 textDecoration: "underline",
                               }}
                             >
-                              {participant.name}
+                              {participant.name || participant.Full_Name}
                             </a>
                             {i < row.participants.length - 1 && ", "}
                           </React.Fragment>
@@ -675,6 +777,7 @@ console.log({filteredRows})
           selectedRowData={selectedRowData}
           ZOHO={ZOHO}
           users={users}
+          setEvents={setEvents}
         />
       )}
 
@@ -686,6 +789,7 @@ console.log({filteredRows})
           ZOHO={ZOHO}
           users={users}
           updateEvent={updateEvent}
+          setEvents={setEvents}
         />
       )}
 
@@ -697,6 +801,8 @@ console.log({filteredRows})
           users={users}
           loggedInUser={loggedInUser}
           setEvents={setEvents}
+          setSelectedRowIndex={setSelectedRowIndex}
+          setHighlightedRow={setHighlightedRow}
         />
       )}
 

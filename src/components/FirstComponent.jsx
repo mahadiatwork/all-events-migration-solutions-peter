@@ -157,47 +157,51 @@ const FirstComponent = ({
   }
 
   useEffect(() => {
-    if (selectedRowData) {
+    const initializeDefaultValues = () => {
+      const now = new Date();
+      const oneHourLater = new Date(now);
+      oneHourLater.setHours(now.getHours() + 1);
+  
+      handleInputChange("start", now.toISOString());
+      handleInputChange("end", oneHourLater.toISOString());
+      handleInputChange("duration", 60); // Default duration of 60 minutes
+      setStartValue(dayjs(now));
+      setEndValue(dayjs(oneHourLater));
+    };
+  
+    const initializeSelectedRowData = () => {
       handleInputChange("Reminder_Text", selectedRowData.Reminder_Text || "");
       handleInputChange("Event_Title", selectedRowData.Event_Title || "");
-      handleInputChange(
-        "Type_of_Activity",
-        selectedRowData.Type_of_Activity || ""
-      );
-
+      handleInputChange("Type_of_Activity", selectedRowData.Type_of_Activity || "");
+  
       const formattedStart = selectedRowData.Start_DateTime
-        ? formatTime(selectedRowData.Start_DateTime)
-        : "";
+        ? new Date(selectedRowData.Start_DateTime)
+        : null;
       const formattedEnd = selectedRowData.End_DateTime
-        ? formatTime(selectedRowData.End_DateTime)
-        : "";
-
-      handleInputChange("start", formattedStart || "");
-      handleInputChange("end", formattedEnd || "");
-      handleInputChange(
-        "Duration_Min",
-        calculateDuration(
-          selectedRowData.Start_DateTime,
-          selectedRowData.End_DateTime
-        ) || ""
-      );
+        ? new Date(selectedRowData.End_DateTime)
+        : null;
+  
+      // Set start, end, and duration if valid times are provided
+      if (formattedStart && formattedEnd) {
+        handleInputChange("start", formattedStart.toISOString());
+        handleInputChange("end", formattedEnd.toISOString());
+        const calculatedDuration = calculateDuration(formattedStart, formattedEnd);
+        handleInputChange("duration", selectedRowData.duration || calculatedDuration);
+        setStartValue(dayjs(formattedStart));
+        setEndValue(dayjs(formattedEnd));
+      } else {
+        initializeDefaultValues();
+      }
+  
       handleInputChange("Venue", selectedRowData.Venue || "");
       handleInputChange("priority", selectedRowData.Event_Priority || "");
       handleInputChange("ringAlarm", selectedRowData.ringAlarm || "");
       handleInputChange("Colour", selectedRowData.Colour || "#ff0000");
       handleInputChange("Banner", selectedRowData.Banner || false);
-
-      // Find the corresponding user in the users array based on Owner's full_name
-      const owner = users.find(
-        (user) => user.full_name === selectedRowData.Owner?.name
-      );
-      if (owner) {
-        handleInputChange("scheduleFor", owner); // Set the user object, not just the name
-      } else {
-        handleInputChange("scheduleFor", null); // Handle case where no matching user is found
-      }
-
-      // Populate scheduledWith
+  
+      const owner = users.find((user) => user.full_name === selectedRowData.Owner?.name);
+      handleInputChange("scheduleFor", owner || null);
+  
       handleInputChange(
         "scheduledWith",
         selectedRowData.Participants
@@ -208,8 +212,15 @@ const FirstComponent = ({
             }))
           : []
       );
+    };
+  
+    if (!selectedRowData) {
+      initializeDefaultValues();
+    } else {
+      initializeSelectedRowData();
     }
-  }, [selectedRowData, users]); // Ensure this runs when selectedRowData or users change
+  }, [selectedRowData, users]);
+  
 
   const [openStartDatepicker, setOpenStartDatepicker] = useState(false);
   const [openEndDatepicker, setOpenEndDatepicker] = useState(false);
@@ -361,7 +372,7 @@ const FirstComponent = ({
     handleInputChange("end", e.$d);
     console.log("end", e.value);
     const getDiffInMinutes = getTimeDifference(e.$d);
-    handleInputChange("duration", getDiffInMinutes);
+    handleInputChange("Duration_Min", getDiffInMinutes);
     console.log({ getDiffInMinutes });
     // if (formData.end ) {
     //   console.log('hello')
@@ -427,7 +438,7 @@ const FirstComponent = ({
                 handleInputChange("start", e.$d);
                 handleInputChange("end", addedHour);
                 setEndValue(dayjs(addedHour));
-                handleInputChange("duration", 60);
+                handleInputChange("Duration_Min", 60);
                 console.log(e.$d);
                 console.log(addedHour);
               }}
@@ -475,12 +486,12 @@ const FirstComponent = ({
               id="demo-simple-select-standard"
               label="Duration"
               fullWidth
-              value={formData.duration}
+              value={formData.Duration_Min}
               disabled={formData.Banner ? true : false}
               InputLabelProps={{ shrink: true }}
               onChange={(e) => {
-                handleInputChange("duration", e.target.value);
-                addMinutesToDateTime("duration", e.target.value);
+                handleInputChange("Duration_Min", e.target.value);
+                addMinutesToDateTime("Duration_Min", e.target.value);
               }}
               sx={{
                 "& .MuiSelect-select": {

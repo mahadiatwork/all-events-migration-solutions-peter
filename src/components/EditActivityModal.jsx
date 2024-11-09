@@ -131,9 +131,7 @@ function transformFormSubmission(data) {
     Event_Priority: data.priority, // Map `priority` to `Event_Priority`
 
     // Updated `What_Id` with both name and id from `associateWith`
-    What_Id: data.associateWith
-      ? { id: data.associateWith.id, name: data.associateWith.name }
-      : null,
+    What_Id: data.What_Id,
     se_module: "Accounts",
 
     // Combine the manually set participants and those from `scheduleWith`
@@ -195,7 +193,7 @@ const EditActivityModal = ({
   selectedRowData,
   ZOHO,
   users,
-  updateEvent,
+  setEvents
 }) => {
   const theme = useTheme();
   const [value, setValue] = useState(0);
@@ -206,7 +204,7 @@ const EditActivityModal = ({
     Type_of_Activity: selectedRowData?.Type_of_Activity || "",
     start: selectedRowData?.Start_DateTime || "",
     end: selectedRowData?.End_DateTime || "",
-    Duration_Min: selectedRowData?.Duration_Min || "",
+    Duration_Min: selectedRowData?.Duration_Min || "60",
     associateWith: selectedRowData?.What_Id || "",
     scheduledWith: selectedRowData?.Participants
       ? selectedRowData.Participants
@@ -215,7 +213,7 @@ const EditActivityModal = ({
     priority: selectedRowData?.Event_Priority || "",
     ringAlarm: selectedRowData?.ringAlarm || "",
     Colour: selectedRowData?.Colour || "#ff0000",
-    Regarding: selectedRowData?.Regarding || "#ff0000",
+    Regarding: selectedRowData?.Regarding || "",
     Description: selectedRowData?.Description || "",
     Banner: selectedRowData?.Banner || false,
     scheduleFor: selectedRowData?.Owner || null,
@@ -271,13 +269,15 @@ const handleSubmit = async () => {
       setSnackbarOpen(true);
 
       // Ensure updateEvent always receives the latest associateWith value
-      // updateEvent({
-      //   ...transformedData,
-      //   What_Id: transformedData.What_Id, // Ensure What_Id contains both id and name
-      // });
+      setEvents((prevEvents) =>
+        prevEvents.map((event) =>
+          event.id === formData.id ? formData : event
+        )
+      );
 
       setTimeout(() => {
-        window.location.reload(); 
+        // window.location.reload(); 
+        handleClose()
       }, 1000);
     } else {
       throw new Error("Failed to update event");
@@ -294,6 +294,8 @@ const handleSubmit = async () => {
     setSnackbarOpen(false);
   };
 
+
+  console.log({selectedRowData})
   
 
   return (
