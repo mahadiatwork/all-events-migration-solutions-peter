@@ -44,7 +44,7 @@ const parseDateString = (dateString) => {
 const formatTime = (date) => {
   const newDate = new Date(date);
 
-  console.log({formatTime:newDate })
+  console.log({ formatTime: newDate });
 
   const year = newDate.getFullYear();
   const month = String(newDate.getMonth() + 1).padStart(2, "0");
@@ -56,7 +56,9 @@ const formatTime = (date) => {
   const ampm = hours >= 12 ? "PM" : "AM";
   hours = hours % 12 || 12; // Convert 0 hours to 12 for AM
 
-  console.log({formattedTime: `${day}/${month}/${year} ${hours}:${minutes} ${ampm}`})
+  console.log({
+    formattedTime: `${day}/${month}/${year} ${hours}:${minutes} ${ampm}`,
+  });
 
   return `${day}/${month}/${year} ${hours}:${minutes} ${ampm}`;
 };
@@ -126,7 +128,7 @@ const FirstComponent = ({
   function addMinutesToDateTime(formatType, durationInMinutes) {
     // // Create a new Date object using the start time from formData
     // console.log(formatType,durationInMinutes)
-    if (formatType === "duration") {
+    if (formatType === "Duration_Min") {
       let date = new Date(formData.start);
 
       date.setMinutes(date.getMinutes() + parseInt(durationInMinutes, 10));
@@ -161,47 +163,58 @@ const FirstComponent = ({
       const now = new Date();
       const oneHourLater = new Date(now);
       oneHourLater.setHours(now.getHours() + 1);
-  
+
       handleInputChange("start", now.toISOString());
       handleInputChange("end", oneHourLater.toISOString());
       handleInputChange("duration", 60); // Default duration of 60 minutes
       setStartValue(dayjs(now));
       setEndValue(dayjs(oneHourLater));
     };
-  
+
     const initializeSelectedRowData = () => {
       handleInputChange("Reminder_Text", selectedRowData.Reminder_Text || "");
       handleInputChange("Event_Title", selectedRowData.Event_Title || "");
-      handleInputChange("Type_of_Activity", selectedRowData.Type_of_Activity || "");
-  
+      handleInputChange(
+        "Type_of_Activity",
+        selectedRowData.Type_of_Activity || ""
+      );
+
       const formattedStart = selectedRowData.Start_DateTime
         ? new Date(selectedRowData.Start_DateTime)
         : null;
       const formattedEnd = selectedRowData.End_DateTime
         ? new Date(selectedRowData.End_DateTime)
         : null;
-  
+
       // Set start, end, and duration if valid times are provided
       if (formattedStart && formattedEnd) {
         handleInputChange("start", formattedStart.toISOString());
         handleInputChange("end", formattedEnd.toISOString());
-        const calculatedDuration = calculateDuration(formattedStart, formattedEnd);
-        handleInputChange("duration", selectedRowData.duration || calculatedDuration);
+        const calculatedDuration = calculateDuration(
+          formattedStart,
+          formattedEnd
+        );
+        handleInputChange(
+          "duration",
+          selectedRowData.duration || calculatedDuration
+        );
         setStartValue(dayjs(formattedStart));
         setEndValue(dayjs(formattedEnd));
       } else {
         initializeDefaultValues();
       }
-  
+
       handleInputChange("Venue", selectedRowData.Venue || "");
       handleInputChange("priority", selectedRowData.Event_Priority || "");
       handleInputChange("ringAlarm", selectedRowData.ringAlarm || "");
       handleInputChange("Colour", selectedRowData.Colour || "#ff0000");
       handleInputChange("Banner", selectedRowData.Banner || false);
-  
-      const owner = users.find((user) => user.full_name === selectedRowData.Owner?.name);
+
+      const owner = users.find(
+        (user) => user.full_name === selectedRowData.Owner?.name
+      );
       handleInputChange("scheduleFor", owner || null);
-  
+
       handleInputChange(
         "scheduledWith",
         selectedRowData.Participants
@@ -213,19 +226,19 @@ const FirstComponent = ({
           : []
       );
     };
-  
+
     if (!selectedRowData) {
       initializeDefaultValues();
     } else {
       initializeSelectedRowData();
     }
   }, [selectedRowData, users]);
-  
 
   const [openStartDatepicker, setOpenStartDatepicker] = useState(false);
   const [openEndDatepicker, setOpenEndDatepicker] = useState(false);
   const [displayColorPicker, setDisplayColorPicker] = useState(false);
   const [color, setColor] = useState(formData.Colour || "#ff0000");
+  const [sendNotification, setSendNotification] = useState(true);
 
   const handleBannerChecked = (e) => {
     handleInputChange("Banner", e.target.checked);
@@ -379,6 +392,10 @@ const FirstComponent = ({
     // }
   };
 
+  //  const [selectedParticipants, setSelectedParticipants] = useState(
+  //   selectedRowData?.Participants || []
+  // ); // Selected values in autocomplete
+
   return (
     <Box>
       <Grid container spacing={2} sx={{ mt: 2 }}>
@@ -528,7 +545,7 @@ const FirstComponent = ({
         </Grid>
         <Grid size={12}>
           <ContactField
-            value={formData.scheduledWith} // Use formData
+            formData={formData} // Use formData
             handleInputChange={handleInputChange}
             ZOHO={ZOHO}
             selectedRowData={selectedRowData}
@@ -538,14 +555,15 @@ const FirstComponent = ({
           <FormControlLabel
             control={
               <Checkbox
-                checked={formData?.reminder}
-                onChange={
-                  (e) =>
-                    handleInputChangeWithEnd(
-                      "$send_notification",
-                      !e.target.checked
-                    ) // Update end date when duration is changed
-                }
+                checked={!sendNotification}
+                onChange={(e) => {
+                  const isChecked = e.target.checked;
+                  setSendNotification(!isChecked); // Update sendNotification state
+                  handleInputChangeWithEnd("$send_notification", !isChecked);
+                  if (isChecked) {
+                    handleInputChange("Reminder_Text", "None"); // Set Reminder to "None"
+                  }
+                }}
               />
             }
             label="Don't send notification"
@@ -553,7 +571,7 @@ const FirstComponent = ({
         </Grid>
         <Grid size={12}>
           <AccountField
-            value={formData.associateWith} // Use formData
+            formData={formData} // Use formData
             handleInputChange={handleInputChange}
             ZOHO={ZOHO}
             selectedRowData={selectedRowData}
@@ -617,10 +635,11 @@ const FirstComponent = ({
             <Select
               label="Ring Alarm"
               fullWidth
-              value={formData.Reminder_Text} // Use formData
+              value={formData.Reminder_Text || "None"} // Default to "None" if disabled
               onChange={(e) =>
                 handleInputChange("Reminder_Text", e.target.value)
               }
+              disabled={!sendNotification} // Disable if "Don't send notification" is checked
             >
               <MenuItem value="None">None</MenuItem>
               <MenuItem value="At time of meeting">At time of meeting</MenuItem>

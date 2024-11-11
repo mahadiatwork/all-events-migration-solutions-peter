@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline"; // Icon for "Not Found" message
 
 export default function AccountField({
+  formData,
   handleInputChange,
   ZOHO,
   selectedRowData,
@@ -13,23 +14,22 @@ export default function AccountField({
   const [notFoundMessage, setNotFoundMessage] = useState(""); // Message if nothing is found
   const [loading, setLoading] = useState(false); // Loading state for search
 
-  // Sync selectedAccount with selectedRowData
+  // Sync selectedAccount with formData.What_Id for the default value
   useEffect(() => {
-    if (selectedRowData?.What_Id?.id) {
+    if (formData.What_Id?.id) {
       const selected = {
-        Account_Name: selectedRowData.What_Id.name,
-        id: selectedRowData.What_Id.id,
+        Account_Name: formData.What_Id.name,
+        id: formData.What_Id.id,
       };
       setSelectedAccount(selected);
-      setInputValue(selectedRowData.What_Id.name || "");
+      setInputValue(formData.What_Id.name || "");
       setAccounts((prevAccounts) =>
         [selected, ...prevAccounts].filter(
           (v, i, a) => a.findIndex((t) => t.id === v.id) === i // Ensure no duplicates
         )
       );
     }
-  }, [selectedRowData]);
-
+  }, [formData.What_Id]); // Rerun effect only when formData.What_Id changes
   // Handle advanced search when a space is detected in the input
   const handleAdvancedSearch = async (query) => {
     setNotFoundMessage(""); // Reset message before search
@@ -77,8 +77,6 @@ export default function AccountField({
     }
   };
 
-
-
   return (
     <Box>
       <Autocomplete
@@ -89,7 +87,10 @@ export default function AccountField({
         onChange={(event, newValue) => {
           setSelectedAccount(newValue); // Set selected account
           // console.log({What_Id: {id: newValue.id, name: newValue.Account_Name} })
-          handleInputChange("What_Id", {id: newValue.id, name: newValue.Account_Name}); // Trigger change handler
+          handleInputChange("What_Id", {
+            id: newValue.id,
+            name: newValue.Account_Name,
+          }); // Trigger change handler
         }}
         inputValue={inputValue}
         onInputChange={handleInputChangeWithDelay} // Use the custom handler

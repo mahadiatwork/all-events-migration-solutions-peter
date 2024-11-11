@@ -225,9 +225,9 @@ const CreateActivityModal = ({
   const [formData, setFormData] = useState({
     Type_of_Activity: "Meeting",
     startTime: "",
-    endTime: "",
+    endTime: 60,
     duration: "",
-    associateWith: "",
+    What_Id: "",
     Event_Title: "New Meeting",
     resource: 0,
     scheduleFor: loggedInUser || "",
@@ -241,7 +241,7 @@ const CreateActivityModal = ({
     Description: "",
     color: "#fff",
     Regarding: "",
-    Duration_Min: "",
+    Duration_Min: 60,
     Create_Separate_Event_For_Each_Contact: false,
     Reminder_Text: "None",
   });
@@ -324,8 +324,8 @@ const CreateActivityModal = ({
           if (data.data && data.data.length > 0 && data.data[0].code === "SUCCESS") {
             const createdEvent = data.data[0].details;
             setEvents((prev) => [
+              { ...transformedData, id: data?.data[0].details?.id },
               ...prev,
-              { ...formData, id: data?.data[0].details?.id },
             ]);
             setSelectedRowIndex(data?.data[0].details?.id)
             setHighlightedRow(data?.data[0].details?.id)
@@ -360,8 +360,8 @@ const CreateActivityModal = ({
         if (data.data && data.data.length > 0 && data.data[0].code === "SUCCESS") {
           const createdEvent = data.data[0].details;
           setEvents((prev) => [
+            { ...transformedData, id: data?.data[0].details?.id },
             ...prev,
-            { ...formData, id: data?.data[0].details?.id },
           ]);
           setSelectedRowIndex(data?.data[0].details?.id)
             setHighlightedRow(data?.data[0].details?.id)

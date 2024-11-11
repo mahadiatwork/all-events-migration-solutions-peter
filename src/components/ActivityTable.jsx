@@ -125,17 +125,8 @@ function createData(event, type) {
     event.Owner?.name || event.scheduleFor?.full_name || "Unknown";
 
   // AssociateWith field handling
-  let associateWith = "";
-  // const associateWith = event.What_Id?.name || event.associateWith?.Account_Name || "None";
-
-  if (event.What_Id !== null) {
-    associateWith = event.What_Id?.name;
-  } else if (event.associateWith !== null) {
-    console.log("associateWith", event);
-    associateWith = event.associateWith?.Account_Name;
-  } else {
-    associateWith = "none";
-  }
+  // let associateWith = "";
+  const associateWith = event.What_Id?.name || event.associateWith?.Account_Name || "None";
 
   // if(event.associateWith !== null){
   //   associateWith = event.associateWith?.Account_Name;

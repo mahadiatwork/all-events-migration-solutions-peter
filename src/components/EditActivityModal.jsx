@@ -205,7 +205,7 @@ const EditActivityModal = ({
     start: selectedRowData?.Start_DateTime || "",
     end: selectedRowData?.End_DateTime || "",
     Duration_Min: selectedRowData?.Duration_Min || "60",
-    associateWith: selectedRowData?.What_Id || "",
+    What_Id: selectedRowData?.What_Id || "",
     scheduledWith: selectedRowData?.Participants
       ? selectedRowData.Participants
       : [], // Map 'name' and 'participant' to create the appropriate structure for Autocomplete
@@ -271,7 +271,7 @@ const handleSubmit = async () => {
       // Ensure updateEvent always receives the latest associateWith value
       setEvents((prevEvents) =>
         prevEvents.map((event) =>
-          event.id === formData.id ? formData : event
+          event.id === formData.id ? { ...event, ...formData } : event
         )
       );
 
