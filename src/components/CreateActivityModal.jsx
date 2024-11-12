@@ -229,7 +229,7 @@ const CreateActivityModal = ({
     duration: "",
     What_Id: "",
     Event_Title: "New Meeting",
-    resource: 0,
+    resource: 1,
     scheduleFor: loggedInUser || "",
     scheduledWith: [],
     Venue: "",
@@ -307,6 +307,10 @@ const CreateActivityModal = ({
   const [isSubmitting, setIsSubmitting] = useState(false); // State for form submission
 
   const handleSubmit = async () => {
+
+    console.log("formData", formData)
+
+    return
     setIsSubmitting(true); // Start the submission process
     let success = true;
   
@@ -393,6 +397,8 @@ const CreateActivityModal = ({
     // setIsSubmitEnabled(isFormValid());
   }, [formData]); // Effect runs whenever formData changes
 
+
+  console.log("clear", loggedInUser)
   
   return (
     <Box
