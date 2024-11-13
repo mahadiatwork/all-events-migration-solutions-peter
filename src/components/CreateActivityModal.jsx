@@ -307,10 +307,6 @@ const CreateActivityModal = ({
   const [isSubmitting, setIsSubmitting] = useState(false); // State for form submission
 
   const handleSubmit = async () => {
-
-    console.log("formData", formData)
-
-    return
     setIsSubmitting(true); // Start the submission process
     let success = true;
   
