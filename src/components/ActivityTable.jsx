@@ -144,7 +144,7 @@ function createData(event, type) {
     type,
     date: startDateTime.toLocaleDateString(),
     time,
-    priority: event.Event_Priority || "Low",
+    priority: event.priority || event.Event_Priority || "",
     scheduledFor,
     participants,
     regarding: event.Regarding || "No Data",
