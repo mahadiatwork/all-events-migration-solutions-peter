@@ -1,8 +1,7 @@
-import React, { useEffect, useState, createContext, useContext } from "react";
+import React, { useEffect, useState, createContext } from "react";
 import "./App.css";
 import ActivityTable from "./components/ActivityTable";
 import { CircularProgress, Box } from "@mui/material"; // Add MUI CircularProgress for the loader
-import { subDays } from "date-fns";
 
 const ZOHO = window.ZOHO;
 

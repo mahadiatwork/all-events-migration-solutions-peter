@@ -50,6 +50,24 @@ export default function ContactField({ ZOHO }) {
           Type: "email",
           Query: searchText.trim(),
         });
+      } else if (searchType === "Mobile") {
+        searchResults = await ZOHO.CRM.API.searchRecord({
+          Entity: "Contacts",
+          Type: "criteria",
+          Query: `(Mobile:equals:${searchText.trim()})`,
+        });
+      } else if (searchType === "ID_Number") {
+        searchResults = await ZOHO.CRM.API.searchRecord({
+          Entity: "Contacts",
+          Type: "criteria",
+          Query: `(ID_Number:equals:${searchText.trim()})`,
+        });
+      } else if (searchType === "Full_Name") {
+        searchResults = await ZOHO.CRM.API.searchRecord({
+          Entity: "Contacts",
+          Type: "word",
+          Query: searchText.trim(),
+        });
       } else {
         searchResults = await ZOHO.CRM.API.searchRecord({
           Entity: "Contacts",
@@ -132,6 +150,9 @@ export default function ContactField({ ZOHO }) {
               <MenuItem value="First_Name">First Name</MenuItem>
               <MenuItem value="Last_Name">Last Name</MenuItem>
               <MenuItem value="Email">Email</MenuItem>
+              <MenuItem value="Mobile">Mobile</MenuItem>
+              <MenuItem value="ID_Number">MS File Number</MenuItem>
+              <MenuItem value="Full_Name">Full Name</MenuItem>
             </TextField>
             <TextField
               label="Search Text"
@@ -152,7 +173,7 @@ export default function ContactField({ ZOHO }) {
           {/* Search Results Table */}
           <TableContainer
             sx={{
-              maxHeight: 300, // Limit height to 200px (adjust as needed)
+              maxHeight: 300, // Limit height to 300px
               overflowY: "auto", // Enable vertical scrolling
             }}
           >
@@ -267,8 +288,6 @@ export default function ContactField({ ZOHO }) {
               </TableBody>
             </Table>
           </TableContainer>
-
-          {/* Selected Contacts */}
           <Box mt={3}>
             <Typography variant="h6">Selected Contacts:</Typography>
             <TableContainer>
