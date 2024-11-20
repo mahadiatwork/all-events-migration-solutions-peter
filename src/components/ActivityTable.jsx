@@ -51,6 +51,7 @@ const CustomTableCell = ({
             : selectedRowIndex === row.id
             ? "#FFFFFF"
             : row?.color || "black",
+        fontSize: "9pt",
       }}
       {...props}
     >
@@ -115,10 +116,10 @@ function createData(event, type) {
     hour: "2-digit",
     minute: "2-digit",
   });
-  const duration = event.Duration_Min ? `${event.Duration_Min} minutes` : " - "
-    // startDateTime && endDateTime
-    //   ? `${Math.round((endDateTime - startDateTime) / 60000)} minutes`
-    //   : "Unknown duration";
+  const duration = event.Duration_Min ? `${event.Duration_Min} minutes` : " - ";
+  // startDateTime && endDateTime
+  //   ? `${Math.round((endDateTime - startDateTime) / 60000)} minutes`
+  //   : "Unknown duration";
 
   // ScheduledFor field handling
   const scheduledFor =
@@ -126,7 +127,8 @@ function createData(event, type) {
 
   // AssociateWith field handling
   // let associateWith = "";
-  const associateWith = event.What_Id?.name || event.associateWith?.Account_Name || "None";
+  const associateWith =
+    event.What_Id?.name || event.associateWith?.Account_Name || "None";
 
   // if(event.associateWith !== null){
   //   associateWith = event.associateWith?.Account_Name;
@@ -445,10 +447,10 @@ export default function ScheduleTable({
       {/* Filters */}
       <Grid
         container
-        spacing={2}
+        spacing={1} // Decreased spacing between items to make the header smaller
         style={{
-          marginTop: 20,
-          marginBottom: 20,
+          marginTop: 10, // Reduced margin
+          marginBottom: 10, // Reduced margin
           position: "sticky",
           top: 0,
           zIndex: 100,
@@ -457,7 +459,7 @@ export default function ScheduleTable({
         }}
       >
         <Grid item xs={2}>
-          <FormControl fullWidth>
+          <FormControl fullWidth size="small">
             <InputLabel>Date</InputLabel>
             <Select
               value={filterDate}
@@ -541,6 +543,7 @@ export default function ScheduleTable({
             fullWidth
             onClick={handleClearFilters}
             color="secondary"
+            size="small" // Reduced button size
           >
             Clear filter
           </Button>
@@ -551,6 +554,7 @@ export default function ScheduleTable({
               <Checkbox
                 checked={showCleared} // Bind to state
                 onChange={handleClearedCheckboxChange} // Checkbox change handler
+                size="small" // Reduced checkbox size
               />
             }
             label="Cleared"
@@ -562,6 +566,7 @@ export default function ScheduleTable({
             variant="contained"
             fullWidth
             onClick={() => setOpenCreateModal(true)}
+            size="small" // Reduced button size
           >
             Create New Event
           </Button>
@@ -578,38 +583,58 @@ export default function ScheduleTable({
             <TableRow>
               <TableCell
                 padding="checkbox"
-                sx={{ bgcolor: "#efefef", fontWeight: "bold" }}
+                sx={{ bgcolor: "#efefef", fontWeight: "bold", fontSize: "9pt" }}
               >
                 Select
               </TableCell>
-              <TableCell sx={{ bgcolor: "#efefef", fontWeight: "bold" }}>
+              <TableCell
+                sx={{ bgcolor: "#efefef", fontWeight: "bold", fontSize: "9pt" }}
+              >
                 Title
               </TableCell>
-              <TableCell sx={{ bgcolor: "#efefef", fontWeight: "bold" }}>
+              <TableCell
+                sx={{ bgcolor: "#efefef", fontWeight: "bold", fontSize: "9pt" }}
+              >
                 Type
               </TableCell>
-              <TableCell sx={{ bgcolor: "#efefef", fontWeight: "bold" }}>
+              <TableCell
+                sx={{ bgcolor: "#efefef", fontWeight: "bold", fontSize: "9pt" }}
+              >
                 Date
               </TableCell>
-              <TableCell sx={{ bgcolor: "#efefef", fontWeight: "bold" }}>
+              <TableCell
+                sx={{ bgcolor: "#efefef", fontWeight: "bold", fontSize: "9pt" }}
+              >
                 Time
               </TableCell>
-              <TableCell sx={{ bgcolor: "#efefef", fontWeight: "bold" }}>
+              <TableCell
+                sx={{ bgcolor: "#efefef", fontWeight: "bold", fontSize: "9pt" }}
+              >
                 Priority
               </TableCell>
-              <TableCell sx={{ bgcolor: "#efefef", fontWeight: "bold" }}>
+              <TableCell
+                sx={{ bgcolor: "#efefef", fontWeight: "bold", fontSize: "9pt" }}
+              >
                 Scheduled For
               </TableCell>
-              <TableCell sx={{ bgcolor: "#efefef", fontWeight: "bold" }}>
+              <TableCell
+                sx={{ bgcolor: "#efefef", fontWeight: "bold", fontSize: "9pt" }}
+              >
                 Scheduled With
               </TableCell>
-              <TableCell sx={{ bgcolor: "#efefef", fontWeight: "bold" }}>
+              <TableCell
+                sx={{ bgcolor: "#efefef", fontWeight: "bold", fontSize: "9pt" }}
+              >
                 Regarding
               </TableCell>
-              <TableCell sx={{ bgcolor: "#efefef", fontWeight: "bold" }}>
+              <TableCell
+                sx={{ bgcolor: "#efefef", fontWeight: "bold", fontSize: "9pt" }}
+              >
                 Duration
               </TableCell>
-              <TableCell sx={{ bgcolor: "#efefef", fontWeight: "bold" }}>
+              <TableCell
+                sx={{ bgcolor: "#efefef", fontWeight: "bold", fontSize: "9pt" }}
+              >
                 Associate With
               </TableCell>
             </TableRow>
@@ -706,7 +731,7 @@ export default function ScheduleTable({
                   >
                     {row.scheduledFor}
                   </CustomTableCell>
-                  <TableCell>
+                  <TableCell sx={{ fontSize: "9pt" }}>
                     {row.participants.length > 0
                       ? row.participants.map((participant, i) => (
                           <React.Fragment key={i}>
@@ -720,6 +745,7 @@ export default function ScheduleTable({
                                     ? "#fff"
                                     : "#0072DC",
                                 textDecoration: "underline",
+                                fontSize: "9pt",
                               }}
                             >
                               {participant.name || participant.Full_Name}
