@@ -1,5 +1,5 @@
 import { Autocomplete, TextField, Box, Typography } from "@mui/material";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline"; // Icon for "Not Found" message
 
 export default function AccountField({
@@ -13,6 +13,7 @@ export default function AccountField({
   const [inputValue, setInputValue] = useState("");
   const [notFoundMessage, setNotFoundMessage] = useState(""); // Message if nothing is found
   const [loading, setLoading] = useState(false); // Loading state for search
+  const debounceTimer = useRef(null); // Ref to store debounce timer
 
   // Sync selectedAccount with formData.What_Id for the default value
   useEffect(() => {
@@ -30,8 +31,9 @@ export default function AccountField({
       );
     }
   }, [formData.What_Id]); // Rerun effect only when formData.What_Id changes
-  // Handle advanced search when a space is detected in the input
-  const handleAdvancedSearch = async (query) => {
+
+  // Perform search with a query
+  const performSearch = async (query) => {
     setNotFoundMessage(""); // Reset message before search
     setLoading(true); // Start loading
 
@@ -66,15 +68,19 @@ export default function AccountField({
     }
   };
 
-  // Custom input change handler to detect spaces and trigger search
-  const handleInputChangeWithDelay = (event, newInputValue) => {
+  // Debounced input handler
+  const handleInputChangeWithDebounce = (event, newInputValue) => {
     setInputValue(newInputValue); // Update input value
     setNotFoundMessage(""); // Clear not-found message
 
-    if (newInputValue.endsWith(" ")) {
-      // Trigger search only when a space is detected
-      handleAdvancedSearch(newInputValue);
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current); // Clear existing debounce timer
     }
+
+    // Set a new debounce timer
+    debounceTimer.current = setTimeout(() => {
+      performSearch(newInputValue); // Perform search after debounce
+    }, 500); // 0.5 seconds debounce
   };
 
   return (
@@ -86,14 +92,13 @@ export default function AccountField({
         value={selectedAccount}
         onChange={(event, newValue) => {
           setSelectedAccount(newValue); // Set selected account
-          // console.log({What_Id: {id: newValue.id, name: newValue.Account_Name} })
           handleInputChange("What_Id", {
-            id: newValue.id,
-            name: newValue.Account_Name,
+            id: newValue?.id || "",
+            name: newValue?.Account_Name || "",
           }); // Trigger change handler
         }}
         inputValue={inputValue}
-        onInputChange={handleInputChangeWithDelay} // Use the custom handler
+        onInputChange={handleInputChangeWithDebounce} // Use the debounced handler
         loading={loading} // Show loading indicator during search
         noOptionsText={
           notFoundMessage ? (
@@ -112,7 +117,7 @@ export default function AccountField({
             size="small"
             variant="outlined"
             label="Associate with"
-            placeholder="Type and press space to search..."
+            placeholder="Start typing to search..."
           />
         )}
       />

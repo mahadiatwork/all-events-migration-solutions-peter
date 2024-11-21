@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Box,
   Button,
@@ -17,7 +17,11 @@ import {
   Typography,
 } from "@mui/material";
 
-export default function ContactField({ ZOHO }) {
+export default function ContactField({
+  handleInputChange,
+  ZOHO,
+  selectedRowData = {}, // Default to an empty object
+}) {
   const [contacts, setContacts] = useState([]); // Fetched contacts
   const [selectedParticipants, setSelectedParticipants] = useState([]); // Selected participants
   const [searchType, setSearchType] = useState("First_Name"); // Search criteria
@@ -25,6 +29,58 @@ export default function ContactField({ ZOHO }) {
   const [filteredContacts, setFilteredContacts] = useState([]); // Filtered contacts for display
   const [isModalOpen, setIsModalOpen] = useState(false); // Modal state
   const debounceTimer = useRef(null); // Debounce timer for search
+
+  // Prepopulate and fetch missing data for selectedParticipants
+  useEffect(() => {
+    const fetchParticipantsDetails = async () => {
+      if (selectedRowData.Participants && ZOHO) {
+        const participants = await Promise.all(
+          selectedRowData.Participants.map(async (participant) => {
+            try {
+              const contactDetails = await ZOHO.CRM.API.getRecord({
+                Entity: "Contacts",
+                RecordID: participant.participant, // Use participant ID
+              });
+
+              if (contactDetails.data && contactDetails.data.length > 0) {
+                const contact = contactDetails.data[0];
+                return {
+                  id: contact.id,
+                  First_Name: contact.First_Name || "N/A",
+                  Last_Name: contact.Last_Name || "N/A",
+                  Email: contact.Email || "No Email",
+                  Mobile: contact.Mobile || "N/A",
+                  Full_Name: `${contact.First_Name || "N/A"} ${
+                    contact.Last_Name || "N/A"
+                  }`,
+                  ID_Number: contact.ID_Number || "N/A",
+                };
+              } else {
+                return {
+                  id: participant.participant,
+                  Full_Name: participant.name || "Unknown",
+                  Email: participant.Email || "No Email",
+                };
+              }
+            } catch (error) {
+              console.error(
+                `Error fetching contact details for ID ${participant.participant}:`,
+                error
+              );
+              return {
+                id: participant.participant,
+                Full_Name: participant.name || "Unknown",
+                Email: participant.Email || "No Email",
+              };
+            }
+          })
+        );
+        setSelectedParticipants(participants);
+      }
+    };
+
+    fetchParticipantsDetails();
+  }, [selectedRowData, ZOHO]);
 
   // Open modal and sync selected participants
   const handleOpen = () => {
@@ -106,6 +162,16 @@ export default function ContactField({ ZOHO }) {
 
   // Save changes and close the modal
   const handleOk = () => {
+    const updatedParticipants = selectedParticipants.map((participant) => ({
+      Full_Name: participant.Full_Name || `${participant.First_Name} ${participant.Last_Name}`,
+      Email: participant.Email,
+      participant: participant.id,
+      type: "contact",
+    }));
+
+    handleInputChange("Participants", updatedParticipants);
+
+    // Close the modal
     setIsModalOpen(false);
   };
 
@@ -116,7 +182,7 @@ export default function ContactField({ ZOHO }) {
         <TextField
           fullWidth
           value={selectedParticipants
-            .map((c) => `${c.First_Name} ${c.Last_Name}`)
+            .map((c) => c.Full_Name || `${c.First_Name} ${c.Last_Name}`)
             .join(", ")}
           variant="outlined"
           placeholder="Selected contacts"

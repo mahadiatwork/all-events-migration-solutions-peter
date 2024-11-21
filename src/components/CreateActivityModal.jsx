@@ -410,7 +410,7 @@ const CreateActivityModal = ({
         boxShadow: 24,
         overflowY: "auto",
         maxHeight: "90vh", // Ensure the modal is scrollable if content exceeds the viewport
-        // zIndex: 9999,
+        zIndex: 100,
         p: 3,
       }}
     >
