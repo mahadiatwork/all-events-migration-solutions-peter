@@ -394,7 +394,7 @@ const CreateActivityModal = ({
   }, [formData]); // Effect runs whenever formData changes
 
 
-  console.log("clear", loggedInUser)
+  console.log("mahadi", formData)
   
   return (
     <Box

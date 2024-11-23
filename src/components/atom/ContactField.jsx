@@ -169,7 +169,7 @@ export default function ContactField({
       type: "contact",
     }));
 
-    handleInputChange("Participants", updatedParticipants);
+    handleInputChange("scheduledWith", updatedParticipants);
 
     // Close the modal
     setIsModalOpen(false);
