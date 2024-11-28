@@ -106,6 +106,22 @@ const FirstComponent = ({
   const { events, filterDate, setFilterDate, recentColors, setRecentColor } =
     useContext(ZohoContext);
 
+  const [sendReminders, setSendReminders] = useState(true); // Initially, reminders are enabled
+  const [reminderMinutes, setReminderMinutes] = useState(15);
+
+  useEffect(() => {
+    // Initialize Remind_Participants and Reminder_Text
+    if (
+      !formData.Remind_Participants ||
+      formData.Remind_Participants.length === 0
+    ) {
+      handleInputChange("Remind_Participants", [
+        { period: "minutes", unit: 15 },
+      ]);
+      handleInputChange("Reminder_Text", "15 minutes before");
+    }
+  }, [formData.Remind_Participants, handleInputChange]);
+
   const [activityType] = useState([
     { type: "Meeting", resource: 1 },
     { type: "To-Do", resource: 2 },
@@ -396,6 +412,37 @@ const FirstComponent = ({
   //   selectedRowData?.Participants || []
   // ); // Selected values in autocomplete
 
+  const handleCheckboxChange = (field) => {
+    if (field === "$send_notification") {
+      const newSendNotification = !sendNotification;
+      setSendNotification(newSendNotification);
+      handleInputChange("$send_notification", newSendNotification);
+    } else if (field === "Remind_Participants") {
+      const newSendReminders = !sendReminders;
+      setSendReminders(newSendReminders);
+
+      if (newSendReminders) {
+        // If reminders are enabled
+        handleInputChange("Remind_Participants", [
+          { period: "minutes", unit: reminderMinutes },
+        ]);
+        handleInputChange("Reminder_Text", `${reminderMinutes} minutes before`);
+      } else {
+        // If reminders are disabled
+        handleInputChange("Remind_Participants", []);
+        handleInputChange("Reminder_Text", "None");
+      }
+    }
+  };
+
+  const handleReminderChange = (value) => {
+    setReminderMinutes(value);
+    handleInputChange("Remind_Participants", [
+      { period: "minutes", unit: value },
+    ]);
+    handleInputChange("Reminder_Text", `${value} minutes before`);
+  };
+
   return (
     <Box>
       <Grid container spacing={2} sx={{ mt: 2 }}>
@@ -551,22 +598,28 @@ const FirstComponent = ({
             selectedRowData={selectedRowData}
           />
         </Grid>
-        <Grid item xs={12} sm={6} md={2}>
+        <Grid item xs={6}>
           <FormControlLabel
             control={
               <Checkbox
-                checked={!sendNotification}
-                onChange={(e) => {
-                  const isChecked = e.target.checked;
-                  setSendNotification(!isChecked); // Update sendNotification state
-                  handleInputChangeWithEnd("$send_notification", !isChecked);
-                  if (isChecked) {
-                    handleInputChange("Reminder_Text", "None"); // Set Reminder to "None"
-                  }
-                }}
+                checked={!sendNotification} // Checked when invites are disabled
+                onChange={() => handleCheckboxChange("$send_notification")}
               />
             }
-            label="Don't send notification"
+            label="Don't send invites"
+          />
+        </Grid>
+
+        {/* Don't send reminders */}
+        <Grid item xs={6}>
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={!sendReminders} // Checked when reminders are disabled
+                onChange={() => handleCheckboxChange("Remind_Participants")}
+              />
+            }
+            label="Don't send reminders"
           />
         </Grid>
         <Grid size={12}>
@@ -629,28 +682,23 @@ const FirstComponent = ({
             </Select>
           </FormControl>
         </Grid>
-        <Grid size={3}>
-          <FormControl fullWidth size="small" sx={commonStyles}>
-            <InputLabel>Reminder</InputLabel>
+        {/* Reminder Dropdown */}
+        <Grid item xs={6}>
+          <FormControl fullWidth size="small">
+            <InputLabel>Ring Alarm</InputLabel>
             <Select
               label="Ring Alarm"
-              fullWidth
-              value={formData.Reminder_Text || "None"} // Default to "None" if disabled
-              onChange={(e) =>
-                handleInputChange("Reminder_Text", e.target.value)
-              }
-              disabled={!sendNotification} // Disable if "Don't send notification" is checked
+              value={sendReminders ? reminderMinutes : "None"} // Show "None" if reminders are disabled
+              onChange={(e) => handleReminderChange(e.target.value)}
+              disabled={!sendReminders} // Disable when reminders are off
             >
               <MenuItem value="None">None</MenuItem>
-              <MenuItem value="At time of meeting">At time of meeting</MenuItem>
-              <MenuItem value="5 minutes before">5 minutes before</MenuItem>
-              <MenuItem value="10 minutes before"></MenuItem>
-              <MenuItem value="15 minutes before">15 minutes before</MenuItem>
-              <MenuItem value="30 minutes before">30 minutes before</MenuItem>
-              <MenuItem value="1 hour before">1 hour before</MenuItem>
-              <MenuItem value="2 hours before">2 hours before</MenuItem>
-              <MenuItem value="1 day before">1 day before</MenuItem>
-              <MenuItem value="2 days before">2 days before</MenuItem>
+              <MenuItem value={5}>5 minutes</MenuItem>
+              <MenuItem value={10}>10 minutes</MenuItem>
+              <MenuItem value={15}>15 minutes</MenuItem>
+              <MenuItem value={30}>30 minutes</MenuItem>
+              <MenuItem value={60}>1 hour</MenuItem>
+              <MenuItem value={120}>2 hours</MenuItem>
             </Select>
           </FormControl>
         </Grid>

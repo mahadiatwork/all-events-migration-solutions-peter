@@ -9,22 +9,33 @@ import {
   Typography,
 } from "@mui/material";
 import React, { useState } from "react";
-
-import { Datepicker } from "@mobiscroll/react";
 import CustomTextField from "./atom/CustomTextField";
+import { Datepicker } from "@mobiscroll/react";
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
+import timezone from "dayjs/plugin/timezone";
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 const ThirdComponent = ({ formData, handleInputChange }) => {
   const [openStartDatepicker, setOpenStartDatepicker] = useState(false);
   const [openEndDatepicker, setOpenEndDatepicker] = useState(false);
 
   const CustomInputComponent = ({ field }) => {
+    const dateValue = formData?.[field];
+    const formattedDate =
+      dateValue && dayjs(dateValue).isValid()
+        ? dayjs(dateValue).format("DD/MM/YYYY hh:mm A")
+        : "";
+  
     return (
       <CustomTextField
         fullWidth
         size="small"
         label=""
         variant="outlined"
-        value={formData[field]}
+        value={formattedDate}
         onClick={() =>
           field === "startTime"
             ? setOpenStartDatepicker(true)
@@ -33,6 +44,7 @@ const ThirdComponent = ({ formData, handleInputChange }) => {
       />
     );
   };
+  
 
   return (
     <Box>

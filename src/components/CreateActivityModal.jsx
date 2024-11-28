@@ -309,7 +309,6 @@ const CreateActivityModal = ({
   const handleSubmit = async () => {
     setIsSubmitting(true); // Start the submission process
     let success = true;
-  
     if (formData.Create_Separate_Event_For_Each_Contact) {
       // Handle creating separate events for each participant
       for (let participant of formData.scheduledWith) {

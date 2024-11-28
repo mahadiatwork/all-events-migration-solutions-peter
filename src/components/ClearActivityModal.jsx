@@ -20,6 +20,48 @@ import {
 } from "@mui/material";
 import "react-quill/dist/quill.snow.css";
 
+const getResultBasedOnActivityType = (activityType) => {
+  switch (activityType) {
+    case "Meeting":
+      return "Meeting Held";
+    case "To-Do":
+      return "To-do Done";
+    case "Appointment":
+      return "Appointment Completed";
+    case "Boardroom":
+      return "Boardroom - Completed";
+    case "Call Billing":
+      return "Call Billing - Completed";
+    case "Email Billing":
+      return "Email Billing - Completed";
+    case "Initial Consultation":
+      return "Initial Consultation - Completed";
+    case "Call":
+      return "Call Attempted";
+    case "Mail":
+      return "Mail - Completed";
+    case "Meeting Billing":
+      return "Meeting Billing - Completed";
+    case "Personal Activity":
+      return "Personal Activity - Completed";
+    case "Room 1":
+      return "Room 1 - Completed";
+    case "Room 2":
+      return "Room 2 - Completed";
+    case "Room 3":
+      return "Room 3 - Completed";
+    case "To Do Billing":
+      return "To Do Billing - Completed";
+    case "Vacation":
+      return "Vacation - Completed";
+    default:
+      return "Note"; // Default result if no specific type is matched
+  }
+};
+
+
+
+
 export default function ClearActivityModal({
   open,
   handleClose,
@@ -44,8 +86,9 @@ export default function ClearActivityModal({
   const [result, setResult] = React.useState(selectedRowData?.result);
   const [addActivityToHistory, setAddActivityToHistory] = React.useState(false);
   const [clearChecked, setClearChecked] = React.useState(
-    selectedRowData?.Cleared
+    selectedRowData?.Event_Status === "Closed" // true if the event is closed, false if open
   );
+  
   const [eraseChecked, setEraseChecked] = React.useState(false);
   const [activityDetails, setActivityDetails] = React.useState(
     selectedRowData?.Description || ""
@@ -55,29 +98,32 @@ export default function ClearActivityModal({
   const [snackbarSeverity, setSnackbarSeverity] = React.useState("success");
 
   const handleClearChange = (event) => {
-    setClearChecked(event.target.checked);
-    if (event.target.checked) {
-      setEraseChecked(false);
-    }
+    setClearChecked(event.target.checked); // Set "Clear" checkbox state
+    setEraseChecked(false); // Uncheck the "Erase" checkbox when "Clear" is checked
+    setResult(getResultBasedOnActivityType(selectedRowData.Type_of_Activity));
   };
-
+  
+  
+  
   const handleEraseChange = (event) => {
     setEraseChecked(event.target.checked);
-    if (event.target.checked) {
-      setClearChecked(false);
-    }
+    setClearChecked(false);
+    setResult(getResultBasedOnActivityType(selectedRowData.Type_of_Activity));
   };
+  
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-  
+
     try {
       // Helper to create history if required
       const createHistory = async () => {
         const recordData = {
           Name:
             selectedRowData.Participants.length > 0
-              ? selectedRowData.Participants.map((participant) => participant.name).join(", ")
+              ? selectedRowData.Participants.map(
+                  (participant) => participant.name
+                ).join(", ")
               : selectedRowData?.Event_Title,
           Duration: selectedRowData?.Duration_Min,
           History_Type: selectedRowData?.Type_of_Activity,
@@ -88,36 +134,39 @@ export default function ClearActivityModal({
           History_Details_Plain: activityDetails,
           History_Result: result,
         };
-  
+
         const historyResponse = await ZOHO.CRM.API.insertRecord({
           Entity: "History1",
           APIData: recordData,
           Trigger: ["workflow"],
         });
-  
+
         if (historyResponse.data[0].code === "SUCCESS") {
           setSnackbarMessage(
-            `${clearChecked ? "Event marked as cleared" : "Event erased"} and history created successfully!`
+            `${
+              clearChecked ? "Event marked as cleared" : "Event erased"
+            } and history created successfully!`
           );
           const historyRecordId = historyResponse.data[0].details.id;
-  
+
           // Insert Participants for History
           if (selectedRowData.Participants.length > 0) {
-            const participantInsertPromises = selectedRowData.Participants.filter(
-              (participant) => participant.type === "contact"
-            ).map(async (participant) => {
-              const participantData = {
-                Contact_Details: { id: participant.participant },
-                Contact_History_Info: { id: historyRecordId },
-              };
-  
-              return await ZOHO.CRM.API.insertRecord({
-                Entity: "History_X_Contacts",
-                APIData: participantData,
-                Trigger: ["workflow"],
+            const participantInsertPromises =
+              selectedRowData.Participants.filter(
+                (participant) => participant.type === "contact"
+              ).map(async (participant) => {
+                const participantData = {
+                  Contact_Details: { id: participant.participant },
+                  Contact_History_Info: { id: historyRecordId },
+                };
+
+                return await ZOHO.CRM.API.insertRecord({
+                  Entity: "History_X_Contacts",
+                  APIData: participantData,
+                  Trigger: ["workflow"],
+                });
               });
-            });
-  
+
             await Promise.all(participantInsertPromises);
           }
           return true;
@@ -128,7 +177,7 @@ export default function ClearActivityModal({
           return false;
         }
       };
-  
+
       if (clearChecked && !eraseChecked) {
         // Update the event to "Closed"
         const updateResponse = await ZOHO.CRM.API.updateRecord({
@@ -140,12 +189,12 @@ export default function ClearActivityModal({
             result: result,
           },
         });
-  
+
         if (updateResponse.data[0].code === "SUCCESS") {
           setSnackbarMessage("Event marked as cleared successfully!");
           setSnackbarSeverity("success");
           setSnackbarOpen(true);
-  
+
           // Update events in state
           setEvents((prevEvents) =>
             prevEvents.map((event) =>
@@ -154,7 +203,7 @@ export default function ClearActivityModal({
                 : event
             )
           );
-  
+
           if (addActivityToHistory) {
             await createHistory();
           }
@@ -162,22 +211,24 @@ export default function ClearActivityModal({
           throw new Error("Failed to update the event.");
         }
       }
-  
+
       if (!clearChecked && eraseChecked) {
         // Delete the event
         const deleteResponse = await ZOHO.CRM.API.deleteRecord({
           Entity: "Events",
           RecordID: selectedRowData?.id,
         });
-  
+
         if (deleteResponse.data[0].code === "SUCCESS") {
           setSnackbarMessage("Event erased successfully!");
           setSnackbarSeverity("success");
           setSnackbarOpen(true);
-  
+
           // Remove the event from the events state
-          setEvents((prevEvents) => prevEvents.filter((event) => event.id !== selectedRowData?.id));
-  
+          setEvents((prevEvents) =>
+            prevEvents.filter((event) => event.id !== selectedRowData?.id)
+          );
+
           if (addActivityToHistory) {
             await createHistory();
           }
@@ -185,7 +236,7 @@ export default function ClearActivityModal({
           throw new Error("Failed to delete the event.");
         }
       }
-  
+
       setTimeout(() => {
         handleClose(); // Close modal or any UI related to submission
       }, 1000);
@@ -196,12 +247,18 @@ export default function ClearActivityModal({
       setSnackbarOpen(true);
     }
   };
-  
+
   const handleActivityDetailsChange = (e) => {
     setActivityDetails(e.target.value);
   };
 
-  const isUpdateDisabled = !clearChecked && !eraseChecked;
+  const isUpdateDisabled = (
+    (selectedRowData?.Event_Status === null && !clearChecked && !eraseChecked) || 
+    (selectedRowData?.Event_Status === "Closed" && clearChecked) ||
+    (selectedRowData?.Event_Status === "Open" && !clearChecked)
+  );
+
+  console.log({mahadi: selectedRowData?.Event_Status , clearChecked})
 
   return (
     <>
