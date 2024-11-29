@@ -302,17 +302,19 @@ const handleSubmit = async () => {
   return (
     <Box
       sx={{
-        position: "absolute",
+        position: "fixed",
         top: "50%",
         left: "50%",
         transform: "translate(-50%, -50%)",
-        width: 750,
+        width: "90%",
+        maxWidth: "750px",
         bgcolor: "background.paper",
-        border: "2px solid #000",
+        borderRadius: 4,
         boxShadow: 24,
-        p: 2,
-        borderRadius: 5,
-        zIndex: 999,
+        overflowY: "auto",
+        maxHeight: "90vh", // Ensure the modal is scrollable if content exceeds the viewport
+        zIndex: 100,
+        p: 3,
       }}
     >
       <Box display="flex" justifyContent="space-between" mb={2}>

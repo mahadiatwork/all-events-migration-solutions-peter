@@ -114,7 +114,7 @@ export default function ClearActivityModal({
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
+  
     try {
       // Helper to create history if required
       const createHistory = async () => {
@@ -134,13 +134,13 @@ export default function ClearActivityModal({
           History_Details_Plain: activityDetails,
           History_Result: result,
         };
-
+  
         const historyResponse = await ZOHO.CRM.API.insertRecord({
           Entity: "History1",
           APIData: recordData,
           Trigger: ["workflow"],
         });
-
+  
         if (historyResponse.data[0].code === "SUCCESS") {
           setSnackbarMessage(
             `${
@@ -148,7 +148,7 @@ export default function ClearActivityModal({
             } and history created successfully!`
           );
           const historyRecordId = historyResponse.data[0].details.id;
-
+  
           // Insert Participants for History
           if (selectedRowData.Participants.length > 0) {
             const participantInsertPromises =
@@ -159,14 +159,14 @@ export default function ClearActivityModal({
                   Contact_Details: { id: participant.participant },
                   Contact_History_Info: { id: historyRecordId },
                 };
-
+  
                 return await ZOHO.CRM.API.insertRecord({
                   Entity: "History_X_Contacts",
                   APIData: participantData,
                   Trigger: ["workflow"],
                 });
               });
-
+  
             await Promise.all(participantInsertPromises);
           }
           return true;
@@ -177,9 +177,9 @@ export default function ClearActivityModal({
           return false;
         }
       };
-
+  
+      // Handle "Clear" checked and "Erase" unchecked (mark as closed)
       if (clearChecked && !eraseChecked) {
-        // Update the event to "Closed"
         const updateResponse = await ZOHO.CRM.API.updateRecord({
           Entity: "Events",
           RecordID: selectedRowData?.id,
@@ -189,12 +189,12 @@ export default function ClearActivityModal({
             result: result,
           },
         });
-
+  
         if (updateResponse.data[0].code === "SUCCESS") {
           setSnackbarMessage("Event marked as cleared successfully!");
           setSnackbarSeverity("success");
           setSnackbarOpen(true);
-
+  
           // Update events in state
           setEvents((prevEvents) =>
             prevEvents.map((event) =>
@@ -203,7 +203,7 @@ export default function ClearActivityModal({
                 : event
             )
           );
-
+  
           if (addActivityToHistory) {
             await createHistory();
           }
@@ -211,24 +211,53 @@ export default function ClearActivityModal({
           throw new Error("Failed to update the event.");
         }
       }
-
+  
+      // Handle "Clear" unchecked and "Erase" unchecked (mark as open)
+      if (!clearChecked && !eraseChecked) {
+        const updateResponse = await ZOHO.CRM.API.updateRecord({
+          Entity: "Events",
+          RecordID: selectedRowData?.id,
+          APIData: {
+            id: selectedRowData?.id,
+            Event_Status: "Open",
+          },
+        });
+  
+        if (updateResponse.data[0].code === "SUCCESS") {
+          setSnackbarMessage("Event status updated to Open.");
+          setSnackbarSeverity("success");
+          setSnackbarOpen(true);
+  
+          // Update events in state
+          setEvents((prevEvents) =>
+            prevEvents.map((event) =>
+              event.id === selectedRowData?.id
+                ? { ...event, Event_Status: "Open" }
+                : event
+            )
+          );
+        } else {
+          throw new Error("Failed to update the event status.");
+        }
+      }
+  
+      // Handle "Erase" checked (delete the event)
       if (!clearChecked && eraseChecked) {
-        // Delete the event
         const deleteResponse = await ZOHO.CRM.API.deleteRecord({
           Entity: "Events",
           RecordID: selectedRowData?.id,
         });
-
+  
         if (deleteResponse.data[0].code === "SUCCESS") {
           setSnackbarMessage("Event erased successfully!");
           setSnackbarSeverity("success");
           setSnackbarOpen(true);
-
+  
           // Remove the event from the events state
           setEvents((prevEvents) =>
             prevEvents.filter((event) => event.id !== selectedRowData?.id)
           );
-
+  
           if (addActivityToHistory) {
             await createHistory();
           }
@@ -236,7 +265,7 @@ export default function ClearActivityModal({
           throw new Error("Failed to delete the event.");
         }
       }
-
+  
       setTimeout(() => {
         handleClose(); // Close modal or any UI related to submission
       }, 1000);
@@ -247,6 +276,8 @@ export default function ClearActivityModal({
       setSnackbarOpen(true);
     }
   };
+  
+  
 
   const handleActivityDetailsChange = (e) => {
     setActivityDetails(e.target.value);

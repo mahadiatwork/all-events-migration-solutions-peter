@@ -60,50 +60,6 @@ const CustomTableCell = ({
   );
 };
 
-// // Function to create table data
-// function createData(event, type) {
-//   let startDateTime, endDateTime, time, duration, scheduledFor;
-
-//   try {
-//     startDateTime = event.Start_DateTime
-//       ? new Date(event.Start_DateTime)
-//       : new Date();
-//     endDateTime = event.End_DateTime ? new Date(event.End_DateTime) : new Date();
-//     time = startDateTime.toLocaleTimeString([], {
-//       hour: "2-digit",
-//       minute: "2-digit",
-//     });
-//     duration = `${Math.round((endDateTime - startDateTime) / 60000)} minutes`;
-//     scheduledFor = event.Owner ? event.Owner.name : "Unknown";
-//   } catch (err) {
-//     console.error("Error processing event data", err);
-//   }
-
-//   const date = startDateTime ? startDateTime.toLocaleDateString() : "N/A";
-//   const priority = event.Event_Priority || "Low";
-//   const regarding = event.Regarding || "No Data";
-//   const associateWith = event.What_Id ? event.What_Id.name : "None";
-//   const id = event.id;
-//   const title = event.Event_Title || "Untitled Event";
-//   const participants = event.Participants || [];
-//   const color = event.Colour || "black";
-//   const Event_Status = event.Event_Status || "";
-//   return {
-//     title,
-//     type,
-//     date,
-//     time,
-//     priority,
-//     scheduledFor,
-//     participants,
-//     regarding,
-//     duration,
-//     associateWith,
-//     id,
-//     color,
-//     Event_Status,
-//   };
-// }
 
 function createData(event, type) {
   const startDateTime = event.Start_DateTime
