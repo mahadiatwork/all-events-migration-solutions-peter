@@ -171,6 +171,9 @@ function transformFormSubmission(data, individualParticipant = null) {
     );
     transformedData["Remind_At"] = remindAt;
     transformedData["$send_notification"] = true;
+  }else{
+    console.log({Reminder_Text: data?.Reminder_Text})
+    delete transformedData["Remind_Participants"];   
   }
 
   // if (
@@ -182,6 +185,9 @@ function transformFormSubmission(data, individualParticipant = null) {
     "scheduledWith",
     "description",
     "Create_Separate_Event_For_Each_Contact",
+    "start",
+    "end",
+    "duration"
   ];
   keysToRemove.forEach((key) => delete transformedData[key]);
 
@@ -243,7 +249,8 @@ const CreateActivityModal = ({
     Regarding: "",
     Duration_Min: 60,
     Create_Separate_Event_For_Each_Contact: false,
-    Reminder_Text: "None",
+    Reminder_Text: "15 minutes before",
+    Remind_Participants: [{period: 'minutes', unit: 15}],
   });
 
   const isFormValid = () => {
@@ -307,8 +314,8 @@ const CreateActivityModal = ({
   const [isSubmitting, setIsSubmitting] = useState(false); // State for form submission
 
   const handleSubmit = async () => {
-    setIsSubmitting(true); // Start the submission process
-    let success = true;
+    // setIsSubmitting(true); // Start the submission process
+    // let success = true;
     if (formData.Create_Separate_Event_For_Each_Contact) {
       // Handle creating separate events for each participant
       for (let participant of formData.scheduledWith) {

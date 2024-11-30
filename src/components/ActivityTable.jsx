@@ -20,10 +20,89 @@ import {
   TextField,
   FormControlLabel,
 } from "@mui/material";
+import TableSortLabel from "@mui/material/TableSortLabel";
+import { visuallyHidden } from "@mui/utils";
 import ClearActivityModal from "./ClearActivityModal";
 import EditActivityModal from "./EditActivityModal";
 import CreateActivityModal from "./CreateActivityModal";
 
+const headCells = [
+  {
+    id: "select",
+    label: "",
+  },
+  {
+    id: "title",
+    label: "Title",
+  },
+  {
+    id: "type",
+    label: "Type",
+  },
+  {
+    id: "date",
+    label: "Date",
+  },
+  {
+    id: "time",
+    label: "Time",
+  },
+  {
+    id: "priority",
+    label: "Priority",
+  },
+  {
+    id: "scheduledFor",
+    label: "Scheduled For",
+  },
+  {
+    id: "participants",
+    label: "Scheduled With",
+  },
+  {
+    id: "regarding",
+    label: "Regarding",
+  },
+  {
+    id: "duration",
+    label: "Duration",
+  },
+
+  {
+    id: "associateWith",
+    label: "Associate With",
+  },
+];
+
+function descendingComparator(a, b, orderBy) {
+  if (orderBy === "duration") {
+    return;
+  }
+  if (orderBy === "participants") {
+    // console.log("participants", b[orderBy]?.[0]?.name, a[orderBy]?.[0]?.name);
+    if (b[orderBy]?.[0]?.name < a[orderBy]?.[0]?.name) {
+      return -1;
+    }
+    if (b[orderBy]?.[0]?.name > a[orderBy]?.[0]?.name) {
+      return 1;
+    }
+    return;
+  }
+
+  if (b[orderBy] < a[orderBy]) {
+    return -1;
+  }
+  if (b[orderBy] > a[orderBy]) {
+    return 1;
+  }
+  return 0;
+}
+
+function getComparator(order, orderBy) {
+  return order === "desc"
+    ? (a, b) => descendingComparator(a, b, orderBy)
+    : (a, b) => -descendingComparator(a, b, orderBy);
+}
 // Function to format dates
 function formatDate(dateString) {
   const date = new Date(dateString);
@@ -59,7 +138,6 @@ const CustomTableCell = ({
     </TableCell>
   );
 };
-
 
 function createData(event, type) {
   const startDateTime = event.Start_DateTime
@@ -204,6 +282,9 @@ export default function ScheduleTable({
 
   const [showCleared, setShowCleared] = React.useState(false); // State for "Cleared" checkbox
 
+  const [order, setOrder] = React.useState("asc");
+  const [orderBy, setOrderBy] = React.useState("");
+
   const filterDateOptions = [
     { label: "Default", value: "All" },
     { label: "Last 7 Days", value: "Last 7 Days" },
@@ -257,6 +338,7 @@ export default function ScheduleTable({
     setFilterPriority([]);
     setFilterUser([]);
     setCustomDateRange(null);
+    setOrderBy("")
   };
 
   const rows = Array.isArray(events)
@@ -286,7 +368,8 @@ export default function ScheduleTable({
           typeMatch && priorityMatch && userMatch && dateMatch && clearedMatch
         );
       })
-      .sort((a, b) => new Date(b.date) - new Date(a.date));
+      .sort(getComparator(order, orderBy));
+    // .sort((a, b) => new Date(b.date) - new Date(a.date));
   }, [
     events,
     rows,
@@ -537,62 +620,40 @@ export default function ScheduleTable({
         <Table stickyHeader sx={{ minWidth: 650 }} aria-label="schedule table">
           <TableHead>
             <TableRow>
-              <TableCell
-                padding="checkbox"
-                sx={{ bgcolor: "#efefef", fontWeight: "bold", fontSize: "9pt" }}
-              >
-                Select
-              </TableCell>
-              <TableCell
-                sx={{ bgcolor: "#efefef", fontWeight: "bold", fontSize: "9pt" }}
-              >
-                Title
-              </TableCell>
-              <TableCell
-                sx={{ bgcolor: "#efefef", fontWeight: "bold", fontSize: "9pt" }}
-              >
-                Type
-              </TableCell>
-              <TableCell
-                sx={{ bgcolor: "#efefef", fontWeight: "bold", fontSize: "9pt" }}
-              >
-                Date
-              </TableCell>
-              <TableCell
-                sx={{ bgcolor: "#efefef", fontWeight: "bold", fontSize: "9pt" }}
-              >
-                Time
-              </TableCell>
-              <TableCell
-                sx={{ bgcolor: "#efefef", fontWeight: "bold", fontSize: "9pt" }}
-              >
-                Priority
-              </TableCell>
-              <TableCell
-                sx={{ bgcolor: "#efefef", fontWeight: "bold", fontSize: "9pt" }}
-              >
-                Scheduled For
-              </TableCell>
-              <TableCell
-                sx={{ bgcolor: "#efefef", fontWeight: "bold", fontSize: "9pt" }}
-              >
-                Scheduled With
-              </TableCell>
-              <TableCell
-                sx={{ bgcolor: "#efefef", fontWeight: "bold", fontSize: "9pt" }}
-              >
-                Regarding
-              </TableCell>
-              <TableCell
-                sx={{ bgcolor: "#efefef", fontWeight: "bold", fontSize: "9pt" }}
-              >
-                Duration
-              </TableCell>
-              <TableCell
-                sx={{ bgcolor: "#efefef", fontWeight: "bold", fontSize: "9pt" }}
-              >
-                Associate With
-              </TableCell>
+              {headCells.map((el) => (
+                <TableCell
+                  key={el.id}
+                  onClick={(e) => {
+                    // console.log(el.id);
+                    const isAsc = orderBy === el.id && order === "asc";
+                    setOrder(isAsc ? "desc" : "asc");
+                    setOrderBy(el.id);
+                  }}
+                  padding="checkbox"
+                  sx={{
+                    bgcolor: "#efefef",
+                    fontWeight: "bold",
+                    fontSize: "9pt",
+                    p: el.id === "select" ? "" : "1rem",
+                    cursor: "pointer",
+                  }}
+                >
+                  <TableSortLabel
+                    active={orderBy === el.id}
+                    direction={orderBy === el.id ? order : "asc"}
+                    // onClick={createSortHandler(headCell.id)}
+                  >
+                    {el.label}
+                    {orderBy === el.id ? (
+                      <Box component="span" sx={visuallyHidden}>
+                        {order === "desc"
+                          ? "sorted descending"
+                          : "sorted ascending"}
+                      </Box>
+                    ) : null}
+                  </TableSortLabel>
+                </TableCell>
+              ))}
             </TableRow>
           </TableHead>
           <TableBody>

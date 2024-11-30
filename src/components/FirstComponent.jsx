@@ -109,18 +109,18 @@ const FirstComponent = ({
   const [sendReminders, setSendReminders] = useState(true); // Initially, reminders are enabled
   const [reminderMinutes, setReminderMinutes] = useState(15);
 
-  useEffect(() => {
-    // Initialize Remind_Participants and Reminder_Text
-    if (
-      !formData.Remind_Participants ||
-      formData.Remind_Participants.length === 0
-    ) {
-      handleInputChange("Remind_Participants", [
-        { period: "minutes", unit: 15 },
-      ]);
-      handleInputChange("Reminder_Text", "15 minutes before");
-    }
-  }, [formData.Remind_Participants, handleInputChange]);
+  // useEffect(() => {
+  //   // Initialize Remind_Participants and Reminder_Text
+    // if (
+    //   !formData.Remind_Participants ||
+    //   formData.Remind_Participants.length === 0
+    // ) {
+    //   handleInputChange("Remind_Participants", [
+    //     { period: "minutes", unit: 15 },
+    //   ]);
+    //   handleInputChange("Reminder_Text", "15 minutes before");
+    // }
+  // }, [formData.Remind_Participants, handleInputChange]);
 
   const [activityType] = useState([
     { type: "Meeting", resource: 1 },
@@ -421,7 +421,10 @@ const FirstComponent = ({
       const newSendReminders = !sendReminders;
       setSendReminders(newSendReminders);
 
+      console.log({newSendReminders})
+
       if (newSendReminders) {
+        console.log("Remind_Participants", true)
         // If reminders are enabled
         handleInputChange("Remind_Participants", [
           { period: "minutes", unit: reminderMinutes },
@@ -431,6 +434,8 @@ const FirstComponent = ({
         // If reminders are disabled
         handleInputChange("Remind_Participants", []);
         handleInputChange("Reminder_Text", "None");
+        handleInputChange("Remind_At", []);
+        console.log({formDataTemp: formData})
       }
     }
   };
@@ -440,7 +445,11 @@ const FirstComponent = ({
     handleInputChange("Remind_Participants", [
       { period: "minutes", unit: value },
     ]);
-    handleInputChange("Reminder_Text", `${value} minutes before`);
+    if(value === "None"){
+      handleInputChange("Reminder_Text", "None");
+    }else{
+      handleInputChange("Reminder_Text", `${value} minutes before`);
+    }
   };
 
   return (
