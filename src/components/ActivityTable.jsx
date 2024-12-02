@@ -205,6 +205,9 @@ export default function ScheduleTable({
 
   const [showCleared, setShowCleared] = React.useState(false); // State for "Cleared" checkbox
 
+  const [order, setOrder] = React.useState("asc"); // Default sorting order
+const [orderBy, setOrderBy] = React.useState("date"); // Default column to sort by
+
   const filterDateOptions = [
     { label: "Default", value: "All" },
     { label: "Last 7 Days", value: "Last 7 Days" },
@@ -258,7 +261,7 @@ export default function ScheduleTable({
     setFilterPriority([]);
     setFilterUser([]);
     setCustomDateRange(null);
-    setOrderBy("")
+    setOrderBy("");
   };
 
   const rows = Array.isArray(events)
@@ -266,6 +269,22 @@ export default function ScheduleTable({
         createData(event, event.Type_of_Activity || "Other")
       )
     : [];
+
+  const getComparator = (order, orderBy) => {
+    return order === "desc"
+      ? (a, b) => descendingComparator(a, b, orderBy)
+      : (a, b) => -descendingComparator(a, b, orderBy);
+  };
+
+  const descendingComparator = (a, b, orderBy) => {
+    if (b[orderBy] < a[orderBy]) {
+      return -1;
+    }
+    if (b[orderBy] > a[orderBy]) {
+      return 1;
+    }
+    return 0;
+  };
 
   // Filter rows based on selected filters and "Cleared" checkbox
   const filteredRows = React.useMemo(() => {
