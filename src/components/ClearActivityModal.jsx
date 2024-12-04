@@ -68,6 +68,7 @@ export default function ClearActivityModal({
   selectedRowData,
   ZOHO,
   setEvents,
+  currentContact
 }) {
   const calculateDuration = (durationInMinutes) => {
     if (!durationInMinutes) return "5 minutes";

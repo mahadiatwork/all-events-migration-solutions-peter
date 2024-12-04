@@ -223,7 +223,8 @@ const CreateActivityModal = ({
   loggedInUser,
   setEvents,
   setSelectedRowIndex,
-  setHighlightedRow
+  setHighlightedRow,
+  currentContact
 }) => {
   const theme = useTheme();
   const [value, setValue] = useState(0);
@@ -451,6 +452,7 @@ const CreateActivityModal = ({
           handleInputChange={handleInputChange}
           users={users}
           ZOHO={ZOHO}
+          currentContact={currentContact}
         />
         <Box display="flex" justifyContent="space-between" mt={2}>
           {/* First button aligned to the left */}

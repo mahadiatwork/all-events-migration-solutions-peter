@@ -21,6 +21,7 @@ export default function ContactField({
   handleInputChange,
   ZOHO,
   selectedRowData = {}, // Default to an empty object
+  currentContact
 }) {
   const [contacts, setContacts] = useState([]); // Fetched contacts
   const [selectedParticipants, setSelectedParticipants] = useState([]); // Selected participants
@@ -174,6 +175,34 @@ export default function ContactField({
     // Close the modal
     setIsModalOpen(false);
   };
+  useEffect(() => {
+    // Initialize selected participants with the current contact and update the parent state
+    if (currentContact && currentContact.id) {
+      const defaultParticipant = {
+        id: currentContact.id,
+        First_Name: currentContact.First_Name || "N/A",
+        Last_Name: currentContact.Last_Name || "N/A",
+        Email: currentContact.Email || "No Email",
+        Mobile: currentContact.Mobile || "N/A",
+        Full_Name: `${currentContact.First_Name || "N/A"} ${currentContact.Last_Name || "N/A"}`,
+        ID_Number: currentContact.ID_Number || "N/A",
+      };
+  
+      setSelectedParticipants([defaultParticipant]);
+  
+      // Call handleInputChange to update parent state
+      handleInputChange("scheduledWith", [
+        {
+          Full_Name: defaultParticipant.Full_Name,
+          Email: defaultParticipant.Email,
+          participant: defaultParticipant.id,
+          type: "contact",
+        },
+      ]);
+    }
+  }, [currentContact, handleInputChange]);
+  
+  
 
   return (
     <Box>

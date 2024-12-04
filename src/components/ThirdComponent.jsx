@@ -8,7 +8,7 @@ import {
   RadioGroup,
   Typography,
 } from "@mui/material";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import CustomTextField from "./atom/CustomTextField";
 import { Datepicker } from "@mobiscroll/react";
 import dayjs from "dayjs";
@@ -22,13 +22,50 @@ const ThirdComponent = ({ formData, handleInputChange }) => {
   const [openStartDatepicker, setOpenStartDatepicker] = useState(false);
   const [openEndDatepicker, setOpenEndDatepicker] = useState(false);
 
+  // Set default start and end times
+  useEffect(() => {
+    if (!formData.startTime) {
+      const now = dayjs();
+      const oneHourLater = now.add(1, "hour");
+      handleInputChange("startTime", now.toISOString());
+      handleInputChange("endTime", oneHourLater.toISOString());
+    }
+  }, [formData, handleInputChange]);
+
+  // Handle changes in startTime
+  const handleStartTimeChange = (startTime) => {
+    handleInputChange("startTime", startTime);
+
+    // Automatically set endTime to one hour later, unless noEndDate is selected
+    if (!formData.noEndDate) {
+      const oneHourLater = dayjs(startTime).add(1, "hour").toISOString();
+      handleInputChange("endTime", oneHourLater);
+    }
+  };
+
+  // Handle changes in noEndDate
+  const handleNoEndDateChange = (noEndDate) => {
+    handleInputChange("noEndDate", noEndDate);
+
+    // Clear endTime if noEndDate is true
+    if (noEndDate) {
+      handleInputChange("endTime", null);
+    } else {
+      // Restore endTime to one hour from startTime
+      const oneHourLater = dayjs(formData.startTime)
+        .add(1, "hour")
+        .toISOString();
+      handleInputChange("endTime", oneHourLater);
+    }
+  };
+
   const CustomInputComponent = ({ field }) => {
     const dateValue = formData?.[field];
     const formattedDate =
       dateValue && dayjs(dateValue).isValid()
         ? dayjs(dateValue).format("DD/MM/YYYY hh:mm A")
         : "";
-  
+
     return (
       <CustomTextField
         fullWidth
@@ -44,7 +81,6 @@ const ThirdComponent = ({ formData, handleInputChange }) => {
       />
     );
   };
-  
 
   return (
     <Box>
@@ -91,15 +127,13 @@ const ThirdComponent = ({ formData, handleInputChange }) => {
               Starts :
             </Typography>
             <Datepicker
-              controls={["calendar",'time']}
+              controls={["calendar", "time"]}
               calendarType="month"
               display="center"
               calendarScroll={"vertical"}
-              inputComponent={() => (
-                <CustomInputComponent field="startTime" />
-              )}
+              inputComponent={() => <CustomInputComponent field="startTime" />}
               onClose={() => setOpenStartDatepicker(false)}
-              onChange={(e) => handleInputChange("startTime", e.value)}
+              onChange={(e) => handleStartTimeChange(e.value)}
               isOpen={openStartDatepicker}
             />
           </Box>
@@ -110,14 +144,12 @@ const ThirdComponent = ({ formData, handleInputChange }) => {
               Ends :
             </Typography>
             <Datepicker
-              controls={["calendar",'time']}
+              controls={["calendar", "time"]}
               calendarType="month"
               display="center"
-              disabled
               calendarScroll={"vertical"}
-              inputComponent={() => (
-                <CustomInputComponent field="endTime" />
-              )}
+              disabled={formData.noEndDate} // Disable when noEndDate is selected
+              inputComponent={() => <CustomInputComponent field="endTime" />}
               onClose={() => setOpenEndDatepicker(false)}
               onChange={(e) => handleInputChange("endTime", e.value)}
               isOpen={openEndDatepicker}
@@ -128,9 +160,7 @@ const ThirdComponent = ({ formData, handleInputChange }) => {
               <Radio
                 size="small"
                 checked={formData.noEndDate}
-                onChange={(e) =>
-                  handleInputChange("noEndDate", e.target.checked)
-                }
+                onChange={(e) => handleNoEndDateChange(e.target.checked)}
               />
             }
             label="No end date"
