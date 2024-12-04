@@ -139,6 +139,20 @@ function transformFormSubmission(data, individualParticipant = null) {
       ]
     : transformScheduleWithToParticipants(data.scheduledWith || []);
 
+    const dayOfMonth = dayjs(data?.startTime).date();
+    const dayName = dayjs(data?.startTime).format("dd");
+    const monthNumber = dayjs(data?.startTime).format("MM");
+    const customEndTime =
+      data.noEndDate && data.occurrence === "daily"
+        ? dayjs(data?.startTime).add(70, "day").format("YYYY-MM-DD")
+        : data?.noEndDate && data?.occurrence === "weekly"
+        ? dayjs(data?.startTime).add(10, "month").format("YYYY-MM-DD")
+        : data?.noEndDate && data?.occurrence === "monthly"
+        ? dayjs(data?.startTime).add(12, "month").format("YYYY-MM-DD")
+        : data?.noEndDate && data?.occurrence === "yearly"
+        ? dayjs(data?.startTime).add(2, "year").format("YYYY-MM-DD")
+        : dayjs(data?.endTime).format("YYYY-MM-DD");
+
   let transformedData = {
     ...data,
     Start_DateTime: formatDateWithOffset(data.start),
@@ -158,6 +172,17 @@ function transformFormSubmission(data, individualParticipant = null) {
     Owner: {
       id: data?.scheduleFor?.id,
     },
+    Recurring_Activity: {
+      RRULE: `FREQ=${data?.occurrence?.toUpperCase()};INTERVAL=1;UNTIL=${customEndTime}${
+        data.occurrence === "weekly"
+          ? `;BYDAY=${dayName.toUpperCase()}`
+          : data.occurrence === "monthly"
+          ? `;BYMONTHDAY=${dayOfMonth}`
+          : data.occurrence === "yearly"
+          ? `;BYMONTH=${monthNumber};BYMONTHDAY=${dayOfMonth}`
+          : ""
+      };DTSTART=${dayjs(data.startTime).format("YYYY-MM-DD")}`,
+    },
   };
 
   if (
@@ -176,11 +201,18 @@ function transformFormSubmission(data, individualParticipant = null) {
     delete transformedData["Remind_Participants"];   
   }
 
-  // if (
-  //   transformedData.Recurring_Activity.RRULE ==="FREQ=ONCE;INTERVAL=1;UNTIL=Invalid Date;DTSTART=Invalid Date") {
-  //   delete transformedData.Recurring_Activity;
-  // }
+  console.log({recurring: transformedData.Recurring_Activity})
 
+  if (transformedData.Remind_At == null || transformedData.Remind_At == "Invalid Date" || transformedData.Remind_At == "") {
+    delete transformedData.Remind_At;
+  }
+
+  if (
+    transformedData.Recurring_Activity.RRULE ===
+    "FREQ=ONCE;INTERVAL=1;UNTIL=Invalid Date;DTSTART=Invalid Date"
+  ) {
+    delete transformedData.Recurring_Activity;
+  }
   const keysToRemove = [
     "scheduledWith",
     "description",

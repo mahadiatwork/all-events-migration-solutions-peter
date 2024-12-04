@@ -522,17 +522,6 @@ const FirstComponent = ({
           </LocalizationProvider>
         </Grid>
         <Grid size={4}>
-          {/* <Datepicker
-            controls={["calendar", "time"]}
-            display="center"
-            inputComponent={() =>
-              customInputComponent("end", "End Time", setOpenEndDatepicker)
-            }
-            onClose={() => setOpenEndDatepicker(false)}
-            onChange={(e) => handleInputChangeWithEnd("end", e.value)} // Calculate duration when end is updated
-            isOpen={openEndDatepicker}
-            disabled={formData.Banner} // Disable if Banner is checked
-          /> */}
           <LocalizationProvider dateAdapter={AdapterDayjs}>
             <DateTimePicker
               label="End Time"
