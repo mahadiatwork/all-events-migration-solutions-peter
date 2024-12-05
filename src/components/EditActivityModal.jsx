@@ -315,6 +315,11 @@ const handleSubmit = async () => {
         maxHeight: "90vh", // Ensure the modal is scrollable if content exceeds the viewport
         zIndex: 100,
         p: 3,
+        fontSize: "9pt", // Set the font size to 9pt
+        "& .MuiOutlinedInput-input": { fontSize: "9pt" }, // For TextField and Select inputs
+        "& .MuiAutocomplete-input": { fontSize: "9pt" }, // For Autocomplete inputs
+        "& .MuiFormLabel-root": { fontSize: "9pt" }, // For labels
+        "& .MuiTypography-root": { fontSize: "9pt" }, // For Typography
       }}
     >
       <Box display="flex" justifyContent="space-between" mb={2}>

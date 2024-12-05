@@ -42,10 +42,18 @@ const RegardingField = ({ formData, handleInputChange }) => {
     handleInputChange("Regarding", value); // Pass the manual input value to handleInputChange
   };
 
+  const commonTextStyles = {
+    fontSize: "9pt", // Set the font size to 9pt
+    "& .MuiOutlinedInput-input": { fontSize: "9pt" }, // For inputs
+    "& .MuiInputBase-input": { fontSize: "9pt" }, // For select inputs
+    "& .MuiTypography-root": { fontSize: "9pt" }, // For typography
+    "& .MuiFormLabel-root": { fontSize: "9pt" }, // For labels
+  };
+
   return (
     <Box sx={{ width: "100%" }}>
-      <FormControl fullWidth size="small">
-        <InputLabel id="regarding-label" sx={{ top: "-5px" }}>
+      <FormControl fullWidth size="small" sx={commonTextStyles}>
+        <InputLabel id="regarding-label" sx={{ fontSize: "9pt" }}>
           Regarding
         </InputLabel>
         <Select
@@ -57,9 +65,8 @@ const RegardingField = ({ formData, handleInputChange }) => {
           value={selectedValue}
           onChange={handleSelectChange}
           sx={{
-            "& .MuiOutlinedInput-root": {
-              padding: 0, // Remove extra padding from the select input
-            },
+            ...commonTextStyles,
+            "& .MuiOutlinedInput-root": { padding: 0 }, // Remove extra padding
             "& .MuiInputBase-input": {
               display: "flex",
               alignItems: "center", // Vertically align the content
@@ -67,11 +74,13 @@ const RegardingField = ({ formData, handleInputChange }) => {
           }}
         >
           {predefinedOptions.map((option) => (
-            <MenuItem key={option} value={option}>
+            <MenuItem key={option} value={option} sx={{ fontSize: "9pt" }}>
               {option}
             </MenuItem>
           ))}
-          <MenuItem value="Other">Other (Manually enter)</MenuItem>
+          <MenuItem value="Other" sx={{ fontSize: "9pt" }}>
+            Other (Manually enter)
+          </MenuItem>
         </Select>
       </FormControl>
 
@@ -82,7 +91,11 @@ const RegardingField = ({ formData, handleInputChange }) => {
           size="small"
           value={manualInput}
           onChange={handleManualInputChange}
-          sx={{ mt: 2, "& .MuiOutlinedInput-root": { padding: 0 } }}
+          sx={{
+            mt: 2,
+            ...commonTextStyles,
+            "& .MuiOutlinedInput-root": { padding: 0 },
+          }}
         />
       )}
     </Box>

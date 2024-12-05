@@ -22,15 +22,22 @@ export default function ContactField({
   ZOHO,
   selectedRowData = {}, // Default to an empty object
 }) {
-  const [contacts, setContacts] = useState([]); // Fetched contacts
-  const [selectedParticipants, setSelectedParticipants] = useState([]); // Selected participants
-  const [searchType, setSearchType] = useState("First_Name"); // Search criteria
-  const [searchText, setSearchText] = useState(""); // Search input
-  const [filteredContacts, setFilteredContacts] = useState([]); // Filtered contacts for display
-  const [isModalOpen, setIsModalOpen] = useState(false); // Modal state
-  const debounceTimer = useRef(null); // Debounce timer for search
+  const [contacts, setContacts] = useState([]);
+  const [selectedParticipants, setSelectedParticipants] = useState([]);
+  const [searchType, setSearchType] = useState("First_Name");
+  const [searchText, setSearchText] = useState("");
+  const [filteredContacts, setFilteredContacts] = useState([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const debounceTimer = useRef(null);
 
-  // Prepopulate and fetch missing data for selectedParticipants
+  const commonTextStyles = {
+    fontSize: "9pt", // Uniform font size
+    "& .MuiOutlinedInput-input": { fontSize: "9pt" }, // Input text
+    "& .MuiInputBase-input": { fontSize: "9pt" }, // Base input text
+    "& .MuiTypography-root": { fontSize: "9pt" }, // Typography text
+    "& .MuiFormLabel-root": { fontSize: "9pt" }, // Form labels
+  };
+
   useEffect(() => {
     const fetchParticipantsDetails = async () => {
       if (selectedRowData.Participants && ZOHO) {
@@ -39,7 +46,7 @@ export default function ContactField({
             try {
               const contactDetails = await ZOHO.CRM.API.getRecord({
                 Entity: "Contacts",
-                RecordID: participant.participant, // Use participant ID
+                RecordID: participant.participant,
               });
 
               if (contactDetails.data && contactDetails.data.length > 0) {
@@ -82,24 +89,20 @@ export default function ContactField({
     fetchParticipantsDetails();
   }, [selectedRowData, ZOHO]);
 
-  // Open modal and sync selected participants
   const handleOpen = () => {
     setFilteredContacts([]);
     setIsModalOpen(true);
   };
 
-  // Close modal without saving changes
   const handleCancel = () => {
     setIsModalOpen(false);
   };
 
-  // Fetch and filter contacts from the server based on search criteria
   const handleSearch = async () => {
     if (!ZOHO || !searchText.trim()) return;
 
     try {
       let searchResults;
-
       if (searchType === "Email") {
         searchResults = await ZOHO.CRM.API.searchRecord({
           Entity: "Contacts",
@@ -138,7 +141,7 @@ export default function ContactField({
           Last_Name: contact.Last_Name || "N/A",
           Email: contact.Email || "No Email",
           Mobile: contact.Mobile || "N/A",
-          ID_Number: contact.ID_Number || "N/A", // Assuming ID_Number is available
+          ID_Number: contact.ID_Number || "N/A",
           id: contact.id,
         }));
         setFilteredContacts(formattedContacts);
@@ -151,7 +154,6 @@ export default function ContactField({
     }
   };
 
-  // Toggle selection of a contact
   const toggleContactSelection = (contact) => {
     setSelectedParticipants((prev) =>
       prev.some((c) => c.id === contact.id)
@@ -160,24 +162,22 @@ export default function ContactField({
     );
   };
 
-  // Save changes and close the modal
   const handleOk = () => {
     const updatedParticipants = selectedParticipants.map((participant) => ({
-      Full_Name: participant.Full_Name || `${participant.First_Name} ${participant.Last_Name}`,
+      Full_Name:
+        participant.Full_Name ||
+        `${participant.First_Name} ${participant.Last_Name}`,
       Email: participant.Email,
       participant: participant.id,
       type: "contact",
     }));
 
     handleInputChange("scheduledWith", updatedParticipants);
-
-    // Close the modal
     setIsModalOpen(false);
   };
 
   return (
     <Box>
-      {/* Single-line display for selected contacts */}
       <Box display="flex" alignItems="center" gap={2}>
         <TextField
           fullWidth
@@ -190,20 +190,19 @@ export default function ContactField({
             readOnly: true,
           }}
           size="small"
+          sx={commonTextStyles}
         />
         <Button
           variant="contained"
           onClick={handleOpen}
-          sx={{ width: "100px" }}
+          sx={{ width: "100px", ...commonTextStyles }}
         >
           Contacts
         </Button>
       </Box>
 
-      {/* Modal */}
       <Dialog open={isModalOpen} onClose={handleCancel} fullWidth maxWidth="md">
         <DialogContent>
-          {/* Search Controls */}
           <Box display="flex" gap={2} mb={2}>
             <TextField
               select
@@ -212,6 +211,17 @@ export default function ContactField({
               onChange={(e) => setSearchType(e.target.value)}
               fullWidth
               size="small"
+              sx={{
+                ...commonTextStyles,
+                "& .MuiOutlinedInput-root": {
+                  padding: "0rem", // Adjust padding for consistent height
+                  lineHeight: "1.5", // Ensure consistent line height
+                },
+                "& .MuiSelect-select": {
+                  display: "flex",
+                  alignItems: "center", // Vertically align text
+                },
+              }}
             >
               <MenuItem value="First_Name">First Name</MenuItem>
               <MenuItem value="Last_Name">Last Name</MenuItem>
@@ -220,96 +230,50 @@ export default function ContactField({
               <MenuItem value="ID_Number">MS File Number</MenuItem>
               <MenuItem value="Full_Name">Full Name</MenuItem>
             </TextField>
+
             <TextField
               label="Search Text"
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
               fullWidth
               size="small"
+              sx={{
+                ...commonTextStyles,
+                "& .MuiOutlinedInput-root": {
+                  padding: "0rem", // Match padding to the select field
+                  lineHeight: "1.5", // Match line height
+                },
+              }}
             />
+
             <Button
               variant="contained"
               onClick={handleSearch}
-              sx={{ width: "150px" }} // Wider search button
+              sx={{ width: "150px", ...commonTextStyles }}
             >
               Search
             </Button>
           </Box>
 
-          {/* Search Results Table */}
           <TableContainer
             sx={{
-              maxHeight: 300, // Limit height to 300px
-              overflowY: "auto", // Enable vertical scrolling
+              maxHeight: 300,
+              overflowY: "auto",
             }}
           >
             <Table size="small" sx={{ tableLayout: "fixed", fontSize: "9pt" }}>
               <TableHead>
                 <TableRow>
                   <TableCell
-                    sx={{
-                      position: "sticky",
-                      top: 0,
-                      zIndex: 1,
-                      backgroundColor: "background.paper",
-                      fontWeight: "bold",
-                      width: "50px",
-                    }}
+                    sx={{ fontWeight: "bold", width: "5%" }}
                   ></TableCell>
-                  <TableCell
-                    sx={{
-                      position: "sticky",
-                      top: 0,
-                      zIndex: 1,
-                      backgroundColor: "background.paper",
-                      fontWeight: "bold",
-                    }}
-                  >
-                    First Name
-                  </TableCell>
-                  <TableCell
-                    sx={{
-                      position: "sticky",
-                      top: 0,
-                      zIndex: 1,
-                      backgroundColor: "background.paper",
-                      fontWeight: "bold",
-                    }}
-                  >
-                    Last Name
-                  </TableCell>
-                  <TableCell
-                    sx={{
-                      position: "sticky",
-                      top: 0,
-                      zIndex: 1,
-                      backgroundColor: "background.paper",
-                      fontWeight: "bold",
-                      width: "30%",
-                    }}
-                  >
+                  <TableCell sx={{ fontWeight: "bold" }}>First Name</TableCell>
+                  <TableCell sx={{ fontWeight: "bold" }}>Last Name</TableCell>
+                  <TableCell sx={{ fontWeight: "bold", width: "30%" }}>
                     Email
                   </TableCell>
-                  <TableCell
-                    sx={{
-                      position: "sticky",
-                      top: 0,
-                      zIndex: 1,
-                      backgroundColor: "background.paper",
-                      fontWeight: "bold",
-                    }}
-                  >
-                    Mobile
-                  </TableCell>
-                  <TableCell
-                    sx={{
-                      position: "sticky",
-                      top: 0,
-                      zIndex: 1,
-                      backgroundColor: "background.paper",
-                      fontWeight: "bold",
-                    }}
-                  >
+                  <TableCell sx={{ fontWeight: "bold" }}>Mobile</TableCell>
+                  <TableCell sx={{ fontWeight: "bold" }}>
                     MS File Number
                   </TableCell>
                 </TableRow>
@@ -317,10 +281,7 @@ export default function ContactField({
               <TableBody>
                 {filteredContacts.length > 0 ? (
                   filteredContacts.map((contact) => (
-                    <TableRow
-                      key={contact.id}
-                      sx={{ "& .MuiTableCell-root": { padding: "4px 6px" } }}
-                    >
+                    <TableRow key={contact.id}>
                       <TableCell>
                         <Checkbox
                           checked={selectedParticipants.some(
@@ -338,15 +299,7 @@ export default function ContactField({
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell
-                      colSpan={6}
-                      align="center"
-                      sx={{
-                        padding: "8px",
-                        fontStyle: "italic",
-                        fontSize: "9pt",
-                      }}
-                    >
+                    <TableCell colSpan={6} align="center">
                       No data found. Please try another search.
                     </TableCell>
                   </TableRow>
@@ -354,8 +307,11 @@ export default function ContactField({
               </TableBody>
             </Table>
           </TableContainer>
+
           <Box mt={3}>
-            <Typography variant="h6">Selected Contacts:</Typography>
+            <Typography variant="h6" sx={{ ...commonTextStyles }}>
+              Selected Contacts:
+            </Typography>
             <TableContainer>
               <Table
                 size="small"
@@ -364,13 +320,13 @@ export default function ContactField({
                 <TableHead>
                   <TableRow>
                     <TableCell
-                      sx={{ width: "50px", fontWeight: "bold" }}
+                      sx={{ fontWeight: "bold", width: "5%" }}
                     ></TableCell>
                     <TableCell sx={{ fontWeight: "bold" }}>
                       First Name
                     </TableCell>
                     <TableCell sx={{ fontWeight: "bold" }}>Last Name</TableCell>
-                    <TableCell sx={{ width: "30%", fontWeight: "bold" }}>
+                    <TableCell sx={{ fontWeight: "bold", width: "30%" }}>
                       Email
                     </TableCell>
                     <TableCell sx={{ fontWeight: "bold" }}>Mobile</TableCell>
@@ -381,10 +337,7 @@ export default function ContactField({
                 </TableHead>
                 <TableBody>
                   {selectedParticipants.map((contact) => (
-                    <TableRow
-                      key={contact.id}
-                      sx={{ "& .MuiTableCell-root": { padding: "4px 6px" } }}
-                    >
+                    <TableRow key={contact.id}>
                       <TableCell>
                         <Checkbox
                           checked
@@ -405,7 +358,11 @@ export default function ContactField({
         </DialogContent>
 
         <DialogActions>
-          <Button onClick={handleCancel} variant="outlined">
+          <Button
+            onClick={handleCancel}
+            variant="outlined"
+            sx={commonTextStyles}
+          >
             Cancel
           </Button>
           <Button
@@ -413,6 +370,7 @@ export default function ContactField({
             variant="contained"
             color="primary"
             disabled={selectedParticipants.length === 0}
+            sx={commonTextStyles}
           >
             OK
           </Button>

@@ -83,6 +83,14 @@ export default function AccountField({
     }, 500); // 0.5 seconds debounce
   };
 
+  const commonTextStyles = {
+    fontSize: "9pt", // Set the font size to 9pt
+    "& .MuiOutlinedInput-input": { fontSize: "9pt" }, // Input text size
+    "& .MuiAutocomplete-input": { fontSize: "9pt" }, // Autocomplete input size
+    "& .MuiTypography-root": { fontSize: "9pt" }, // Typography size
+    "& .MuiFormLabel-root": { fontSize: "9pt" }, // Label text size
+  };
+
   return (
     <Box>
       <Autocomplete
@@ -102,12 +110,21 @@ export default function AccountField({
         loading={loading} // Show loading indicator during search
         noOptionsText={
           notFoundMessage ? (
-            <Box display="flex" alignItems="center" color="error.main">
-              <ErrorOutlineIcon sx={{ mr: 1 }} />
-              <Typography variant="body2">{notFoundMessage}</Typography>
+            <Box
+              display="flex"
+              alignItems="center"
+              color="error.main"
+              sx={{ ...commonTextStyles }}
+            >
+              <ErrorOutlineIcon sx={{ mr: 1, fontSize: "9pt" }} />
+              <Typography variant="body2" sx={{ ...commonTextStyles }}>
+                {notFoundMessage}
+              </Typography>
             </Box>
           ) : (
-            "No options"
+            <Typography variant="body2" sx={{ ...commonTextStyles }}>
+              No options
+            </Typography>
           )
         }
         renderInput={(params) => (
@@ -118,6 +135,10 @@ export default function AccountField({
             variant="outlined"
             label="Associate with"
             placeholder="Start typing to search..."
+            sx={{
+              ...commonTextStyles,
+              "& .MuiOutlinedInput-root": { padding: 0 },
+            }}
           />
         )}
       />

@@ -24,6 +24,15 @@ import { DateTimePicker, LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import dayjs from "dayjs";
 
+const commonTextStyles = {
+  fontSize: "9pt", // Set the font size to 9pt
+  "& .MuiOutlinedInput-input": { fontSize: "9pt" }, // For TextField and Select inputs
+  "& .MuiAutocomplete-input": { fontSize: "9pt" }, // For Autocomplete inputs
+  "& .MuiFormLabel-root": { fontSize: "9pt" }, // For labels
+  "& .MuiTypography-root": { fontSize: "9pt" }, // For Typography
+};
+
+
 const parseDateString = (dateString) => {
   const [datePart, timePart, ampm] = dateString.split(" "); // Split date and time
   const [day, month, year] = datePart.split("/").map(Number); // Split date part
@@ -453,7 +462,7 @@ const FirstComponent = ({
   };
 
   return (
-    <Box>
+    <Box sx={{ mt: 2, ...commonTextStyles }}>
       <Grid container spacing={2} sx={{ mt: 2 }}>
         <Grid size={12}>
           <CustomTextField
