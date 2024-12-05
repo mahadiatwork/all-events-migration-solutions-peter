@@ -223,12 +223,21 @@ export default function ContactField({
                 },
               }}
             >
-              <MenuItem value="First_Name">First Name</MenuItem>
-              <MenuItem value="Last_Name">Last Name</MenuItem>
-              <MenuItem value="Email">Email</MenuItem>
-              <MenuItem value="Mobile">Mobile</MenuItem>
-              <MenuItem value="ID_Number">MS File Number</MenuItem>
-              <MenuItem value="Full_Name">Full Name</MenuItem>
+              <MenuItem value="First_Name" sx={{ fontSize: "9pt" }}>
+                First Name
+              </MenuItem>
+              <MenuItem value="Last_Name" sx={{ fontSize: "9pt" }}>
+                Last Name
+              </MenuItem>
+              <MenuItem value="Email" sx={{ fontSize: "9pt" }}>
+                Email
+              </MenuItem>
+              <MenuItem value="Mobile" sx={{ fontSize: "9pt" }}>
+                Mobile
+              </MenuItem>
+              <MenuItem value="ID_Number" sx={{ fontSize: "9pt" }}>
+                MS File Number
+              </MenuItem>
             </TextField>
 
             <TextField
