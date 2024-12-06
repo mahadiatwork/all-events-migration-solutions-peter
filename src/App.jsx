@@ -51,7 +51,7 @@ function App() {
             closeDate1 = new Date(customDateRange.endDate);
           } else if (filterDate === "All") {
             // Show all records from the beginning of the year to now
-            beginDate1 = new Date("2024-01-01");
+            beginDate1 = new Date("2023-01-01");
             closeDate1 = new Date();
           } else if (filterDate === "Current Week") {
             // Start of current week (Sunday to Saturday)

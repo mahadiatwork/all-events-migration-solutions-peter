@@ -144,7 +144,7 @@ const CustomTableCell = ({
             ? "#FFFFFF"
             : row?.color || "black",
         fontSize: "9pt",
-        p: ".6rem",
+        p: ".1rem",
       }}
       {...props}
     >
@@ -680,6 +680,7 @@ export default function ScheduleTable({
                     textDecoration:
                       row.Event_Status === "Closed" ? "line-through" : "none",
                     cursor: "pointer",
+                    py: 0
                   }}
                   onClick={() => handleRowClick(row)}
                   onDoubleClick={() => handleRowDoubleClick(row)}
@@ -693,6 +694,10 @@ export default function ScheduleTable({
                       onChange={() => handleCheckboxChange(index, row)}
                       sx={{
                         color: selectedRowIndex === index ? "#fff" : "inherit",
+                        transform: "scale(0.9)", // Scale down the checkbox size
+                        "& .MuiSvgIcon-root": {
+                          fontSize: "1.2rem", // Adjust the icon size inside the checkbox
+                        },
                       }}
                     />
                   </TableCell>
