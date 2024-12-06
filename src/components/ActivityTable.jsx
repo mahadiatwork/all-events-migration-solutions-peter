@@ -74,12 +74,25 @@ const headCells = [
   },
 ];
 
+const noSort = ["duration", "time"];
+
 function descendingComparator(a, b, orderBy) {
-  if (orderBy === "duration") {
+  // console.log(orderBy, b, a);
+  if (noSort.includes(orderBy)) {
     return;
   }
+  if (orderBy === "date") {
+    const newB = new Date(b[orderBy]);
+    const newA = new Date(a[orderBy]);
+    if (newB < newA) {
+      return -1;
+    }
+    if (newB > newA) {
+      return 1;
+    }
+  }
+
   if (orderBy === "participants") {
-    // console.log("participants", b[orderBy]?.[0]?.name, a[orderBy]?.[0]?.name);
     if (b[orderBy]?.[0]?.name < a[orderBy]?.[0]?.name) {
       return -1;
     }
@@ -131,6 +144,7 @@ const CustomTableCell = ({
             ? "#FFFFFF"
             : row?.color || "black",
         fontSize: "9pt",
+        p: ".6rem",
       }}
       {...props}
     >
@@ -214,7 +228,7 @@ const CustomRangeModal = ({ open, handleClose, setCustomDateRange }) => {
           bgcolor: "background.paper",
           borderRadius: 2,
           boxShadow: 24,
-          p: 4,
+          // p: 4,
         }}
       >
         <h2>Select Date Range</h2>
@@ -478,138 +492,115 @@ export default function ScheduleTable({
     });
   };
 
-  console.log({ events, filteredRows });
+  // console.log({ events, filteredRows });
 
   return (
     <>
       {/* Filters */}
-      <Grid
-        container
-        spacing={1} // Decreased spacing between items to make the header smaller
-        style={{
-          marginTop: 10, // Reduced margin
-          marginBottom: 10, // Reduced margin
-          position: "sticky",
-          top: 0,
-          zIndex: 100,
-          backgroundColor: "white",
-          overflowY: "hidden",
-        }}
-      >
-        <Grid item xs={2}>
-          <FormControl fullWidth size="small">
-            <InputLabel>Date</InputLabel>
-            <Select
-              value={filterDate}
-              onChange={handleDateFilterChange}
-              label="Date"
-              size="small"
-            >
-              {filterDateOptions.map((option, index) => (
-                <MenuItem key={index} value={option.value}>
-                  {option.label}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </Grid>
-        {/* Other filter controls */}
-        <Grid item xs={2}>
-          <FormControl fullWidth>
-            <InputLabel>Type</InputLabel>
-            <Select
-              multiple
-              value={filterType}
-              onChange={handleTypeChange}
-              label="Type"
-              size="small"
-              renderValue={(selected) => selected.join(", ")}
-            >
-              {typeOptions.map((type) => (
-                <MenuItem key={type} value={type}>
-                  <Checkbox checked={filterType.indexOf(type) > -1} />
-                  <ListItemText primary={type} />
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </Grid>
-        <Grid item xs={2}>
-          <FormControl fullWidth>
-            <InputLabel>Priority</InputLabel>
-            <Select
-              multiple
-              value={filterPriority}
-              onChange={handlePriorityChange}
-              label="Priority"
-              size="small"
-              renderValue={(selected) => selected.join(", ")}
-            >
-              {priorityOptions.map((priority) => (
-                <MenuItem key={priority} value={priority}>
-                  <Checkbox checked={filterPriority.indexOf(priority) > -1} />
-                  <ListItemText primary={priority} />
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </Grid>
-        <Grid item xs={1}>
-          <FormControl fullWidth>
-            <InputLabel>User</InputLabel>
-            <Select
-              multiple
-              value={filterUser}
-              onChange={handleUserChange}
-              label="User"
-              size="small"
-              renderValue={(selected) => selected.join(", ")}
-            >
-              {users.map((user) => (
-                <MenuItem key={user.id} value={user.full_name}>
-                  <Checkbox checked={filterUser.indexOf(user.full_name) > -1} />
-                  <ListItemText primary={user.full_name} />
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </Grid>
-
-        <Grid item xs={2} sx={{ display: "flex" }}>
-          <Button
-            variant="outlined"
-            fullWidth
-            onClick={handleClearFilters}
-            color="secondary"
-            size="small" // Reduced button size
+      <Box sx={{ display: "flex", gap: "1rem", my: ".5rem" }}>
+        <FormControl fullWidth size="small">
+          <InputLabel>Date</InputLabel>
+          <Select
+            value={filterDate}
+            onChange={handleDateFilterChange}
+            label="Date"
+            size="small"
           >
-            Clear filter
-          </Button>
-        </Grid>
-        <Grid item xs={1} sx={{ display: "flex" }}>
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={showCleared} // Bind to state
-                onChange={handleClearedCheckboxChange} // Checkbox change handler
-                size="small" // Reduced checkbox size
-              />
-            }
-            label="Cleared"
-          />
-        </Grid>
+            {filterDateOptions.map((option, index) => (
+              <MenuItem key={index} value={option.value}>
+                {option.label}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
 
-        <Grid item xs={2}>
-          <Button
-            variant="contained"
-            fullWidth
-            onClick={() => setOpenCreateModal(true)}
-            size="small" // Reduced button size
+        <FormControl fullWidth size="small">
+          <InputLabel>Type</InputLabel>
+          <Select
+            multiple
+            value={filterType}
+            onChange={handleTypeChange}
+            label="Type"
+            size="small"
+            renderValue={(selected) => selected.join(", ")}
           >
-            Create New Event
-          </Button>
-        </Grid>
-      </Grid>
+            {typeOptions.map((type) => (
+              <MenuItem key={type} value={type}>
+                <Checkbox checked={filterType.indexOf(type) > -1} />
+                <ListItemText primary={type} />
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+
+        <FormControl fullWidth size="small">
+          <InputLabel>Priority</InputLabel>
+          <Select
+            multiple
+            value={filterPriority}
+            onChange={handlePriorityChange}
+            label="Priority"
+            size="small"
+            renderValue={(selected) => selected.join(", ")}
+          >
+            {priorityOptions.map((priority) => (
+              <MenuItem key={priority} value={priority}>
+                <Checkbox checked={filterPriority.indexOf(priority) > -1} />
+                <ListItemText primary={priority} />
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+
+        <FormControl fullWidth size="small">
+          <InputLabel>User</InputLabel>
+          <Select
+            multiple
+            value={filterUser}
+            onChange={handleUserChange}
+            label="User"
+            size="small"
+            renderValue={(selected) => selected.join(", ")}
+          >
+            {users.map((user) => (
+              <MenuItem key={user.id} value={user.full_name}>
+                <Checkbox checked={filterUser.indexOf(user.full_name) > -1} />
+                <ListItemText primary={user.full_name} />
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+
+        <Button
+          variant="outlined"
+          fullWidth
+          onClick={handleClearFilters}
+          color="secondary"
+          size="small" // Reduced button size
+        >
+          Clear filter
+        </Button>
+
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={showCleared} // Bind to state
+              onChange={handleClearedCheckboxChange} // Checkbox change handler
+              size="small" // Reduced checkbox size
+            />
+          }
+          label="Cleared"
+        />
+
+        <Button
+          variant="contained"
+          fullWidth
+          onClick={() => setOpenCreateModal(true)}
+          size="small" // Reduced button size
+        >
+          Create New Event
+        </Button>
+      </Box>
 
       {/* Table */}
       <TableContainer
@@ -619,40 +610,46 @@ export default function ScheduleTable({
         <Table stickyHeader sx={{ minWidth: 650 }} aria-label="schedule table">
           <TableHead>
             <TableRow>
-              {headCells.map((el) => (
-                <TableCell
-                  key={el.id}
-                  onClick={(e) => {
-                    // console.log(el.id);
-                    const isAsc = orderBy === el.id && order === "asc";
-                    setOrder(isAsc ? "desc" : "asc");
-                    setOrderBy(el.id);
-                  }}
-                  padding="checkbox"
-                  sx={{
-                    bgcolor: "#efefef",
-                    fontWeight: "bold",
-                    fontSize: "9pt",
-                    p: el.id === "select" ? "" : "1rem",
-                    cursor: "pointer",
-                  }}
-                >
-                  <TableSortLabel
-                    active={orderBy === el.id}
-                    direction={orderBy === el.id ? order : "asc"}
-                    // onClick={createSortHandler(headCell.id)}
+              {headCells.map((el) => {
+                return (
+                  <TableCell
+                    key={el.id}
+                    onClick={(e) => {
+                      // console.log(el.id);
+                      const isAsc = orderBy === el.id && order === "asc";
+                      setOrder(isAsc ? "desc" : "asc");
+                      setOrderBy(el.id);
+                    }}
+                    padding="checkbox"
+                    sx={{
+                      bgcolor: "#efefef",
+                      fontWeight: "bold",
+                      fontSize: "9pt",
+                      p: el.id === "select" ? "" : ".6rem",
+                      cursor: "pointer",
+                    }}
                   >
-                    {el.label}
-                    {orderBy === el.id ? (
-                      <Box component="span" sx={visuallyHidden}>
-                        {order === "desc"
-                          ? "sorted descending"
-                          : "sorted ascending"}
-                      </Box>
-                    ) : null}
-                  </TableSortLabel>
-                </TableCell>
-              ))}
+                    {noSort.includes(el.id) ? (
+                      el.label
+                    ) : (
+                      <TableSortLabel
+                        active={orderBy === el.id}
+                        direction={orderBy === el.id ? order : "asc"}
+                        // onClick={createSortHandler(headCell.id)}
+                      >
+                        {el.label}
+                        {orderBy === el.id ? (
+                          <Box component="span" sx={visuallyHidden}>
+                            {order === "desc"
+                              ? "sorted descending"
+                              : "sorted ascending"}
+                          </Box>
+                        ) : null}
+                      </TableSortLabel>
+                    )}
+                  </TableCell>
+                );
+              })}
             </TableRow>
           </TableHead>
           <TableBody>
