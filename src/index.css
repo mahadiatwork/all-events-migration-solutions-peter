@@ -86,3 +86,38 @@ body {
   min-height: 100vh;
   /* overflow: hidden; */
 }
+
+
+.customDateTimePickerRoot {
+  height: 40px !important; /* Ensure height is uniform */
+}
+
+.customDateTimePickerInput {
+  padding: 10px 14px; /* Adjust as needed to align with other fields */
+  box-sizing: border-box !important;
+}
+
+.custom-form-label {
+  margin: 0;
+  padding: 0 !important;
+  background-color: brown;
+}
+
+.custom-form-label .MuiTypography-root {
+  font-size: 9pt;
+  padding: 0;
+}
+
+
+.custom-select .MuiOutlinedInput-root {
+  height: 32px;
+  padding: 0px 10px;
+}
+
+.custom-select .MuiSelect-select {
+  padding: 4px 8px;
+}
+
+.custom-select .MuiInputLabel-root {
+  font-size: 9pt;
+}

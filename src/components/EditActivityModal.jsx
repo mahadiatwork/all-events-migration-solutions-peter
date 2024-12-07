@@ -105,7 +105,6 @@ function formatDateWithOffset(dateString) {
   return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}${offsetSign}${offsetHours}:${offsetMinutes}`;
 }
 
-
 function transformFormSubmission(data) {
   // Function to transform scheduleWith data into the Participants format
   const transformScheduleWithToParticipants = (scheduleWith) => {
@@ -193,7 +192,7 @@ const EditActivityModal = ({
   selectedRowData,
   ZOHO,
   users,
-  setEvents
+  setEvents,
 }) => {
   const theme = useTheme();
   const [value, setValue] = useState(0);
@@ -254,50 +253,52 @@ const EditActivityModal = ({
       [field]: value,
     }));
   };
-const handleSubmit = async () => {
-  const transformedData = transformFormSubmission(formData);
+  const handleSubmit = async () => {
+    const transformedData = transformFormSubmission(formData);
 
-  try {
-    const data = await ZOHO.CRM.API.updateRecord({
-      Entity: "Events",
-      APIData: transformedData,
-      Trigger: ["workflow"],
-    });
+    try {
+      const data = await ZOHO.CRM.API.updateRecord({
+        Entity: "Events",
+        APIData: transformedData,
+        Trigger: ["workflow"],
+      });
 
-    if (data.data && data.data.length > 0 && data.data[0].code === "SUCCESS") {
-      setSnackbarSeverity("success");
-      setSnackbarMessage("Event updated successfully.");
+      if (
+        data.data &&
+        data.data.length > 0 &&
+        data.data[0].code === "SUCCESS"
+      ) {
+        setSnackbarSeverity("success");
+        setSnackbarMessage("Event updated successfully.");
+        setSnackbarOpen(true);
+
+        // Ensure updateEvent always receives the latest associateWith value
+        setEvents((prevEvents) =>
+          prevEvents.map((event) =>
+            event.id === formData.id ? { ...event, ...formData } : event
+          )
+        );
+
+        setTimeout(() => {
+          // window.location.reload();
+          handleClose();
+        }, 1000);
+      } else {
+        throw new Error("Failed to update event");
+      }
+    } catch (error) {
+      console.log(error);
+      setSnackbarSeverity("error");
+      setSnackbarMessage("Error updating event.");
       setSnackbarOpen(true);
-
-      // Ensure updateEvent always receives the latest associateWith value
-      setEvents((prevEvents) =>
-        prevEvents.map((event) =>
-          event.id === formData.id ? { ...event, ...formData } : event
-        )
-      );
-
-      setTimeout(() => {
-        // window.location.reload(); 
-        handleClose()
-      }, 1000);
-    } else {
-      throw new Error("Failed to update event");
     }
-  } catch (error) {
-    console.log(error)
-    setSnackbarSeverity("error");
-    setSnackbarMessage("Error updating event.");
-    setSnackbarOpen(true);
-  }
-};
+  };
 
   const handleSnackbarClose = () => {
     setSnackbarOpen(false);
   };
 
-
-  console.log({selectedRowData})
-  
+  console.log({ selectedRowData });
 
   return (
     <Box
@@ -314,16 +315,18 @@ const handleSubmit = async () => {
         overflowY: "auto",
         maxHeight: "90vh", // Ensure the modal is scrollable if content exceeds the viewport
         zIndex: 100,
-        p: 3,
+        p: "15px 30px  20px 30px",
         fontSize: "9pt", // Set the font size to 9pt
-        "& .MuiOutlinedInput-input": { fontSize: "9pt" }, // For TextField and Select inputs
-        "& .MuiAutocomplete-input": { fontSize: "9pt" }, // For Autocomplete inputs
-        "& .MuiFormLabel-root": { fontSize: "9pt" }, // For labels
-        "& .MuiTypography-root": { fontSize: "9pt" }, // For Typography
       }}
     >
       <Box display="flex" justifyContent="space-between" mb={2}>
-        <Typography variant="h6">Edit Activity</Typography>
+        <Typography
+          variant="subtitle1"
+          sx={{ fontWeight: "bold" }}
+          align="center"
+        >
+          Edit Activity
+        </Typography>
 
         {/* Replacing IconButton with Cancel Button */}
         <Button
@@ -335,7 +338,7 @@ const handleSubmit = async () => {
           Cancel
         </Button>
       </Box>
-      <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
+      <Box>
         <Tabs
           value={value}
           onChange={handleChange}
@@ -347,117 +350,103 @@ const handleSubmit = async () => {
           <Tab label="Reccurence" />
         </Tabs>
       </Box>
-      <TabPanel value={value} index={0}>
-        <FirstComponent
-          formData={formData}
-          handleInputChange={handleInputChange}
-          users={users}
-          selectedRowData={selectedRowData}
-          ZOHO={ZOHO}
-          isEditMode={true} // Pass true if it's the EditModal, false otherwise
-        />
-        <Box display="flex" justifyContent="space-between" mt={2}>
-          {/* First button aligned to the left */}
-          <Button size="small" disabled>
-            Back
-          </Button>
-
-          {/* Wrapper for the other two buttons aligned to the right */}
-          <Box display="flex" gap={1}>
-            <Button
-              size="small"
-              variant="contained"
-              color="secondary"
-              onClick={handleSubmit}
-            >
-              Ok
+      {value === 0 && (
+        <Box sx={{ p: 0, borderRadius: 1 }}>
+          <FirstComponent
+            formData={formData}
+            handleInputChange={handleInputChange}
+            users={users}
+            selectedRowData={selectedRowData}
+            ZOHO={ZOHO}
+            isEditMode={true} // Pass true if it's the EditModal, false otherwise
+          />
+          <Box display="flex" justifyContent="space-between" mt={2}>
+            <Button size="small" onClick={handleBack}>
+              Back
             </Button>
-            <Button
-              size="small"
-              variant="contained"
-              color="primary"
-              onClick={handleNext}
-            >
-              Next
-            </Button>
+            <Box display="flex" gap={1}>
+              <Button
+                size="small"
+                variant="contained"
+                color="secondary"
+                onClick={handleSubmit}
+              >
+                Ok
+              </Button>
+              <Button
+                size="small"
+                variant="contained"
+                color="primary"
+                onClick={handleNext}
+              >
+                Next
+              </Button>
+            </Box>
           </Box>
         </Box>
-      </TabPanel>
-      <TabPanel value={value} index={1}>
-        {/* <SecondComponent /> */}
-        <Typography variant="h6">Description</Typography>
-        {/* <ReactQuill
-          theme="snow"
-          style={{ height: 250, marginBottom: 80 }}
-          value={formData.quillContent}
-          onChange={(content) => handleInputChange("quillContent", content)}
-        /> */}
-        <TextField
-          multiline
-          rows={10}
-          fullWidth
-          value={formData?.Description}
-          onChange={(event) =>
-            handleInputChange("Description", event.target.value)
-          }
-        />
-        <Box display="flex" justifyContent="space-between" mt={2}>
-          {/* First button aligned to the left */}
-          <Button
-            size="small"
-            variant="contained"
-            color="primary"
-            onClick={handleBack}
-          >
-            Back
-          </Button>
+      )}
 
-          {/* Wrapper for the other two buttons aligned to the right */}
-          <Box display="flex" gap={1}>
-            <Button
-              size="small"
-              variant="contained"
-              color="secondary"
-              onClick={handleSubmit}
-            >
-              Ok
+      {value === 1 && (
+        <Box sx={{ p: 1, borderRadius: 1 }}>
+          <TextField
+            multiline
+            rows={10}
+            fullWidth
+            value={formData?.Description}
+            onChange={(event) =>
+              handleInputChange("Description", event.target.value)
+            }
+          />
+          <Box display="flex" justifyContent="space-between" mt={2}>
+            <Button size="small" onClick={handleBack}>
+              Back
             </Button>
-            <Button
-              size="small"
-              variant="contained"
-              color="primary"
-              onClick={handleNext}
-            >
-              Next
-            </Button>
+            <Box display="flex" gap={1}>
+              <Button
+                size="small"
+                variant="contained"
+                color="secondary"
+                onClick={handleSubmit}
+              >
+                Ok
+              </Button>
+              <Button
+                size="small"
+                variant="contained"
+                color="primary"
+                onClick={handleNext}
+              >
+                Next
+              </Button>
+            </Box>
           </Box>
         </Box>
-      </TabPanel>
-      <TabPanel value={value} index={2}>
-        <ThirdComponent
-          formData={formData}
-          handleInputChange={handleInputChange}
-        />
-        <Box display="flex" justifyContent="space-between" mt={2}>
-          <Button
-            size="small"
-            variant="contained"
-            color="primary"
-            onClick={handleBack}
-          >
-            Back
-          </Button>
-          <Button
-            size="small"
-            variant="contained"
-            color="secondary"
-            onClick={handleSubmit}
-          >
-            Ok
-          </Button>{" "}
-          {/* Next is disabled on the last tab */}
+      )}
+
+      {value === 2 && (
+        <Box sx={{ p: 2, borderRadius: 1 }}>
+          <ThirdComponent
+            formData={formData}
+            handleInputChange={handleInputChange}
+          />
+          <Box display="flex" justifyContent="space-between" mt={2}>
+            <Button size="small" onClick={handleBack}>
+              Back
+            </Button>
+            <Box display="flex" gap={1}>
+              <Button
+                size="small"
+                variant="contained"
+                color="secondary"
+                onClick={handleSubmit}
+              >
+                Ok
+              </Button>
+            </Box>
+          </Box>
         </Box>
-      </TabPanel>
+      )}
+
       <Snackbar
         open={isSnackbarOpen}
         autoHideDuration={6000}

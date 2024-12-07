@@ -2,6 +2,7 @@ import React, { useEffect, useState, createContext } from "react";
 import "./App.css";
 import ActivityTable from "./components/ActivityTable";
 import { CircularProgress, Box } from "@mui/material"; // Add MUI CircularProgress for the loader
+import DateRangeModal from "./components/atom/DateRangeModal";
 
 const ZOHO = window.ZOHO;
 
@@ -18,7 +19,7 @@ function App() {
   const [recentColors, setRecentColor] = useState(""); // Move this to context
   const [loggedInUser, setLoggedInUser] = useState(null);
   const [customDateRange, setCustomDateRange] = useState(null); // State for custom date range
-
+  const [isModalOpen, setIsModalOpen] = useState(false); // Modal state
   useEffect(() => {
     // Initialize Zoho Embedded App once
     ZOHO.embeddedApp.init().then(() => {
@@ -29,6 +30,11 @@ function App() {
       });
     });
   }, []);
+
+  const handleCustomRangeSave = (range) => {
+    setCustomDateRange(range);
+    setFilterDate("Custom Range");
+  };
 
   useEffect(() => {
     async function getData() {
@@ -241,6 +247,11 @@ function App() {
           setCustomDateRange={setCustomDateRange} // Pass setCustomDateRange to ActivityTable
         />
       )}
+       <DateRangeModal
+        open={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSave={handleCustomRangeSave}
+      />
     </ZohoContext.Provider>
   );
 }

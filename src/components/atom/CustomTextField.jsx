@@ -7,17 +7,22 @@ const CustomTextField = ({ onChange, value, ...props }) => {
       variant="outlined"
       size="small"
       fullWidth
-      autoComplete='off'
+      autoComplete="off"
       value={value}
       onChange={onChange}
-      {...props} 
+      {...props}
       sx={{
-        height: "40px", // You can adjust this value to your preferred height
+        height: "32px", // Set a smaller height for the field
         "& .MuiOutlinedInput-root": {
-          height: "100%", // Ensure the full height is applied to the input
+          height: "100%", // Ensure the input root matches the defined height
+          padding: "0px 8px", // Adjust the padding for a compact look
+          fontSize: "9pt", // Adjust the font size of the text inside
         },
-        "& .MuiSelect-select, & .MuiAutocomplete-input": {
-          padding: "8px 12px", // Adjust padding to match the height
+        "& .MuiInputLabel-root": {
+          fontSize: "9pt", // Adjust the label font size
+        },
+        "& .MuiOutlinedInput-input": {
+          padding: "6px 8px", // Further control padding inside the input
         },
       }}
     />

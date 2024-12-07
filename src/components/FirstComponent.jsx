@@ -32,7 +32,6 @@ const commonTextStyles = {
   "& .MuiTypography-root": { fontSize: "9pt" }, // For Typography
 };
 
-
 const parseDateString = (dateString) => {
   const [datePart, timePart, ampm] = dateString.split(" "); // Split date and time
   const [day, month, year] = datePart.split("/").map(Number); // Split date part
@@ -120,15 +119,15 @@ const FirstComponent = ({
 
   // useEffect(() => {
   //   // Initialize Remind_Participants and Reminder_Text
-    // if (
-    //   !formData.Remind_Participants ||
-    //   formData.Remind_Participants.length === 0
-    // ) {
-    //   handleInputChange("Remind_Participants", [
-    //     { period: "minutes", unit: 15 },
-    //   ]);
-    //   handleInputChange("Reminder_Text", "15 minutes before");
-    // }
+  // if (
+  //   !formData.Remind_Participants ||
+  //   formData.Remind_Participants.length === 0
+  // ) {
+  //   handleInputChange("Remind_Participants", [
+  //     { period: "minutes", unit: 15 },
+  //   ]);
+  //   handleInputChange("Reminder_Text", "15 minutes before");
+  // }
   // }, [formData.Remind_Participants, handleInputChange]);
 
   const [activityType] = useState([
@@ -430,10 +429,10 @@ const FirstComponent = ({
       const newSendReminders = !sendReminders;
       setSendReminders(newSendReminders);
 
-      console.log({newSendReminders})
+      console.log({ newSendReminders });
 
       if (newSendReminders) {
-        console.log("Remind_Participants", true)
+        console.log("Remind_Participants", true);
         // If reminders are enabled
         handleInputChange("Remind_Participants", [
           { period: "minutes", unit: reminderMinutes },
@@ -444,7 +443,7 @@ const FirstComponent = ({
         handleInputChange("Remind_Participants", []);
         handleInputChange("Reminder_Text", "None");
         handleInputChange("Remind_At", []);
-        console.log({formDataTemp: formData})
+        console.log({ formDataTemp: formData });
       }
     }
   };
@@ -454,16 +453,16 @@ const FirstComponent = ({
     handleInputChange("Remind_Participants", [
       { period: "minutes", unit: value },
     ]);
-    if(value === "None"){
+    if (value === "None") {
       handleInputChange("Reminder_Text", "None");
-    }else{
+    } else {
       handleInputChange("Reminder_Text", `${value} minutes before`);
     }
   };
 
   return (
     <Box sx={{ mt: 2, ...commonTextStyles }}>
-      <Grid container spacing={2} sx={{ mt: 2 }}>
+      <Grid container spacing={1.7}>
         <Grid size={12}>
           <CustomTextField
             fullWidth
@@ -476,7 +475,7 @@ const FirstComponent = ({
         </Grid>
 
         <Grid size={12}>
-          <FormControl fullWidth size="small" sx={commonStyles}>
+          <FormControl fullWidth size="small" className="custom-select">
             <InputLabel>Activity type</InputLabel>
             <Select
               label="Activity type"
@@ -586,7 +585,7 @@ const FirstComponent = ({
             </Select>
           </FormControl>
         </Grid>
-        <Grid item xs={12} sm={6} md={2}>
+        <Grid  item xs={6} sm={4} md={2} sx={{ margin: "-13.6px 0px" }}>
           <FormControlLabel
             control={
               <Checkbox
@@ -597,6 +596,22 @@ const FirstComponent = ({
             label="Banner/Timeless"
           />
         </Grid>
+        <Grid item xs={6} sm={4} md={2} display="flex" alignItems="center"  sx={{ margin: "-13.6px 0px" }}>
+            <Typography variant="body1" sx={{ mr: 1 }}>
+              Colour:
+            </Typography>
+            <div style={colorBoxStyle} onClick={handleClick} />
+            {displayColorPicker && (
+              <div style={popover}>
+                <div style={cover} />
+                <CustomColorPicker
+                  recentColors={recentColors}
+                  handleClose={handleClose}
+                  handleColorChange={handleColorChange}
+                />
+              </div>
+            )}
+          </Grid>
         <Grid size={12}>
           <ContactField
             formData={formData} // Use formData
@@ -605,7 +620,7 @@ const FirstComponent = ({
             selectedRowData={selectedRowData}
           />
         </Grid>
-        <Grid item xs={6}>
+        <Grid item xs={6} sx={{ margin: "-13.6px 0px" }}>
           <FormControlLabel
             control={
               <Checkbox
@@ -618,7 +633,7 @@ const FirstComponent = ({
         </Grid>
 
         {/* Don't send reminders */}
-        <Grid item xs={6}>
+        <Grid item xs={6} sx={{ margin: "-13.6px 0px" }}>
           <FormControlLabel
             control={
               <Checkbox
@@ -629,6 +644,23 @@ const FirstComponent = ({
             label="Don't send reminders"
           />
         </Grid>
+        <Grid item xs={6}  sx={{ margin: "-13.6px 0px" }}>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={formData.Create_Separate_Event_For_Each_Contact}
+                  onChange={(e) =>
+                    handleInputChange(
+                      "Create_Separate_Event_For_Each_Contact",
+                      e.target.checked
+                    )
+                  }
+                  disabled={isEditMode} // Disable the checkbox in edit mode
+                />
+              }
+              label="Create separate activity for each contact"
+            />
+          </Grid>
         <Grid size={12}>
           <AccountField
             formData={formData} // Use formData
@@ -675,7 +707,7 @@ const FirstComponent = ({
           </FormControl>
         </Grid>
         <Grid size={3}>
-          <FormControl fullWidth size="small" sx={commonStyles}>
+          <FormControl fullWidth size="small"  className="custom-select">
             <InputLabel>Priority</InputLabel>
             <Select
               label="Priority"
@@ -690,8 +722,8 @@ const FirstComponent = ({
           </FormControl>
         </Grid>
         {/* Reminder Dropdown */}
-        <Grid item xs={6}>
-          <FormControl fullWidth size="small">
+        <Grid size={3}>
+          <FormControl fullWidth size="small"  className="custom-select">
             <InputLabel>Ring Alarm</InputLabel>
             <Select
               label="Ring Alarm"
@@ -718,42 +750,6 @@ const FirstComponent = ({
             value={formData.Venue} // Use formData
             onChange={(e) => handleInputChange("Venue", e.target.value)}
           />
-        </Grid>
-        <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} sm={6} md={8}>
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={formData.Create_Separate_Event_For_Each_Contact}
-                  onChange={(e) =>
-                    handleInputChange(
-                      "Create_Separate_Event_For_Each_Contact",
-                      e.target.checked
-                    )
-                  }
-                  disabled={isEditMode} // Disable the checkbox in edit mode
-                />
-              }
-              label="Create separate activity for each contact"
-            />
-          </Grid>
-
-          <Grid item xs={6} sm={4} md={2} display="flex" alignItems="center">
-            <Typography variant="body1" sx={{ mr: 1 }}>
-              Colour:
-            </Typography>
-            <div style={colorBoxStyle} onClick={handleClick} />
-            {displayColorPicker && (
-              <div style={popover}>
-                <div style={cover} />
-                <CustomColorPicker
-                  recentColors={recentColors}
-                  handleClose={handleClose}
-                  handleColorChange={handleColorChange}
-                />
-              </div>
-            )}
-          </Grid>
         </Grid>
       </Grid>
     </Box>

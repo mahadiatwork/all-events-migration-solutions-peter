@@ -144,7 +144,7 @@ const CustomTableCell = ({
             ? "#FFFFFF"
             : row?.color || "black",
         fontSize: "9pt",
-        p: ".1rem",
+        p: ".2rem",
       }}
       {...props}
     >
@@ -228,7 +228,7 @@ const CustomRangeModal = ({ open, handleClose, setCustomDateRange }) => {
           bgcolor: "background.paper",
           borderRadius: 2,
           boxShadow: 24,
-          // p: 4,
+          p: 4,
         }}
       >
         <h2>Select Date Range</h2>
@@ -497,14 +497,43 @@ export default function ScheduleTable({
   return (
     <>
       {/* Filters */}
-      <Box sx={{ display: "flex", gap: "1rem", my: ".5rem" }}>
+      <Box
+        sx={{ display: "flex", gap: "1rem", my: "1rem", alignItems: "center" }}
+      >
         <FormControl fullWidth size="small">
-          <InputLabel>Date</InputLabel>
+          <InputLabel sx={{ fontSize: "9pt" }}>Date</InputLabel>
           <Select
             value={filterDate}
             onChange={handleDateFilterChange}
             label="Date"
             size="small"
+            renderValue={(selected) => (
+              <Box
+                sx={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: 0.5,
+                  fontSize: "9pt", // Set font size for selected text
+                }}
+              >
+                <Box>{selected}</Box>
+              </Box>
+            )}
+            sx={{
+              height: "30px", // Adjust height
+              "& .MuiSelect-select": {
+                fontSize: "9pt", // Ensure selected font size
+              },
+            }}
+            MenuProps={{
+              PaperProps: {
+                sx: {
+                  "& .MuiMenuItem-root": {
+                    fontSize: "9pt", // Adjust font size for dropdown options
+                  },
+                },
+              },
+            }}
           >
             {filterDateOptions.map((option, index) => (
               <MenuItem key={index} value={option.value}>
@@ -515,57 +544,150 @@ export default function ScheduleTable({
         </FormControl>
 
         <FormControl fullWidth size="small">
-          <InputLabel>Type</InputLabel>
+          <InputLabel sx={{ fontSize: "9pt" }}>Type</InputLabel>
           <Select
             multiple
             value={filterType}
             onChange={handleTypeChange}
             label="Type"
             size="small"
-            renderValue={(selected) => selected.join(", ")}
+            renderValue={(selected) => (
+              <Box
+                sx={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: 0.5,
+                  fontSize: "9pt", // Set font size for selected text
+                }}
+              >
+                {selected.map((value) => (
+                  <Box key={value}>{value}</Box>
+                ))}
+              </Box>
+            )}
+            sx={{
+              height: "30px", // Adjust height
+              "& .MuiSelect-select": {
+                fontSize: "9pt", // Ensure dropdown font matches
+              },
+            }}
+            MenuProps={{
+              PaperProps: {
+                sx: {
+                  "& .MuiMenuItem-root": {
+                    fontSize: "9pt", // Adjust font size for options
+                  },
+                },
+              },
+            }}
           >
             {typeOptions.map((type) => (
               <MenuItem key={type} value={type}>
-                <Checkbox checked={filterType.indexOf(type) > -1} />
-                <ListItemText primary={type} />
+                <Checkbox
+                  checked={filterType.indexOf(type) > -1}
+                  sx={{ height: "20px" }}
+                />
+                {type}
               </MenuItem>
             ))}
           </Select>
         </FormControl>
 
         <FormControl fullWidth size="small">
-          <InputLabel>Priority</InputLabel>
+          <InputLabel sx={{ fontSize: "9pt" }}>Priority</InputLabel>
           <Select
             multiple
             value={filterPriority}
             onChange={handlePriorityChange}
             label="Priority"
             size="small"
-            renderValue={(selected) => selected.join(", ")}
+            renderValue={(selected) => (
+              <Box
+                sx={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: 0.5,
+                  fontSize: "9pt", // Set font size for selected text
+                }}
+              >
+                {selected.map((value) => (
+                  <Box key={value}>{value}</Box>
+                ))}
+              </Box>
+            )}
+            sx={{
+              height: "30px", // Adjust height
+              "& .MuiSelect-select": {
+                fontSize: "9pt", // Ensure selected font size
+              },
+            }}
+            MenuProps={{
+              PaperProps: {
+                sx: {
+                  "& .MuiMenuItem-root": {
+                    fontSize: "9pt", // Adjust font size for dropdown options
+                  },
+                },
+              },
+            }}
           >
             {priorityOptions.map((priority) => (
               <MenuItem key={priority} value={priority}>
-                <Checkbox checked={filterPriority.indexOf(priority) > -1} />
-                <ListItemText primary={priority} />
+                <Checkbox
+                  checked={filterPriority.indexOf(priority) > -1}
+                  sx={{ height: "20px" }} // Adjust checkbox height
+                />
+                {priority}
               </MenuItem>
             ))}
           </Select>
         </FormControl>
 
         <FormControl fullWidth size="small">
-          <InputLabel>User</InputLabel>
+          <InputLabel sx={{ fontSize: "9pt" }}>User</InputLabel>
           <Select
             multiple
             value={filterUser}
             onChange={handleUserChange}
             label="User"
             size="small"
-            renderValue={(selected) => selected.join(", ")}
+            renderValue={(selected) => (
+              <Box
+                sx={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: 0.5,
+                  fontSize: "9pt", // Set font size for selected text
+                }}
+              >
+                {selected.map((value) => (
+                  <Box key={value}>{value}</Box>
+                ))}
+              </Box>
+            )}
+            sx={{
+              height: "30px", // Adjust height
+              "& .MuiSelect-select": {
+                fontSize: "9pt", // Ensure selected font size
+              },
+            }}
+            MenuProps={{
+              PaperProps: {
+                sx: {
+                  "& .MuiMenuItem-root": {
+                    fontSize: "9pt", // Adjust font size for dropdown options
+                  },
+                },
+              },
+            }}
           >
             {users.map((user) => (
               <MenuItem key={user.id} value={user.full_name}>
-                <Checkbox checked={filterUser.indexOf(user.full_name) > -1} />
-                <ListItemText primary={user.full_name} />
+                <Checkbox
+                  checked={filterUser.indexOf(user.full_name) > -1}
+                  size="small" // Adjust checkbox size
+                />
+                {user.full_name}
               </MenuItem>
             ))}
           </Select>
@@ -577,6 +699,7 @@ export default function ScheduleTable({
           onClick={handleClearFilters}
           color="secondary"
           size="small" // Reduced button size
+          sx={{ height: "30px" }} // Adjust height
         >
           Clear filter
         </Button>
@@ -590,6 +713,11 @@ export default function ScheduleTable({
             />
           }
           label="Cleared"
+          sx={{
+            "& .MuiFormControlLabel-label": {
+              fontSize: "9pt", // Change label text size
+            },
+          }}
         />
 
         <Button
@@ -597,6 +725,7 @@ export default function ScheduleTable({
           fullWidth
           onClick={() => setOpenCreateModal(true)}
           size="small" // Reduced button size
+          sx={{ height: "30px" }} // Adjust height
         >
           Create New Event
         </Button>
@@ -625,8 +754,9 @@ export default function ScheduleTable({
                       bgcolor: "#efefef",
                       fontWeight: "bold",
                       fontSize: "9pt",
-                      p: el.id === "select" ? "" : ".6rem",
+                      // p: el.id === "select" ? "" : ".6rem",
                       cursor: "pointer",
+                      p: ".2rem",
                     }}
                   >
                     {noSort.includes(el.id) ? (
@@ -670,7 +800,7 @@ export default function ScheduleTable({
                         ? "#0072DC"
                         : index % 2 === 0
                         ? "white"
-                        : "#f9f9f9",
+                        : "#efefef",
                     color:
                       highlightedRow === row.id ||
                       (selectedRowIndex === row.id && openClearModal)
@@ -680,7 +810,7 @@ export default function ScheduleTable({
                     textDecoration:
                       row.Event_Status === "Closed" ? "line-through" : "none",
                     cursor: "pointer",
-                    py: 0
+                    py: 0,
                   }}
                   onClick={() => handleRowClick(row)}
                   onDoubleClick={() => handleRowDoubleClick(row)}
@@ -688,6 +818,7 @@ export default function ScheduleTable({
                   <TableCell
                     padding="checkbox"
                     onClick={(e) => e.stopPropagation()}
+                    sx={{ paddingY: 0 }}
                   >
                     <Checkbox
                       checked={selectedRowIndex === index && openClearModal}
@@ -749,7 +880,7 @@ export default function ScheduleTable({
                   >
                     {row.scheduledFor}
                   </CustomTableCell>
-                  <TableCell sx={{ fontSize: "9pt" }}>
+                  <TableCell sx={{ fontSize: "9pt", py: 0 }}>
                     {row.participants.length > 0
                       ? row.participants.map((participant, i) => (
                           <React.Fragment key={i}>

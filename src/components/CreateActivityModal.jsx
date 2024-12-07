@@ -20,9 +20,8 @@ import CloseIcon from "@mui/icons-material/Close";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
-dayjs.extend(utc);  
+dayjs.extend(utc);
 dayjs.extend(timezone);
-
 
 // Helper function to format date with timezone offset
 function formatDateForRemindAt(date) {
@@ -55,7 +54,7 @@ function calculateRemindAt(reminderText, startDateTime) {
   // Calculate the amount of time to subtract based on Reminder_Text
   switch (reminderText) {
     case "At time of meeting":
-      startDate.setMinutes(startDate.getMinutes());; // No change
+      startDate.setMinutes(startDate.getMinutes()); // No change
       break;
     case "5 minutes before":
       startDate.setMinutes(startDate.getMinutes() - 5);
@@ -115,7 +114,6 @@ function formatDateWithOffset(dateString) {
   return `${formattedYear}-${formattedMonth}-${formattedDay}T${formattedHours}:${formattedMinutes}:${formattedSeconds}${offsetSign}${offsetHours}:${offsetMinutes}`;
 }
 
-
 function transformFormSubmission(data, individualParticipant = null) {
   const transformScheduleWithToParticipants = (scheduleWith) => {
     return scheduleWith.map((contact) => ({
@@ -139,19 +137,19 @@ function transformFormSubmission(data, individualParticipant = null) {
       ]
     : transformScheduleWithToParticipants(data.scheduledWith || []);
 
-    const dayOfMonth = dayjs(data?.startTime).date();
-    const dayName = dayjs(data?.startTime).format("dd");
-    const monthNumber = dayjs(data?.startTime).format("MM");
-    const customEndTime =
-      data.noEndDate && data.occurrence === "daily"
-        ? dayjs(data?.startTime).add(70, "day").format("YYYY-MM-DD")
-        : data?.noEndDate && data?.occurrence === "weekly"
-        ? dayjs(data?.startTime).add(10, "month").format("YYYY-MM-DD")
-        : data?.noEndDate && data?.occurrence === "monthly"
-        ? dayjs(data?.startTime).add(12, "month").format("YYYY-MM-DD")
-        : data?.noEndDate && data?.occurrence === "yearly"
-        ? dayjs(data?.startTime).add(2, "year").format("YYYY-MM-DD")
-        : dayjs(data?.endTime).format("YYYY-MM-DD");
+  const dayOfMonth = dayjs(data?.startTime).date();
+  const dayName = dayjs(data?.startTime).format("dd");
+  const monthNumber = dayjs(data?.startTime).format("MM");
+  const customEndTime =
+    data.noEndDate && data.occurrence === "daily"
+      ? dayjs(data?.startTime).add(70, "day").format("YYYY-MM-DD")
+      : data?.noEndDate && data?.occurrence === "weekly"
+      ? dayjs(data?.startTime).add(10, "month").format("YYYY-MM-DD")
+      : data?.noEndDate && data?.occurrence === "monthly"
+      ? dayjs(data?.startTime).add(12, "month").format("YYYY-MM-DD")
+      : data?.noEndDate && data?.occurrence === "yearly"
+      ? dayjs(data?.startTime).add(2, "year").format("YYYY-MM-DD")
+      : dayjs(data?.endTime).format("YYYY-MM-DD");
 
   let transformedData = {
     ...data,
@@ -196,14 +194,18 @@ function transformFormSubmission(data, individualParticipant = null) {
     );
     transformedData["Remind_At"] = remindAt;
     transformedData["$send_notification"] = true;
-  }else{
-    console.log({Reminder_Text: data?.Reminder_Text})
-    delete transformedData["Remind_Participants"];   
+  } else {
+    console.log({ Reminder_Text: data?.Reminder_Text });
+    delete transformedData["Remind_Participants"];
   }
 
-  console.log({recurring: transformedData.Recurring_Activity})
+  console.log({ recurring: transformedData.Recurring_Activity });
 
-  if (transformedData.Remind_At == null || transformedData.Remind_At == "Invalid Date" || transformedData.Remind_At == "") {
+  if (
+    transformedData.Remind_At == null ||
+    transformedData.Remind_At == "Invalid Date" ||
+    transformedData.Remind_At == ""
+  ) {
     delete transformedData.Remind_At;
   }
 
@@ -219,7 +221,7 @@ function transformFormSubmission(data, individualParticipant = null) {
     "Create_Separate_Event_For_Each_Contact",
     "start",
     "end",
-    "duration"
+    "duration",
   ];
   keysToRemove.forEach((key) => delete transformedData[key]);
 
@@ -255,7 +257,7 @@ const CreateActivityModal = ({
   loggedInUser,
   setEvents,
   setSelectedRowIndex,
-  setHighlightedRow
+  setHighlightedRow,
 }) => {
   const theme = useTheme();
   const [value, setValue] = useState(0);
@@ -282,7 +284,7 @@ const CreateActivityModal = ({
     Duration_Min: 60,
     Create_Separate_Event_For_Each_Contact: false,
     Reminder_Text: "15 minutes before",
-    Remind_Participants: [{period: 'minutes', unit: 15}],
+    Remind_Participants: [{ period: "minutes", unit: 15 }],
   });
 
   const isFormValid = () => {
@@ -295,7 +297,7 @@ const CreateActivityModal = ({
       scheduledWith, // scheduledWith instead of Participants
     } = formData;
 
-    console.log({formData})
+    console.log({ formData });
 
     // Ensure all required fields are not empty or null
     return (
@@ -358,15 +360,19 @@ const CreateActivityModal = ({
             APIData: transformedData,
             Trigger: ["workflow"],
           });
-  
-          if (data.data && data.data.length > 0 && data.data[0].code === "SUCCESS") {
+
+          if (
+            data.data &&
+            data.data.length > 0 &&
+            data.data[0].code === "SUCCESS"
+          ) {
             const createdEvent = data.data[0].details;
             setEvents((prev) => [
               { ...transformedData, id: data?.data[0].details?.id },
               ...prev,
             ]);
-            setSelectedRowIndex(data?.data[0].details?.id)
-            setHighlightedRow(data?.data[0].details?.id)
+            setSelectedRowIndex(data?.data[0].details?.id);
+            setHighlightedRow(data?.data[0].details?.id);
             setSnackbarSeverity("success");
             setSnackbarMessage("Event Created Successfully");
             setSnackbarOpen(true);
@@ -382,7 +388,7 @@ const CreateActivityModal = ({
         }
         setTimeout(() => {
           // window.location.reload();
-          handleClose() 
+          handleClose();
         }, 1000);
       }
     } else {
@@ -394,21 +400,25 @@ const CreateActivityModal = ({
           APIData: transformedData,
           Trigger: ["workflow"],
         });
-  
-        if (data.data && data.data.length > 0 && data.data[0].code === "SUCCESS") {
+
+        if (
+          data.data &&
+          data.data.length > 0 &&
+          data.data[0].code === "SUCCESS"
+        ) {
           const createdEvent = data.data[0].details;
           setEvents((prev) => [
             { ...transformedData, id: data?.data[0].details?.id },
             ...prev,
           ]);
-          setSelectedRowIndex(data?.data[0].details?.id)
-            setHighlightedRow(data?.data[0].details?.id)
+          setSelectedRowIndex(data?.data[0].details?.id);
+          setHighlightedRow(data?.data[0].details?.id);
           setSnackbarSeverity("success");
           setSnackbarMessage("Event Created Successfully");
           setSnackbarOpen(true);
           setTimeout(() => {
-            // window.location.reload(); 
-            handleClose()
+            // window.location.reload();
+            handleClose();
           }, 1000);
         } else {
           throw new Error("Failed to create event");
@@ -420,20 +430,19 @@ const CreateActivityModal = ({
         setSnackbarOpen(true);
       }
     }
-  
+
     setIsSubmitting(false);
   };
-  
+
   // Validate form data whenever it changes
   React.useEffect(() => {
     const data = isFormValid();
-    console.log({isFormValid: data})
+    console.log({ isFormValid: data });
     // setIsSubmitEnabled(isFormValid());
   }, [formData]); // Effect runs whenever formData changes
 
+  console.log("mahadi", formData);
 
-  console.log("mahadi", formData)
-  
   return (
     <Box
       sx={{
@@ -449,139 +458,165 @@ const CreateActivityModal = ({
         overflowY: "auto",
         maxHeight: "90vh", // Ensure the modal is scrollable if content exceeds the viewport
         zIndex: 100,
-        p: 3,
+        p: "15px 30px  20px 30px",
       }}
     >
-      <Box display="flex" justifyContent="space-between" mb={2}>
-        <Typography variant="h6">Create Activity</Typography>
-
-        {/* Replacing IconButton with Cancel Button */}
+      <Box display="flex" justifyContent="space-between" sx={{ padding: 0 }}>
+        <Typography
+          variant="subtitle1"
+          sx={{ fontWeight: "bold" }}
+          align="center"
+        >
+          Create Activity
+        </Typography>
         <Button
           variant="outlined"
           color="error"
+          size="small"
           onClick={handleClose}
           endIcon={<CloseIcon />}
         >
           Cancel
         </Button>
       </Box>
-      <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
+      <Box>
         <Tabs
           value={value}
           onChange={handleChange}
           textColor="inherit"
           aria-label="simple tabs example"
+          size="small"
         >
-          <Tab label="General" />
-          <Tab label="Details" />
-          <Tab label="Recurrence" />
+          <Tab label="General" sx={{ fontSize: "9pt" }} />
+          <Tab label="Details" sx={{ fontSize: "9pt" }} />
+          <Tab label="Recurrence" sx={{ fontSize: "9pt" }} />
         </Tabs>
       </Box>
-      <TabPanel value={value} index={0}>
-        <FirstComponent
-          formData={formData}
-          handleInputChange={handleInputChange}
-          users={users}
-          ZOHO={ZOHO}
-        />
-        <Box display="flex" justifyContent="space-between" mt={2}>
-          {/* First button aligned to the left */}
-          <Button size="small" disabled>
-            Back
-          </Button>
-
-          {/* Wrapper for the other two buttons aligned to the right */}
-          <Box display="flex" gap={1}>
-            <Button
-              size="small"
-              variant="contained"
-              color="secondary"
-              onClick={handleSubmit}
-              disabled={!isFormValid()} // Disable button if form is not valid
-            >
-              Ok
+      {value === 0 && (
+        <Box sx={{ p: 0, borderRadius: 1 }}>
+          <FirstComponent
+            formData={formData}
+            handleInputChange={handleInputChange}
+            users={users}
+            ZOHO={ZOHO}
+          />
+          <Box display="flex" justifyContent="space-between" mt={2}>
+            <Button size="small" disabled>
+              Back
             </Button>
+            <Box display="flex" gap={1}>
+              <Button
+                size="small"
+                variant="contained"
+                color="secondary"
+                onClick={handleSubmit}
+                disabled={!isFormValid()} // Disable button if form is not valid
+              >
+                Ok
+              </Button>
+              <Button
+                size="small"
+                variant="contained"
+                color="primary"
+                onClick={handleNext}
+              >
+                Next
+              </Button>
+            </Box>
+          </Box>
+        </Box>
+      )}
+
+      {value === 1 && (
+        <Box sx={{ p: 1, borderRadius: 1 }}>
+          {/* <Typography variant="h6" sx={{ fontSize: "9pt" }}>
+            Description
+          </Typography> */}
+          <TextField
+            multiline
+            rows={10}
+            fullWidth
+            value={formData.Description}
+            onChange={(event) =>
+              handleInputChange("Description", event.target.value)
+            }
+            sx={{
+              "& .MuiInputBase-input": {
+                fontSize: "9pt",
+              },
+            }}
+          />
+          <Box display="flex" justifyContent="space-between" mt={2}>
             <Button
               size="small"
               variant="contained"
               color="primary"
-              onClick={handleNext}
+              onClick={handleBack}
             >
-              Next
+              Back
             </Button>
+            <Box display="flex" gap={1} alignItems="center">
+              <Button
+                size="small"
+                variant="contained"
+                color="secondary"
+                onClick={handleSubmit}
+                disabled={!isFormValid() || isSubmitting} // Disable button when submitting
+              >
+                Ok
+              </Button>
+              {isSubmitting && <CircularProgress size={24} />} {/* Loader */}
+              <Button
+                size="small"
+                variant="contained"
+                color="primary"
+                onClick={handleNext}
+              >
+                Next
+              </Button>
+            </Box>
           </Box>
         </Box>
-      </TabPanel>
-      <TabPanel value={value} index={1}>
-        <Typography variant="h6">Description</Typography>
-        <TextField
-          multiline
-          rows={10}
-          fullWidth
-          value={formData.Description}
-          onChange={(event) =>
-            handleInputChange("Description", event.target.value)
-          }
-        />
-        <Box display="flex" justifyContent="space-between" mt={2}>
-          {/* First button aligned to the left */}
-          <Button
-            size="small"
-            variant="contained"
-            color="primary"
-            onClick={handleBack}
-          >
-            Back
-          </Button>
+      )}
 
-          <Box display="flex" gap={1} alignItems="center">
-            {/* Conditionally render CircularProgress next to the "Ok" button */}
-            <Button
-              size="small"
-              variant="contained"
-              color="secondary"
-              onClick={handleSubmit}
-              disabled={!isFormValid() || isSubmitting} // Disable button when submitting
-            >
-              Ok
-            </Button>
-            {isSubmitting && <CircularProgress size={24} />} {/* Loader */}
+      {value === 2 && (
+        <Box sx={{ p: 2, borderRadius: 1 }}>
+          <ThirdComponent
+            formData={formData}
+            handleInputChange={handleInputChange}
+          />
+          <Box display="flex" justifyContent="space-between" mt={2}>
             <Button
               size="small"
               variant="contained"
               color="primary"
-              onClick={() => setValue((prev) => prev + 1)}
+              onClick={handleBack}
             >
-              Next
+              Back
             </Button>
+            <Box display="flex" gap={1}>
+              <Button
+                size="small"
+                variant="contained"
+                color="secondary"
+                onClick={handleSubmit}
+                disabled={!isFormValid()} // Disable button if form is not valid
+              >
+                Ok
+              </Button>
+              <Button
+                size="small"
+                variant="contained"
+                color="primary"
+                onClick={handleNext}
+              >
+                Next
+              </Button>
+            </Box>
           </Box>
         </Box>
-      </TabPanel>
-      <TabPanel value={value} index={2}>
-        <ThirdComponent
-          formData={formData}
-          handleInputChange={handleInputChange}
-        />
-        <Box display="flex" justifyContent="space-between" mt={2}>
-          <Button
-            size="small"
-            variant="contained"
-            color="primary"
-            onClick={handleBack}
-          >
-            Back
-          </Button>
-          <Button
-            size="small"
-            variant="contained"
-            color="secondary"
-            onClick={handleSubmit}
-            // disabled={!isFormValid()} // Disable button if form is not valid
-          >
-            Ok
-          </Button>
-        </Box>
-      </TabPanel>
+      )}
+
       <Snackbar
         open={isSnackbarOpen}
         autoHideDuration={6000}
