@@ -210,11 +210,14 @@ function transformFormSubmission(data, individualParticipant = null) {
   }
 
   if (
-    transformedData.Recurring_Activity.RRULE ===
-    "FREQ=ONCE;INTERVAL=1;UNTIL=Invalid Date;DTSTART=Invalid Date"
+    transformedData.Recurring_Activity &&
+    transformedData.Recurring_Activity.RRULE &&
+    (transformedData.Recurring_Activity.RRULE.includes("undefined") ||
+      transformedData.Recurring_Activity.RRULE.includes("Invalid Date"))
   ) {
     delete transformedData.Recurring_Activity;
   }
+
   const keysToRemove = [
     "scheduledWith",
     "description",
