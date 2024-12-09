@@ -19,19 +19,18 @@ function App() {
   const [recentColors, setRecentColor] = useState(""); // Move this to context
   const [loggedInUser, setLoggedInUser] = useState(null);
   const [entityId, setEntityId] = useState(null);
-  const [currentContact, setCurrentContact] = useState(null)
+  const [currentContact, setCurrentContact] = useState(null);
 
   useEffect(() => {
-
     ZOHO.embeddedApp.on("PageLoad", async function (data) {
-      setEntityId(data.EntityId)
-    })
+      setEntityId(data.EntityId);
+    });
     // Initialize Zoho Embedded App once
     ZOHO.embeddedApp.init().then(() => {
       setZohoLoaded(true);
       // Fetch the logged-in user
       ZOHO.CRM.CONFIG.getCurrentUser().then(function (data) {
-        console.log({data})
+        console.log({ data });
         setLoggedInUser(data?.users[0]);
       });
     });
@@ -88,7 +87,7 @@ function App() {
             closeDate1 = new Date(); // Up to current date
           }
 
-          console.log({entityIdbeforeFetching: entityId})
+          console.log({ entityIdbeforeFetching: entityId });
           // Fetch all meetings
           const allMeetings = await ZOHO.CRM.API.getRelatedRecords({
             Entity: "Contacts",
@@ -104,10 +103,12 @@ function App() {
           setEvents(allMeetingsData);
 
           const fetchCurrentContact = await ZOHO.CRM.API.getRecord({
-            Entity: "Contacts", approved: "both", RecordID: entityId
-           });
+            Entity: "Contacts",
+            approved: "both",
+            RecordID: entityId,
+          });
 
-           setCurrentContact(fetchCurrentContact.data[0])
+          setCurrentContact(fetchCurrentContact.data[0]);
 
           // Get organization variable
           await ZOHO.CRM.API.getOrgVariable("recent_colors").then(function (
@@ -137,7 +138,6 @@ function App() {
 
     getData();
   }, [zohoLoaded, filterDate, cache]);
-
 
   return (
     <ZohoContext.Provider

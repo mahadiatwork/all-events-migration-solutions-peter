@@ -210,11 +210,14 @@ function transformFormSubmission(data, individualParticipant = null) {
   }
 
   if (
-    transformedData.Recurring_Activity.RRULE ===
-    "FREQ=ONCE;INTERVAL=1;UNTIL=Invalid Date;DTSTART=Invalid Date"
+    transformedData.Recurring_Activity &&
+    transformedData.Recurring_Activity.RRULE &&
+    (transformedData.Recurring_Activity.RRULE.includes("undefined") ||
+      transformedData.Recurring_Activity.RRULE.includes("Invalid Date"))
   ) {
     delete transformedData.Recurring_Activity;
   }
+
   const keysToRemove = [
     "scheduledWith",
     "description",
@@ -258,6 +261,7 @@ const CreateActivityModal = ({
   setEvents,
   setSelectedRowIndex,
   setHighlightedRow,
+  currentContact,
 }) => {
   const theme = useTheme();
   const [value, setValue] = useState(0);
@@ -297,7 +301,7 @@ const CreateActivityModal = ({
       scheduledWith, // scheduledWith instead of Participants
     } = formData;
 
-    console.log({ formData });
+    // console.log({ formData });
 
     // Ensure all required fields are not empty or null
     return (
@@ -435,13 +439,13 @@ const CreateActivityModal = ({
   };
 
   // Validate form data whenever it changes
-  React.useEffect(() => {
-    const data = isFormValid();
-    console.log({ isFormValid: data });
-    // setIsSubmitEnabled(isFormValid());
-  }, [formData]); // Effect runs whenever formData changes
+  // React.useEffect(() => {
+  //   const data = isFormValid();
+  //   console.log({ isFormValid: data });
+  //   // setIsSubmitEnabled(isFormValid());
+  // }, [formData]); // Effect runs whenever formData changes
 
-  console.log("mahadi", formData);
+  // console.log("mahadi", formData);
 
   return (
     <Box
@@ -499,6 +503,7 @@ const CreateActivityModal = ({
             handleInputChange={handleInputChange}
             users={users}
             ZOHO={ZOHO}
+            currentContact={currentContact}
           />
           <Box display="flex" justifyContent="space-between" mt={2}>
             <Button size="small" disabled>

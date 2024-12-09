@@ -281,6 +281,7 @@ export default function ScheduleTable({
   setEvents,
   customDateRange,
   setCustomDateRange,
+  currentContact
 }) {
   const [selectedRowIndex, setSelectedRowIndex] = React.useState(null);
   const [highlightedRow, setHighlightedRow] = React.useState(null);
@@ -969,6 +970,7 @@ export default function ScheduleTable({
           setEvents={setEvents}
           setSelectedRowIndex={setSelectedRowIndex}
           setHighlightedRow={setHighlightedRow}
+          currentContact={currentContact}
         />
       )}
 

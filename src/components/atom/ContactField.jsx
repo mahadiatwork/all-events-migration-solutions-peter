@@ -21,6 +21,7 @@ export default function ContactField({
   handleInputChange,
   ZOHO,
   selectedRowData = {}, // Default to an empty object
+  currentContact,
 }) {
   const [contacts, setContacts] = useState([]);
   const [selectedParticipants, setSelectedParticipants] = useState([]);
@@ -37,6 +38,51 @@ export default function ContactField({
     "& .MuiTypography-root": { fontSize: "9pt" }, // Typography text
     "& .MuiFormLabel-root": { fontSize: "9pt" }, // Form labels
   };
+
+  useEffect(() => {
+    const initializeCurrentContact = async () => {
+      if (currentContact && ZOHO) {
+        try {
+          const contactDetails = await ZOHO.CRM.API.getRecord({
+            Entity: "Contacts",
+            RecordID: currentContact.id,
+          });
+
+          if (contactDetails.data && contactDetails.data.length > 0) {
+            const contact = contactDetails.data[0];
+            const formattedContact = {
+              id: contact.id,
+              First_Name: contact.First_Name || "N/A",
+              Last_Name: contact.Last_Name || "N/A",
+              Email: contact.Email || "No Email",
+              Mobile: contact.Mobile || "N/A",
+              Full_Name: `${contact.First_Name || "N/A"} ${
+                contact.Last_Name || "N/A"
+              }`,
+              ID_Number: contact.ID_Number || "N/A",
+            };
+
+            // Set as the initial participant
+            setSelectedParticipants([formattedContact]);
+
+            // Trigger handleInputChange with the autopopulated contact
+            handleInputChange("scheduledWith", [
+              {
+                Full_Name: formattedContact.Full_Name,
+                Email: formattedContact.Email,
+                participant: formattedContact.id,
+                type: "contact",
+              },
+            ]);
+          }
+        } catch (error) {
+          console.error("Error fetching current contact details:", error);
+        }
+      }
+    };
+
+    initializeCurrentContact();
+  }, [currentContact, handleInputChange]);
 
   useEffect(() => {
     const fetchParticipantsDetails = async () => {
@@ -87,7 +133,7 @@ export default function ContactField({
     };
 
     fetchParticipantsDetails();
-  }, [selectedRowData, ZOHO]);
+  }, [selectedRowData]);
 
   const handleOpen = () => {
     setFilteredContacts([]);

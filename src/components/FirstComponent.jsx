@@ -110,6 +110,7 @@ const FirstComponent = ({
   selectedRowData,
   ZOHO,
   isEditMode, // New prop to check if it's edit mode
+  currentContact
 }) => {
   const { events, filterDate, setFilterDate, recentColors, setRecentColor } =
     useContext(ZohoContext);
@@ -117,18 +118,6 @@ const FirstComponent = ({
   const [sendReminders, setSendReminders] = useState(true); // Initially, reminders are enabled
   const [reminderMinutes, setReminderMinutes] = useState(15);
 
-  // useEffect(() => {
-  //   // Initialize Remind_Participants and Reminder_Text
-  // if (
-  //   !formData.Remind_Participants ||
-  //   formData.Remind_Participants.length === 0
-  // ) {
-  //   handleInputChange("Remind_Participants", [
-  //     { period: "minutes", unit: 15 },
-  //   ]);
-  //   handleInputChange("Reminder_Text", "15 minutes before");
-  // }
-  // }, [formData.Remind_Participants, handleInputChange]);
 
   const [activityType] = useState([
     { type: "Meeting", resource: 1 },
@@ -411,14 +400,8 @@ const FirstComponent = ({
     const getDiffInMinutes = getTimeDifference(e.$d);
     handleInputChange("Duration_Min", getDiffInMinutes);
     console.log({ getDiffInMinutes });
-    // if (formData.end ) {
-    //   console.log('hello')
-    // }
   };
 
-  //  const [selectedParticipants, setSelectedParticipants] = useState(
-  //   selectedRowData?.Participants || []
-  // ); // Selected values in autocomplete
 
   const handleCheckboxChange = (field) => {
     if (field === "$send_notification") {
@@ -618,6 +601,7 @@ const FirstComponent = ({
             handleInputChange={handleInputChange}
             ZOHO={ZOHO}
             selectedRowData={selectedRowData}
+            currentContact={currentContact}
           />
         </Grid>
         <Grid item xs={6} sx={{ margin: "-13.6px 0px" }}>
