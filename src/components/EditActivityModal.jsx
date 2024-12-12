@@ -319,25 +319,30 @@ const EditActivityModal = ({
         fontSize: "9pt", // Set the font size to 9pt
       }}
     >
-      <Box display="flex" justifyContent="space-between" mb={2}>
-        <Typography
-          variant="subtitle1"
-          sx={{ fontWeight: "bold" }}
-          align="center"
-        >
-          Edit Activity
-        </Typography>
+ <Box display="flex" justifyContent="space-between" mb={2}>
+  <Typography
+    variant="subtitle1"
+    sx={{ fontWeight: "bold" }}
+    align="center"
+  >
+    Edit Activity
+    {selectedRowData?.Participants?.length > 0 &&
+      ` (${selectedRowData.Participants
+        .map((participant) => participant.name) // Use 'name' instead of 'Full_Name'
+        .join(", ")})`}
+  </Typography>
 
-        {/* Replacing IconButton with Cancel Button */}
-        <Button
-          variant="outlined"
-          color="error"
-          onClick={handleClose}
-          endIcon={<CloseIcon />}
-        >
-          Cancel
-        </Button>
-      </Box>
+  {/* Replacing IconButton with Cancel Button */}
+  <Button
+    variant="outlined"
+    color="error"
+    onClick={handleClose}
+    endIcon={<CloseIcon />}
+  >
+    Cancel
+  </Button>
+</Box>
+
       <Box>
         <Tabs
           value={value}
