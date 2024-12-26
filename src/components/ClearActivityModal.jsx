@@ -59,9 +59,6 @@ const getResultBasedOnActivityType = (activityType) => {
   }
 };
 
-
-
-
 export default function ClearActivityModal({
   open,
   handleClose,
@@ -88,7 +85,7 @@ export default function ClearActivityModal({
   const [clearChecked, setClearChecked] = React.useState(
     selectedRowData?.Event_Status === "Closed" // true if the event is closed, false if open
   );
-  
+
   const [eraseChecked, setEraseChecked] = React.useState(false);
   const [activityDetails, setActivityDetails] = React.useState(
     selectedRowData?.Description || ""
@@ -102,19 +99,16 @@ export default function ClearActivityModal({
     setEraseChecked(false); // Uncheck the "Erase" checkbox when "Clear" is checked
     setResult(getResultBasedOnActivityType(selectedRowData.Type_of_Activity));
   };
-  
-  
-  
+
   const handleEraseChange = (event) => {
     setEraseChecked(event.target.checked);
     setClearChecked(false);
     setResult(getResultBasedOnActivityType(selectedRowData.Type_of_Activity));
   };
-  
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-  
+
     try {
       // Helper to create history if required
       const createHistory = async () => {
@@ -134,13 +128,13 @@ export default function ClearActivityModal({
           History_Details_Plain: activityDetails,
           History_Result: result,
         };
-  
+
         const historyResponse = await ZOHO.CRM.API.insertRecord({
           Entity: "History1",
           APIData: recordData,
           Trigger: ["workflow"],
         });
-  
+
         if (historyResponse.data[0].code === "SUCCESS") {
           setSnackbarMessage(
             `${
@@ -148,7 +142,7 @@ export default function ClearActivityModal({
             } and history created successfully!`
           );
           const historyRecordId = historyResponse.data[0].details.id;
-  
+
           // Insert Participants for History
           if (selectedRowData.Participants.length > 0) {
             const participantInsertPromises =
@@ -159,14 +153,14 @@ export default function ClearActivityModal({
                   Contact_Details: { id: participant.participant },
                   Contact_History_Info: { id: historyRecordId },
                 };
-  
+
                 return await ZOHO.CRM.API.insertRecord({
                   Entity: "History_X_Contacts",
                   APIData: participantData,
                   Trigger: ["workflow"],
                 });
               });
-  
+
             await Promise.all(participantInsertPromises);
           }
           return true;
@@ -177,7 +171,7 @@ export default function ClearActivityModal({
           return false;
         }
       };
-  
+
       // Handle "Clear" checked and "Erase" unchecked (mark as closed)
       if (clearChecked && !eraseChecked) {
         const updateResponse = await ZOHO.CRM.API.updateRecord({
@@ -189,12 +183,12 @@ export default function ClearActivityModal({
             result: result,
           },
         });
-  
+
         if (updateResponse.data[0].code === "SUCCESS") {
           setSnackbarMessage("Event marked as cleared successfully!");
           setSnackbarSeverity("success");
           setSnackbarOpen(true);
-  
+
           // Update events in state
           setEvents((prevEvents) =>
             prevEvents.map((event) =>
@@ -203,7 +197,7 @@ export default function ClearActivityModal({
                 : event
             )
           );
-  
+
           if (addActivityToHistory) {
             await createHistory();
           }
@@ -211,7 +205,7 @@ export default function ClearActivityModal({
           throw new Error("Failed to update the event.");
         }
       }
-  
+
       // Handle "Clear" unchecked and "Erase" unchecked (mark as open)
       if (!clearChecked && !eraseChecked) {
         const updateResponse = await ZOHO.CRM.API.updateRecord({
@@ -222,12 +216,12 @@ export default function ClearActivityModal({
             Event_Status: "Open",
           },
         });
-  
+
         if (updateResponse.data[0].code === "SUCCESS") {
           setSnackbarMessage("Event status updated to Open.");
           setSnackbarSeverity("success");
           setSnackbarOpen(true);
-  
+
           // Update events in state
           setEvents((prevEvents) =>
             prevEvents.map((event) =>
@@ -240,24 +234,24 @@ export default function ClearActivityModal({
           throw new Error("Failed to update the event status.");
         }
       }
-  
+
       // Handle "Erase" checked (delete the event)
       if (!clearChecked && eraseChecked) {
         const deleteResponse = await ZOHO.CRM.API.deleteRecord({
           Entity: "Events",
           RecordID: selectedRowData?.id,
         });
-  
+
         if (deleteResponse.data[0].code === "SUCCESS") {
           setSnackbarMessage("Event erased successfully!");
           setSnackbarSeverity("success");
           setSnackbarOpen(true);
-  
+
           // Remove the event from the events state
           setEvents((prevEvents) =>
             prevEvents.filter((event) => event.id !== selectedRowData?.id)
           );
-  
+
           if (addActivityToHistory) {
             await createHistory();
           }
@@ -265,7 +259,7 @@ export default function ClearActivityModal({
           throw new Error("Failed to delete the event.");
         }
       }
-  
+
       setTimeout(() => {
         handleClose(); // Close modal or any UI related to submission
       }, 1000);
@@ -276,20 +270,19 @@ export default function ClearActivityModal({
       setSnackbarOpen(true);
     }
   };
-  
-  
 
   const handleActivityDetailsChange = (e) => {
     setActivityDetails(e.target.value);
   };
 
-  const isUpdateDisabled = (
-    (selectedRowData?.Event_Status === null && !clearChecked && !eraseChecked) || 
+  const isUpdateDisabled =
+    (selectedRowData?.Event_Status === null &&
+      !clearChecked &&
+      !eraseChecked) ||
     (selectedRowData?.Event_Status === "Closed" && clearChecked) ||
-    (selectedRowData?.Event_Status === "Open" && !clearChecked)
-  );
+    (selectedRowData?.Event_Status === "Open" && !clearChecked);
 
-  console.log({mahadi: selectedRowData?.Event_Status , clearChecked})
+  console.log({ mahadi: selectedRowData?.Event_Status, clearChecked });
 
   return (
     <>
@@ -303,6 +296,30 @@ export default function ClearActivityModal({
             padding: "20px",
             borderRadius: "10px",
             maxWidth: "600px",
+            "& .MuiTextField-root, & .MuiFormControl-root": {
+              fontSize: "9pt",
+            },
+            "& .MuiInputBase-root": {
+              fontSize: "9pt",
+            },
+            "& .MuiFormLabel-root": {
+              fontSize: "9pt",
+            },
+            "& .MuiSelect-root": {
+              fontSize: "9pt",
+            },
+            "& .MuiMenuItem-root": {
+              fontSize: "9pt",
+            },
+            "& .MuiTypography-root": {
+              fontSize: "9pt",
+            },
+            "& .MuiCheckbox-root + span": {
+              fontSize: "9pt",
+            },
+            "& .MuiButton-root": {
+              fontSize: "9pt",
+            },
           },
         }}
       >
@@ -310,13 +327,19 @@ export default function ClearActivityModal({
           <DialogContent>{/* <CircularProgress /> */}</DialogContent>
         ) : (
           <>
-            <DialogTitle id="modal-title" sx={{ fontWeight: "bold" }}>
+            <DialogTitle
+              id="modal-title"
+              sx={{ fontWeight: "bold", fontSize: "9pt" }}
+            >
               Clear Activity
             </DialogTitle>
             <Divider />
             <form onSubmit={handleSubmit}>
               <DialogContent>
-                <Typography variant="subtitle1" sx={{ marginBottom: "10px" }}>
+                <Typography
+                  variant="subtitle1"
+                  sx={{ marginBottom: "10px", fontSize: "9pt" }}
+                >
                   <strong>Type:</strong> {selectedRowData?.Type_of_Activity}
                 </Typography>
                 <TextField
@@ -360,8 +383,11 @@ export default function ClearActivityModal({
                   disabled
                 />
 
-                <FormGroup column sx={{ marginTop: "15px" }}>
-                  <InputLabel id="duration-label" sx={{ fontWeight: "bold" }}>
+                <FormGroup fullWidth>
+                  <InputLabel
+                    id="duration-label"
+                    sx={{ fontWeight: "bold", fontSize: "9pt" }}
+                  >
                     Duration
                   </InputLabel>
                   <Select
@@ -381,7 +407,11 @@ export default function ClearActivityModal({
 
                 <Typography
                   variant="subtitle1"
-                  sx={{ marginTop: "15px", fontWeight: "bold" }}
+                  sx={{
+                    marginTop: "15px",
+                    fontWeight: "bold",
+                    fontSize: "9pt",
+                  }}
                 >
                   Results:
                 </Typography>
@@ -414,104 +444,205 @@ export default function ClearActivityModal({
                   <Select
                     value={result}
                     onChange={(e) => setResult(e.target.value)}
-                    sx={{ marginLeft: 2, minWidth: 150 }}
+                    sx={{ marginLeft: 2, minWidth: 150, fontSize: "9pt" }} // Ensure font size for Select input
                     size="small"
                   >
-                    <MenuItem value="Call Attempted">Call Attempted</MenuItem>
-                    <MenuItem value="Call Completed">Call Completed</MenuItem>
-                    <MenuItem value="Call Left Message">
+                    <MenuItem value="Call Attempted" sx={{ fontSize: "9pt" }}>
+                      Call Attempted
+                    </MenuItem>
+                    <MenuItem value="Call Completed" sx={{ fontSize: "9pt" }}>
+                      Call Completed
+                    </MenuItem>
+                    <MenuItem
+                      value="Call Left Message"
+                      sx={{ fontSize: "9pt" }}
+                    >
                       Call Left Message
                     </MenuItem>
-                    <MenuItem value="Call Received">Call Received</MenuItem>
-                    <MenuItem value="Meeting Held">Meeting Held</MenuItem>
-                    <MenuItem value="Meeting Not Held">
+                    <MenuItem value="Call Received" sx={{ fontSize: "9pt" }}>
+                      Call Received
+                    </MenuItem>
+                    <MenuItem value="Meeting Held" sx={{ fontSize: "9pt" }}>
+                      Meeting Held
+                    </MenuItem>
+                    <MenuItem value="Meeting Not Held" sx={{ fontSize: "9pt" }}>
                       Meeting Not Held
                     </MenuItem>
-                    <MenuItem value="To-do Done">To-do Done</MenuItem>
-                    <MenuItem value="To-do Not Done">To-do Not Done</MenuItem>
-                    <MenuItem value="Appointment Completed">
+                    <MenuItem value="To-do Done" sx={{ fontSize: "9pt" }}>
+                      To-do Done
+                    </MenuItem>
+                    <MenuItem value="To-do Not Done" sx={{ fontSize: "9pt" }}>
+                      To-do Not Done
+                    </MenuItem>
+                    <MenuItem
+                      value="Appointment Completed"
+                      sx={{ fontSize: "9pt" }}
+                    >
                       Appointment Completed
                     </MenuItem>
-                    <MenuItem value="Appointment Not Completed">
+                    <MenuItem
+                      value="Appointment Not Completed"
+                      sx={{ fontSize: "9pt" }}
+                    >
                       Appointment Not Completed
                     </MenuItem>
-                    <MenuItem value="Boardroom - Completed">
+                    <MenuItem
+                      value="Boardroom - Completed"
+                      sx={{ fontSize: "9pt" }}
+                    >
                       Boardroom - Completed
                     </MenuItem>
-                    <MenuItem value="Boardroom - Not Completed">
+                    <MenuItem
+                      value="Boardroom - Not Completed"
+                      sx={{ fontSize: "9pt" }}
+                    >
                       Boardroom - Not Completed
                     </MenuItem>
-                    <MenuItem value="Call Billing - Completed">
+                    <MenuItem
+                      value="Call Billing - Completed"
+                      sx={{ fontSize: "9pt" }}
+                    >
                       Call Billing - Completed
                     </MenuItem>
-                    <MenuItem value="Initial Consultation - Completed">
+                    <MenuItem
+                      value="Initial Consultation - Completed"
+                      sx={{ fontSize: "9pt" }}
+                    >
                       Initial Consultation - Completed
                     </MenuItem>
-                    <MenuItem value="Initial Consultation - Not Completed">
+                    <MenuItem
+                      value="Initial Consultation - Not Completed"
+                      sx={{ fontSize: "9pt" }}
+                    >
                       Initial Consultation - Not Completed
                     </MenuItem>
-                    <MenuItem value="Mail - Completed">
+                    <MenuItem value="Mail - Completed" sx={{ fontSize: "9pt" }}>
                       Mail - Completed
                     </MenuItem>
-                    <MenuItem value="Mail - Not Completed">
+                    <MenuItem
+                      value="Mail - Not Completed"
+                      sx={{ fontSize: "9pt" }}
+                    >
                       Mail - Not Completed
                     </MenuItem>
-                    <MenuItem value="Meeting Billing - Completed">
+                    <MenuItem
+                      value="Meeting Billing - Completed"
+                      sx={{ fontSize: "9pt" }}
+                    >
                       Meeting Billing - Completed
                     </MenuItem>
-                    <MenuItem value="Meeting Billing - Not Completed">
+                    <MenuItem
+                      value="Meeting Billing - Not Completed"
+                      sx={{ fontSize: "9pt" }}
+                    >
                       Meeting Billing - Not Completed
                     </MenuItem>
-                    <MenuItem value="Personal Activity - Completed">
+                    <MenuItem
+                      value="Personal Activity - Completed"
+                      sx={{ fontSize: "9pt" }}
+                    >
                       Personal Activity - Completed
                     </MenuItem>
-                    <MenuItem value="Personal Activity - Not Completed">
+                    <MenuItem
+                      value="Personal Activity - Not Completed"
+                      sx={{ fontSize: "9pt" }}
+                    >
                       Personal Activity - Not Completed
                     </MenuItem>
-                    <MenuItem value="Note">Note</MenuItem>
-                    <MenuItem value="Mail Received">Mail Received</MenuItem>
-                    <MenuItem value="Mail Sent">Mail Sent</MenuItem>
-                    <MenuItem value="Email Received">Email Received</MenuItem>
-                    <MenuItem value="Courier Sent">Courier Sent</MenuItem>
-                    <MenuItem value="Email Sent">Email Sent</MenuItem>
-                    <MenuItem value="Payment Received">
+                    <MenuItem value="Note" sx={{ fontSize: "9pt" }}>
+                      Note
+                    </MenuItem>
+                    <MenuItem value="Mail Received" sx={{ fontSize: "9pt" }}>
+                      Mail Received
+                    </MenuItem>
+                    <MenuItem value="Mail Sent" sx={{ fontSize: "9pt" }}>
+                      Mail Sent
+                    </MenuItem>
+                    <MenuItem value="Email Received" sx={{ fontSize: "9pt" }}>
+                      Email Received
+                    </MenuItem>
+                    <MenuItem value="Courier Sent" sx={{ fontSize: "9pt" }}>
+                      Courier Sent
+                    </MenuItem>
+                    <MenuItem value="Email Sent" sx={{ fontSize: "9pt" }}>
+                      Email Sent
+                    </MenuItem>
+                    <MenuItem value="Payment Received" sx={{ fontSize: "9pt" }}>
                       Payment Received
                     </MenuItem>
-                    <MenuItem value="Room 1 - Completed">
+                    <MenuItem
+                      value="Room 1 - Completed"
+                      sx={{ fontSize: "9pt" }}
+                    >
                       Room 1 - Completed
                     </MenuItem>
-                    <MenuItem value="Room 1 - Not Completed">
+                    <MenuItem
+                      value="Room 1 - Not Completed"
+                      sx={{ fontSize: "9pt" }}
+                    >
                       Room 1 - Not Completed
                     </MenuItem>
-                    <MenuItem value="Room 2 - Completed">
+                    <MenuItem
+                      value="Room 2 - Completed"
+                      sx={{ fontSize: "9pt" }}
+                    >
                       Room 2 - Completed
                     </MenuItem>
-                    <MenuItem value="Room 2 - Not Completed">
+                    <MenuItem
+                      value="Room 2 - Not Completed"
+                      sx={{ fontSize: "9pt" }}
+                    >
                       Room 2 - Not Completed
                     </MenuItem>
-                    <MenuItem value="Room 3 - Completed">
+                    <MenuItem
+                      value="Room 3 - Completed"
+                      sx={{ fontSize: "9pt" }}
+                    >
                       Room 3 - Completed
                     </MenuItem>
-                    <MenuItem value="Room 3 - Not Completed">
+                    <MenuItem
+                      value="Room 3 - Not Completed"
+                      sx={{ fontSize: "9pt" }}
+                    >
                       Room 3 - Not Completed
                     </MenuItem>
-                    <MenuItem value="To Do Billing - Completed">
+                    <MenuItem
+                      value="To Do Billing - Completed"
+                      sx={{ fontSize: "9pt" }}
+                    >
                       To Do Billing - Completed
                     </MenuItem>
-                    <MenuItem value="To Do Billing - Not Completed">
+                    <MenuItem
+                      value="To Do Billing - Not Completed"
+                      sx={{ fontSize: "9pt" }}
+                    >
                       To Do Billing - Not Completed
                     </MenuItem>
-                    <MenuItem value="Vacation - Completed">
+                    <MenuItem
+                      value="Vacation - Completed"
+                      sx={{ fontSize: "9pt" }}
+                    >
                       Vacation - Completed
                     </MenuItem>
-                    <MenuItem value="Vacation - Not Completed">
+                    <MenuItem
+                      value="Vacation - Not Completed"
+                      sx={{ fontSize: "9pt" }}
+                    >
                       Vacation - Not Completed
                     </MenuItem>
-                    <MenuItem value="Vacation Cancelled">
+                    <MenuItem
+                      value="Vacation Cancelled"
+                      sx={{ fontSize: "9pt" }}
+                    >
                       Vacation Cancelled
                     </MenuItem>
-                    <MenuItem value="Attachment">Attachment</MenuItem>
-                    <MenuItem value="E-mail Attachment">
+                    <MenuItem value="Attachment" sx={{ fontSize: "9pt" }}>
+                      Attachment
+                    </MenuItem>
+                    <MenuItem
+                      value="E-mail Attachment"
+                      sx={{ fontSize: "9pt" }}
+                    >
                       E-mail Attachment
                     </MenuItem>
                   </Select>
@@ -577,7 +708,7 @@ export default function ClearActivityModal({
         <Alert
           onClose={() => setSnackbarOpen(false)}
           severity={snackbarSeverity}
-          sx={{ width: "100%" }}
+          sx={{ width: "100%", fontSize: "9pt" }}
         >
           {snackbarMessage}
         </Alert>
