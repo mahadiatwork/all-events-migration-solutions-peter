@@ -17,8 +17,11 @@ import {
   Tooltip,
   Snackbar,
   Alert,
+  Box,
+  Link,
 } from "@mui/material";
 import "react-quill/dist/quill.snow.css";
+import { useEffect } from "react";
 
 const getResultBasedOnActivityType = (activityType) => {
   switch (activityType) {
@@ -80,6 +83,7 @@ export default function ClearActivityModal({
   const [duration, setDuration] = React.useState(
     calculateDuration(selectedRowData?.duration)
   );
+
   const [result, setResult] = React.useState(selectedRowData?.result);
   const [addActivityToHistory, setAddActivityToHistory] = React.useState(false);
   const [clearChecked, setClearChecked] = React.useState(
@@ -87,18 +91,9 @@ export default function ClearActivityModal({
   );
 
   const [eraseChecked, setEraseChecked] = React.useState(false);
-  const [activityDetails, setActivityDetails] = React.useState(
-    selectedRowData?.Description || ""
-  );
   const [snackbarOpen, setSnackbarOpen] = React.useState(false);
   const [snackbarMessage, setSnackbarMessage] = React.useState("");
   const [snackbarSeverity, setSnackbarSeverity] = React.useState("success");
-
-  const handleClearChange = (event) => {
-    setClearChecked(event.target.checked); // Set "Clear" checkbox state
-    setEraseChecked(false); // Uncheck the "Erase" checkbox when "Clear" is checked
-    setResult(getResultBasedOnActivityType(selectedRowData.Type_of_Activity));
-  };
 
   const handleEraseChange = (event) => {
     setEraseChecked(event.target.checked);
@@ -106,12 +101,66 @@ export default function ClearActivityModal({
     setResult(getResultBasedOnActivityType(selectedRowData.Type_of_Activity));
   };
 
+  const [existingHistory, setExistingHistory] = React.useState([]);
+
+  const [activityDetails, setActivityDetails] = React.useState("");
+
+  useEffect(() => {
+    const getRecords = async () => {
+      const historyResponse = await ZOHO.CRM.API.searchRecord({
+        Entity: "History1",
+        Type: "criteria",
+        Query: "(Event_ID:equals:" + selectedRowData?.id + ")",
+      });
+
+      if (historyResponse.data.length > 0) {
+        const historyData = historyResponse.data[0];
+        setExistingHistory(historyResponse.data);
+
+        // Auto-check the checkbox
+        setAddActivityToHistory(true);
+
+        // Populate form fields with history data
+        setActivityDetails(historyData?.History_Details_Plain || "");
+        setResult(historyData?.History_Result || "");
+      }
+    };
+
+    getRecords();
+  }, [selectedRowData]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     try {
-      // Helper to create history if required
-      const createHistory = async () => {
+      // Helper to update only the history record
+      const updateHistoryOnly = async () => {
+        const historyRecordId = existingHistory[0]?.id;
+        const updatedHistoryData = {
+          History_Details_Plain: activityDetails,
+          History_Result: result,
+        };
+
+        const updateResponse = await ZOHO.CRM.API.updateRecord({
+          Entity: "History1",
+          RecordID: historyRecordId,
+          APIData: updatedHistoryData,
+        });
+
+        if (updateResponse.data[0].code === "SUCCESS") {
+          setSnackbarMessage("History updated successfully!");
+          setSnackbarSeverity("success");
+          setSnackbarOpen(true);
+        } else {
+          setSnackbarMessage("Failed to update history.");
+          setSnackbarSeverity("warning");
+          setSnackbarOpen(true);
+          return false;
+        }
+        return true;
+      };
+
+      // Helper to create or update history
+      const createOrUpdateHistory = async () => {
         const recordData = {
           Name:
             selectedRowData.Participants.length > 0
@@ -127,52 +176,33 @@ export default function ClearActivityModal({
           Owner: selectedRowData?.Owner,
           History_Details_Plain: activityDetails,
           History_Result: result,
+          Event_ID: selectedRowData?.id,
         };
 
-        const historyResponse = await ZOHO.CRM.API.insertRecord({
-          Entity: "History1",
-          APIData: recordData,
-          Trigger: ["workflow"],
-        });
+        if (existingHistory.length > 0) {
+          return await updateHistoryOnly();
+        } else {
+          const historyResponse = await ZOHO.CRM.API.insertRecord({
+            Entity: "History1",
+            APIData: recordData,
+            Trigger: ["workflow"],
+          });
 
-        if (historyResponse.data[0].code === "SUCCESS") {
-          setSnackbarMessage(
-            `${
-              clearChecked ? "Event marked as cleared" : "Event erased"
-            } and history created successfully!`
-          );
-          const historyRecordId = historyResponse.data[0].details.id;
-
-          // Insert Participants for History
-          if (selectedRowData.Participants.length > 0) {
-            const participantInsertPromises =
-              selectedRowData.Participants.filter(
-                (participant) => participant.type === "contact"
-              ).map(async (participant) => {
-                const participantData = {
-                  Contact_Details: { id: participant.participant },
-                  Contact_History_Info: { id: historyRecordId },
-                };
-
-                return await ZOHO.CRM.API.insertRecord({
-                  Entity: "History_X_Contacts",
-                  APIData: participantData,
-                  Trigger: ["workflow"],
-                });
-              });
-
-            await Promise.all(participantInsertPromises);
+          if (historyResponse.data[0].code === "SUCCESS") {
+            setSnackbarMessage("New history created successfully!");
+            setSnackbarSeverity("success");
+            setSnackbarOpen(true);
+          } else {
+            setSnackbarMessage("Failed to create new history.");
+            setSnackbarSeverity("warning");
+            setSnackbarOpen(true);
+            return false;
           }
           return true;
-        } else {
-          setSnackbarMessage("History creation failed.");
-          setSnackbarSeverity("warning");
-          setSnackbarOpen(true);
-          return false;
         }
       };
 
-      // Handle "Clear" checked and "Erase" unchecked (mark as closed)
+      // CASE 1: "Clear" checked and "Erase" unchecked → Close the event
       if (clearChecked && !eraseChecked) {
         const updateResponse = await ZOHO.CRM.API.updateRecord({
           Entity: "Events",
@@ -189,7 +219,6 @@ export default function ClearActivityModal({
           setSnackbarSeverity("success");
           setSnackbarOpen(true);
 
-          // Update events in state
           setEvents((prevEvents) =>
             prevEvents.map((event) =>
               event.id === selectedRowData?.id
@@ -199,43 +228,64 @@ export default function ClearActivityModal({
           );
 
           if (addActivityToHistory) {
-            await createHistory();
+            await createOrUpdateHistory();
           }
         } else {
           throw new Error("Failed to update the event.");
         }
       }
 
-      // Handle "Clear" unchecked and "Erase" unchecked (mark as open)
+      // CASE 2: Both "Clear" and "Erase" unchecked → Open the event
       if (!clearChecked && !eraseChecked) {
-        const updateResponse = await ZOHO.CRM.API.updateRecord({
-          Entity: "Events",
-          RecordID: selectedRowData?.id,
-          APIData: {
-            id: selectedRowData?.id,
-            Event_Status: "Open",
-          },
+        const historyResponse = await ZOHO.CRM.API.getRecords({
+          Entity: "History1",
+          Type: "criteria",
+          Criteria: `(Event_ID:equals:${selectedRowData?.What_Id?.id})`,
         });
 
-        if (updateResponse.data[0].code === "SUCCESS") {
-          setSnackbarMessage("Event status updated to Open.");
-          setSnackbarSeverity("success");
-          setSnackbarOpen(true);
+        if (historyResponse.data.length > 0) {
+          const latestHistory = historyResponse.data[0];
+          const updateResponse = await ZOHO.CRM.API.updateRecord({
+            Entity: "Events",
+            RecordID: selectedRowData?.id,
+            APIData: {
+              id: selectedRowData?.id,
+              Event_Status: "Open",
+              History_Details: latestHistory?.History_Details_Plain,
+              History_Result: latestHistory?.History_Result,
+            },
+          });
 
-          // Update events in state
-          setEvents((prevEvents) =>
-            prevEvents.map((event) =>
-              event.id === selectedRowData?.id
-                ? { ...event, Event_Status: "Open" }
-                : event
-            )
-          );
+          if (updateResponse.data[0].code === "SUCCESS") {
+            setSnackbarMessage(
+              "Event status updated to Open with history restored."
+            );
+            setSnackbarSeverity("success");
+            setSnackbarOpen(true);
+
+            setEvents((prevEvents) =>
+              prevEvents.map((event) =>
+                event.id === selectedRowData?.id
+                  ? {
+                      ...event,
+                      Event_Status: "Open",
+                      History_Details: latestHistory?.History_Details_Plain,
+                      History_Result: latestHistory?.History_Result,
+                    }
+                  : event
+              )
+            );
+          } else {
+            throw new Error("Failed to update the event with history.");
+          }
         } else {
-          throw new Error("Failed to update the event status.");
+          setSnackbarMessage("No related history found to restore.");
+          setSnackbarSeverity("info");
+          setSnackbarOpen(true);
         }
       }
 
-      // Handle "Erase" checked (delete the event)
+      // CASE 3: "Erase" checked → Delete the event
       if (!clearChecked && eraseChecked) {
         const deleteResponse = await ZOHO.CRM.API.deleteRecord({
           Entity: "Events",
@@ -247,21 +297,25 @@ export default function ClearActivityModal({
           setSnackbarSeverity("success");
           setSnackbarOpen(true);
 
-          // Remove the event from the events state
           setEvents((prevEvents) =>
             prevEvents.filter((event) => event.id !== selectedRowData?.id)
           );
 
           if (addActivityToHistory) {
-            await createHistory();
+            await createOrUpdateHistory();
           }
         } else {
           throw new Error("Failed to delete the event.");
         }
       }
 
+      // Handle only history update when event data is unchanged
+      if (!clearChecked && !eraseChecked && isActivityDetailsUpdated) {
+        await updateHistoryOnly();
+      }
+
       setTimeout(() => {
-        handleClose(); // Close modal or any UI related to submission
+        handleClose();
       }, 1000);
     } catch (error) {
       console.error("Error during submission:", error);
@@ -271,10 +325,6 @@ export default function ClearActivityModal({
     }
   };
 
-  const handleActivityDetailsChange = (e) => {
-    setActivityDetails(e.target.value);
-  };
-
   const isUpdateDisabled =
     (selectedRowData?.Event_Status === null &&
       !clearChecked &&
@@ -282,7 +332,58 @@ export default function ClearActivityModal({
     (selectedRowData?.Event_Status === "Closed" && clearChecked) ||
     (selectedRowData?.Event_Status === "Open" && !clearChecked);
 
-  console.log({ mahadi: selectedRowData?.Event_Status, clearChecked });
+  const handleClearChange = (event) => {
+    setClearChecked(event.target.checked); // Update the checkbox state
+    setEraseChecked(false); // Uncheck the "Erase" checkbox when "Clear" is changed
+    setResult(getResultBasedOnActivityType(selectedRowData.Type_of_Activity));
+
+    if (!event.target.checked) {
+      // Log data when the checkbox is unchecked
+      console.log("Clear checkbox unchecked. Current data:", {
+        eventStatus: selectedRowData?.Event_Status,
+        selectedRowData,
+        result,
+      });
+    }
+  };
+
+  const [isActivityDetailsUpdated, setIsActivityDetailsUpdated] =
+    React.useState(false);
+  const handleActivityDetailsChange = (e) => {
+    setActivityDetails(e.target.value);
+
+    // Enable the update button if content changes
+    if (
+      existingHistory.length > 0 &&
+      e.target.value !== existingHistory[0]?.History_Details_Plain
+    ) {
+      setIsActivityDetailsUpdated(true);
+    } else {
+      setIsActivityDetailsUpdated(true);
+    }
+  };
+
+  // Delete existing history
+const handleDeleteHistory = async () => {
+  const historyRecordId = existingHistory[0]?.id;
+
+  const deleteResponse = await ZOHO.CRM.API.deleteRecord({
+    Entity: "History1",
+    RecordID: historyRecordId,
+  });
+
+  if (deleteResponse.data[0].code === "SUCCESS") {
+    setSnackbarMessage("History deleted successfully!");
+    setSnackbarSeverity("success");
+    setSnackbarOpen(true);
+    setExistingHistory([]);
+  } else {
+    setSnackbarMessage("Failed to delete history.");
+    setSnackbarSeverity("error");
+    setSnackbarOpen(true);
+  }
+};
+
 
   return (
     <>
@@ -648,23 +749,52 @@ export default function ClearActivityModal({
                   </Select>
                 </FormGroup>
 
-                <Tooltip
-                  title="Add the activity details to history for future reference"
-                  arrow
-                >
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={addActivityToHistory}
-                        onChange={() =>
-                          setAddActivityToHistory(!addActivityToHistory)
-                        }
-                      />
-                    }
-                    label="Add Activity Details to History"
-                    sx={{ marginTop: "10px" }}
-                  />
-                </Tooltip>
+                {existingHistory.length > 0 ? (
+                  <Box sx={{p: "20px 0px"}}>
+                    <Typography variant="subtitle1">
+                      Existing History:
+                      <Link
+                        href={`https://crm.zoho.com.au/crm/org7004396182/tab/CustomModule4/${existingHistory[0].id}`}
+                        onClick={() => setIsEditingHistory(true)}
+                        target="_blank"
+                        style={{
+                          marginLeft: "8px",
+                          textDecoration: "underline",
+                          cursor: "pointer",
+                        }}
+                      >
+                        View History
+                      </Link>
+                      <Button
+                        variant="outlined"
+                        color="secondary"
+                        size="small"
+                        style={{ marginLeft: "16px" }}
+                        onClick={handleDeleteHistory}
+                      >
+                        Delete History
+                      </Button>
+                    </Typography>
+                  </Box>
+                ) : (
+                  <Tooltip
+                    title="Add the activity details to history for future reference"
+                    arrow
+                  >
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          checked={addActivityToHistory}
+                          onChange={(e) =>
+                            setAddActivityToHistory(e.target.checked)
+                          }
+                          color="primary"
+                        />
+                      }
+                      label="Add Activity Details to History"
+                    />
+                  </Tooltip>
+                )}
 
                 <TextField
                   fullWidth
@@ -688,10 +818,10 @@ export default function ClearActivityModal({
                   Cancel
                 </Button>
                 <Button
-                  type="submit"
-                  color="primary"
                   variant="contained"
-                  disabled={isUpdateDisabled}
+                  color="primary"
+                  onClick={handleSubmit}
+                  disabled={!addActivityToHistory || !isActivityDetailsUpdated}
                 >
                   Update
                 </Button>

@@ -204,7 +204,9 @@ function App() {
     getData();
   }, [zohoLoaded, filterDate, customDateRange, cache]);
 
-  console.log({ events });
+  useEffect(() => {
+    events.forEach((event) => console.log("Name: ", event.Event_Title))
+  }, [])
 
   return (
     <ZohoContext.Provider
