@@ -528,7 +528,7 @@ const handleDeleteHistory = async () => {
                           onChange={handleClearChange}
                         />
                       }
-                      label="Clear"
+                      label="Don;t show cleared"
                     />
                   </Tooltip>
                   <Tooltip title="Delete this event permanently" arrow>
