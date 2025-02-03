@@ -19,6 +19,7 @@ function App() {
   const [recentColors, setRecentColor] = useState(""); // Move this to context
   const [loggedInUser, setLoggedInUser] = useState(null);
   const [entityId, setEntityId] = useState(null);
+  const [currentContact, setCurrentContact] = useState(null)
 
   useEffect(() => {
 
@@ -102,6 +103,12 @@ function App() {
           // // Set the events state
           setEvents(allMeetingsData);
 
+          const fetchCurrentContact = await ZOHO.CRM.API.getRecord({
+            Entity: "Contacts", approved: "both", RecordID: entityId
+           });
+
+           setCurrentContact(fetchCurrentContact.data[0])
+
           // Get organization variable
           await ZOHO.CRM.API.getOrgVariable("recent_colors").then(function (
             data
@@ -131,7 +138,6 @@ function App() {
     getData();
   }, [zohoLoaded, filterDate, cache]);
 
-  console.log({ events });
 
   return (
     <ZohoContext.Provider
@@ -168,6 +174,7 @@ function App() {
           setRecentColor={setRecentColor}
           loggedInUser={loggedInUser}
           setEvents={setEvents}
+          currentContact={currentContact}
         />
       )}
     </ZohoContext.Provider>

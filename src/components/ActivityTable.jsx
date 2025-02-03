@@ -361,40 +361,39 @@ export default function ScheduleTable({
     : [];
 
   // Filter rows based on selected filters and "Cleared" checkbox
-const filteredRows = React.useMemo(() => {
-  return rows
-    .filter((row) => {
-      const typeMatch =
-        filterType.length === 0 || filterType.includes(row.type);
-      const priorityMatch =
-        filterPriority.length === 0 || filterPriority.includes(row.priority);
-      const userMatch =
-        filterUser.length === 0 ||
-        filterUser.some((user) => row.scheduledFor.includes(user));
-      const dateMatch =
-        !customDateRange ||
-        (new Date(row.date) >= new Date(customDateRange.startDate) &&
-          new Date(row.date) <= new Date(customDateRange.endDate));
-          const clearedMatch =
+  const filteredRows = React.useMemo(() => {
+    return rows
+      .filter((row) => {
+        const typeMatch =
+          filterType.length === 0 || filterType.includes(row.type);
+        const priorityMatch =
+          filterPriority.length === 0 || filterPriority.includes(row.priority);
+        const userMatch =
+          filterUser.length === 0 ||
+          filterUser.some((user) => row.scheduledFor.includes(user));
+        const dateMatch =
+          !customDateRange ||
+          (new Date(row.date) >= new Date(customDateRange.startDate) &&
+            new Date(row.date) <= new Date(customDateRange.endDate));
+        const clearedMatch =
           (showCleared && row.Event_Status === "Closed") || // Show "Closed" tasks if showCleared is true
           (!showCleared && row.Event_Status !== "Closed"); // Show non-closed tasks if showCleared is false
 
-      return (
-        typeMatch && priorityMatch && userMatch && dateMatch && clearedMatch
-      );
-    })
-    .sort(getComparator(order, orderBy));
-}, [
-  rows,
-  filterType,
-  filterPriority,
-  filterUser,
-  customDateRange,
-  showCleared, // Ensure the "Cleared" checkbox state is included in dependencies
-  order,
-  orderBy,
-]);
-
+        return (
+          typeMatch && priorityMatch && userMatch && dateMatch && clearedMatch
+        );
+      })
+      .sort(getComparator(order, orderBy));
+  }, [
+    rows,
+    filterType,
+    filterPriority,
+    filterUser,
+    customDateRange,
+    showCleared, // Ensure the "Cleared" checkbox state is included in dependencies
+    order,
+    orderBy,
+  ]);
 
   // Checkbox handler
   const handleClearedCheckboxChange = (event) => {
@@ -702,39 +701,38 @@ const filteredRows = React.useMemo(() => {
           onClick={handleClearFilters}
           color="secondary"
           size="small" // Reduced button size
-          sx={{ height: "30px", }} // Adjust height
+          sx={{ height: "30px" }} // Adjust height
         >
           Clear filter
         </Button>
 
         <FormControlLabel
-  control={
-    <Checkbox
-      checked={showCleared} // Bind to state
-      onChange={handleClearedCheckboxChange} // Checkbox change handler
-      size="small" // Reduced checkbox size
-    />
-  }
-  label="Show Cleared"
-  sx={{
-    display: "flex", // Ensure label and checkbox are aligned in a row
-    alignItems: "center", // Vertically align the label and checkbox
-    whiteSpace: "nowrap", // Prevent text wrapping
-    "& .MuiFormControlLabel-label": {
-      fontSize: "9pt", // Change label text size
-    },
-  }}
-/>
-
+          control={
+            <Checkbox
+              checked={showCleared} // Bind to state
+              onChange={handleClearedCheckboxChange} // Checkbox change handler
+              size="small" // Reduced checkbox size
+            />
+          }
+          label="Show Cleared"
+          sx={{
+            display: "flex", // Ensure label and checkbox are aligned in a row
+            alignItems: "center", // Vertically align the label and checkbox
+            whiteSpace: "nowrap", // Prevent text wrapping
+            "& .MuiFormControlLabel-label": {
+              fontSize: "9pt", // Change label text size
+            },
+          }}
+        />
 
         <Button
           variant="contained"
           fullWidth
           onClick={() => setOpenCreateModal(true)}
           size="small" // Reduced button size
-          sx={{ height: "30px" }} // Adjust height
+          sx={{ height: "30px", fontSize: "9pt" }} // Adjust height
         >
-          Create New Event
+          Create New Activity
         </Button>
       </Box>
 
