@@ -110,6 +110,7 @@ const FirstComponent = ({
   selectedRowData,
   ZOHO,
   isEditMode, // New prop to check if it's edit mode
+  currentContact
 }) => {
   const { events, filterDate, setFilterDate, recentColors, setRecentColor } =
     useContext(ZohoContext);
@@ -618,6 +619,7 @@ const FirstComponent = ({
             handleInputChange={handleInputChange}
             ZOHO={ZOHO}
             selectedRowData={selectedRowData}
+            currentContact={currentContact}
           />
         </Grid>
         <Grid item xs={6} sx={{ margin: "-13.6px 0px" }}>

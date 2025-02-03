@@ -21,6 +21,7 @@ export default function ContactField({
   handleInputChange,
   ZOHO,
   selectedRowData = {}, // Default to an empty object
+  currentContact
 }) {
   const [contacts, setContacts] = useState([]);
   const [selectedParticipants, setSelectedParticipants] = useState([]);
@@ -83,6 +84,8 @@ export default function ContactField({
           })
         );
         setSelectedParticipants(participants);
+      }else{
+        setSelectedParticipants([currentContact]);
       }
     };
 

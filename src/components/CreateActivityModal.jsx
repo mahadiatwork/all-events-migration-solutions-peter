@@ -261,6 +261,7 @@ const CreateActivityModal = ({
   setEvents,
   setSelectedRowIndex,
   setHighlightedRow,
+  currentContact
 }) => {
   const theme = useTheme();
   const [value, setValue] = useState(0);
@@ -309,7 +310,7 @@ const CreateActivityModal = ({
       end &&
       duration &&
       Event_Title &&
-      scheduledWith.length > 0
+      (currentContact !== null || scheduledWith.length > 0)
     );
   };
 
@@ -502,6 +503,7 @@ const CreateActivityModal = ({
             handleInputChange={handleInputChange}
             users={users}
             ZOHO={ZOHO}
+            currentContact={currentContact}
           />
           <Box display="flex" justifyContent="space-between" mt={2}>
             <Button size="small" disabled>
