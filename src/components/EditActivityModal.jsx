@@ -156,7 +156,7 @@ function transformFormSubmission(data) {
 
   // Explicitly remove the scheduleWith, scheduleFor, and description keys
   delete transformedData.scheduledWith;
-  delete transformedData.scheduleFor;
+  // delete transformedData.scheduleFor;
   delete transformedData.description;
   delete transformedData.associateWith;
 
@@ -193,6 +193,7 @@ const EditActivityModal = ({
   ZOHO,
   users,
   setEvents,
+  events
 }) => {
   const theme = useTheme();
   const [value, setValue] = useState(0);
@@ -275,10 +276,10 @@ const EditActivityModal = ({
         // Ensure updateEvent always receives the latest associateWith value
         setEvents((prevEvents) =>
           prevEvents.map((event) =>
-            event.id === formData.id ? { ...event, ...formData } : event
+            event.id === formData.id ? { ...event, ...transformedData } : event
           )
         );
-
+        console.log("Events after update", events)
         setTimeout(() => {
           // window.location.reload();
           handleClose();

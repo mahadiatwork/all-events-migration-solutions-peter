@@ -216,6 +216,8 @@ const CustomRangeModal = ({ open, handleClose, setCustomDateRange }) => {
     handleClose();
   };
 
+
+
   return (
     <Modal open={open} onClose={handleClose}>
       <Box
@@ -494,8 +496,6 @@ export default function ScheduleTable({
       return [...updatedEvents]; // Return a new array reference to ensure re-rendering
     });
   };
-
-  // console.log({ events, filteredRows });
 
   return (
     <>
@@ -962,6 +962,7 @@ export default function ScheduleTable({
           users={users}
           updateEvent={updateEvent}
           setEvents={setEvents}
+          events={events}
         />
       )}
 

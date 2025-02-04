@@ -125,6 +125,8 @@ function transformFormSubmission(data, individualParticipant = null) {
     }));
   };
 
+  
+
   const participants = individualParticipant
     ? [
         {
@@ -397,7 +399,15 @@ const CreateActivityModal = ({
       }
     } else {
       // Handle single event creation
+      // if(formData.scheduledWith.length === 0) {
+      //   formData.scheduledWith = [currentContact];
+      // }
+
       const transformedData = transformFormSubmission(formData);
+
+      console.log({transformedData})
+
+      return
       try {
         const data = await ZOHO.CRM.API.insertRecord({
           Entity: "Events",

@@ -494,21 +494,6 @@ const FirstComponent = ({
         </Grid>
 
         <Grid size={4}>
-          {/* <Datepicker
-            controls={["calendar", "time"]}
-            display="center"
-            inputComponent={() =>
-              customInputComponent(
-                "start",
-                "Start Time",
-                setOpenStartDatepicker
-              )
-            }
-            onClose={() => setOpenStartDatepicker(false)}
-            onChange={(e) => handleInputChangeWithEnd("start", e.value)} // Auto-populate end date and duration
-            isOpen={openStartDatepicker}
-            touchUi={true}
-          /> */}
           <LocalizationProvider dateAdapter={AdapterDayjs}>
             <DateTimePicker
               label="Start Time"
