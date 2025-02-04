@@ -405,9 +405,6 @@ const CreateActivityModal = ({
 
       const transformedData = transformFormSubmission(formData);
 
-      console.log({transformedData})
-
-      return
       try {
         const data = await ZOHO.CRM.API.insertRecord({
           Entity: "Events",

@@ -85,7 +85,19 @@ export default function ContactField({
         );
         setSelectedParticipants(participants);
       }else{
-        setSelectedParticipants([currentContact]);
+        if(selectedParticipants.length === 0){
+          setSelectedParticipants([{
+            id: currentContact.id,
+            First_Name: currentContact.First_Name || "N/A",
+            Last_Name: currentContact.Last_Name || "N/A",
+            Email: currentContact.Email || "No Email",
+            Mobile: currentContact.Mobile || "N/A",
+            Full_Name: `${currentContact.First_Name || "N/A"} ${
+              currentContact.Last_Name || "N/A"
+            }`,
+            ID_Number: currentContact.ID_Number || "N/A",
+          }])
+        }
       }
     };
 
@@ -178,6 +190,8 @@ export default function ContactField({
     handleInputChange("scheduledWith", updatedParticipants);
     setIsModalOpen(false);
   };
+
+  console.log({currentContact})
 
   return (
     <Box>
