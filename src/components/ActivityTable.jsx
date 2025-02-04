@@ -216,8 +216,6 @@ const CustomRangeModal = ({ open, handleClose, setCustomDateRange }) => {
     handleClose();
   };
 
-
-
   return (
     <Modal open={open} onClose={handleClose}>
       <Box
@@ -283,7 +281,7 @@ export default function ScheduleTable({
   setEvents,
   customDateRange,
   setCustomDateRange,
-  currentContact
+  currentContact,
 }) {
   const [selectedRowIndex, setSelectedRowIndex] = React.useState(null);
   const [highlightedRow, setHighlightedRow] = React.useState(null);
@@ -378,9 +376,9 @@ export default function ScheduleTable({
           !customDateRange ||
           (new Date(row.date) >= new Date(customDateRange.startDate) &&
             new Date(row.date) <= new Date(customDateRange.endDate));
-        const clearedMatch =
-          (showCleared && row.Event_Status === "Closed") || // Show "Closed" tasks if showCleared is true
-          (!showCleared && row.Event_Status !== "Closed"); // Show non-closed tasks if showCleared is false
+        const clearedMatch = showCleared
+          ? true // Show both open and closed items when showCleared is true
+          : row.Event_Status !== "Closed";
 
         return (
           typeMatch && priorityMatch && userMatch && dateMatch && clearedMatch

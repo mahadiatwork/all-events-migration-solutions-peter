@@ -122,6 +122,7 @@ function transformFormSubmission(data, individualParticipant = null) {
       type: "contact",
       participant: contact.participant || null,
       status: "not_known",
+      Full_Name: contact.Full_Name || null,
     }));
   };
 
@@ -399,11 +400,23 @@ const CreateActivityModal = ({
       }
     } else {
       // Handle single event creation
-      // if(formData.scheduledWith.length === 0) {
-      //   formData.scheduledWith = [currentContact];
-      // }
+      if(formData.scheduledWith.length === 0) {
+        formData.scheduledWith = [{
+          "invited": false,
+          "name": currentContact?.Full_Name,
+          "participant": currentContact?.id,
+          "status": "not_known",
+          "type": "contact",
+          "Full_Name": currentContact?.Full_Name
+        }];
+      }
+
 
       const transformedData = transformFormSubmission(formData);
+
+      // console.log({transformedData})
+
+      // return
 
       try {
         const data = await ZOHO.CRM.API.insertRecord({
@@ -413,9 +426,9 @@ const CreateActivityModal = ({
         });
 
         if (
-          data.data &&
-          data.data.length > 0 &&
-          data.data[0].code === "SUCCESS"
+          data?.data &&
+          data?.data?.length > 0 &&
+          data?.data[0]?.code === "SUCCESS"
         ) {
           const createdEvent = data.data[0].details;
           setEvents((prev) => [

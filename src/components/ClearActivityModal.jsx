@@ -821,7 +821,8 @@ const handleDeleteHistory = async () => {
                   variant="contained"
                   color="primary"
                   onClick={handleSubmit}
-                  disabled={!addActivityToHistory || !isActivityDetailsUpdated}
+                  // disabled={!addActivityToHistory || !isActivityDetailsUpdated}
+                  disabled={false}
                 >
                   Update
                 </Button>
