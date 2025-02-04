@@ -176,7 +176,7 @@ export default function ClearActivityModal({
           Owner: selectedRowData?.Owner,
           History_Details_Plain: activityDetails,
           History_Result: result,
-          Event_ID: selectedRowData?.id,
+          Event_ID: selectedRowData?.id
         };
 
         if (existingHistory.length > 0) {
@@ -240,7 +240,7 @@ export default function ClearActivityModal({
         const historyResponse = await ZOHO.CRM.API.getRecords({
           Entity: "History1",
           Type: "criteria",
-          Criteria: `(Event_ID:equals:${selectedRowData?.What_Id?.id})`,
+          Criteria: `(Event_ID:equals:${selectedRowData?.id})`,
         });
 
         if (historyResponse.data.length > 0) {
