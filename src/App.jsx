@@ -14,24 +14,23 @@ function App() {
   const [events, setEvents] = useState([]);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true); // Add loading state
-  const [filterDate, setFilterDate] = useState("All");
+  const [filterDate, setFilterDate] = useState("Default");
   const [cache, setCache] = useState({}); // Cache to store fetched results
   const [recentColors, setRecentColor] = useState(""); // Move this to context
   const [loggedInUser, setLoggedInUser] = useState(null);
   const [entityId, setEntityId] = useState(null);
-  const [currentContact, setCurrentContact] = useState(null)
+  const [currentContact, setCurrentContact] = useState(null);
 
   useEffect(() => {
-
     ZOHO.embeddedApp.on("PageLoad", async function (data) {
-      setEntityId(data.EntityId)
-    })
+      setEntityId(data.EntityId);
+    });
     // Initialize Zoho Embedded App once
     ZOHO.embeddedApp.init().then(() => {
       setZohoLoaded(true);
       // Fetch the logged-in user
       ZOHO.CRM.CONFIG.getCurrentUser().then(function (data) {
-        console.log({data})
+        console.log({ data });
         setLoggedInUser(data?.users[0]);
       });
     });
@@ -82,13 +81,13 @@ function App() {
               currentDate.getDate() - currentDate.getDay() + 7; // Next week's first day
             beginDate1 = new Date(currentDate.setDate(firstDayNextWeek));
             closeDate1 = new Date(currentDate.setDate(firstDayNextWeek + 6)); // Next week's last day
-          } else if (filterDate === "All") {
-            // No specific date filter
-            beginDate1 = new Date("2024-01-01"); // Very early date to fetch all events
+          } else if (filterDate === "Default") {
+            // Set default to the last 14 days
+            beginDate1 = subDays(new Date(), 14); // 14 days ago from today
             closeDate1 = new Date(); // Up to current date
           }
 
-          console.log({entityIdbeforeFetching: entityId})
+          console.log({ entityIdbeforeFetching: entityId });
           // Fetch all meetings
           const allMeetings = await ZOHO.CRM.API.getRelatedRecords({
             Entity: "Contacts",
@@ -104,10 +103,12 @@ function App() {
           setEvents(allMeetingsData);
 
           const fetchCurrentContact = await ZOHO.CRM.API.getRecord({
-            Entity: "Contacts", approved: "both", RecordID: entityId
-           });
+            Entity: "Contacts",
+            approved: "both",
+            RecordID: entityId,
+          });
 
-           setCurrentContact(fetchCurrentContact.data[0])
+          setCurrentContact(fetchCurrentContact.data[0]);
 
           // Get organization variable
           await ZOHO.CRM.API.getOrgVariable("recent_colors").then(function (
@@ -137,7 +138,6 @@ function App() {
 
     getData();
   }, [zohoLoaded, filterDate, cache]);
-
 
   return (
     <ZohoContext.Provider

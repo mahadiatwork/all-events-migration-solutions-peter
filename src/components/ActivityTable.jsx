@@ -301,7 +301,7 @@ export default function ScheduleTable({
   const [orderBy, setOrderBy] = React.useState("");
 
   const filterDateOptions = [
-    { label: "Default", value: "All" },
+    { label: "Default", value: "Default" },
     { label: "Last 7 Days", value: "Last 7 Days" },
     { label: "Last 30 Days", value: "Last 30 Days" },
     { label: "Last 90 Days", value: "Last 90 Days" },
@@ -348,7 +348,7 @@ export default function ScheduleTable({
   };
 
   const handleClearFilters = () => {
-    setFilterDate("All");
+    setFilterDate("Default");
     setFilterType([]);
     setFilterPriority([]);
     setFilterUser([]);
