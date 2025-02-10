@@ -14,24 +14,24 @@ function App() {
   const [events, setEvents] = useState([]);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true); // Add loading state
-  const [filterDate, setFilterDate] = useState("All");
+  const [filterDate, setFilterDate] = useState("Default");
   const [cache, setCache] = useState({}); // Cache to store fetched results
   const [recentColors, setRecentColor] = useState(""); // Move this to context
   const [loggedInUser, setLoggedInUser] = useState(null);
   const [entityId, setEntityId] = useState(null);
-  const [currentContact, setCurrentContact] = useState(null)
+  const [currentContact, setCurrentContact] = useState(null);
+
 
   useEffect(() => {
-
     ZOHO.embeddedApp.on("PageLoad", async function (data) {
-      setEntityId(data.EntityId)
-    })
+      setEntityId(data.EntityId);
+    });
     // Initialize Zoho Embedded App once
     ZOHO.embeddedApp.init().then(() => {
       setZohoLoaded(true);
       // Fetch the logged-in user
       ZOHO.CRM.CONFIG.getCurrentUser().then(function (data) {
-        console.log({data})
+        console.log({ data });
         setLoggedInUser(data?.users[0]);
       });
     });
@@ -49,46 +49,6 @@ function App() {
       if (zohoLoaded) {
         setLoading(true); // Set loading to true when data fetching starts
         try {
-          // Dynamic dates based on filterDate
-          let beginDate1, closeDate1;
-          const currentDate = new Date();
-
-          if (filterDate === "Current Week") {
-            const firstDayOfWeek = currentDate.getDate() - currentDate.getDay(); // Get the first day of the week (Sunday)
-            beginDate1 = new Date(currentDate.setDate(firstDayOfWeek));
-            closeDate1 = new Date(currentDate.setDate(firstDayOfWeek + 6));
-          } else if (filterDate === "Current Month") {
-            beginDate1 = new Date(
-              currentDate.getFullYear(),
-              currentDate.getMonth(),
-              1
-            );
-            closeDate1 = new Date(
-              currentDate.getFullYear(),
-              currentDate.getMonth() + 1,
-              0
-            );
-          } else if (filterDate === "Last 7 Days") {
-            beginDate1 = subDays(currentDate, 7);
-            closeDate1 = new Date(); // Set closeDate1 to today
-          } else if (filterDate === "Last 30 Days") {
-            beginDate1 = subDays(currentDate, 30);
-            closeDate1 = new Date(); // Set closeDate1 to today
-          } else if (filterDate === "Last 90 Days") {
-            beginDate1 = subDays(currentDate, 90); // Adjusting for the "Last 90 Days"
-            closeDate1 = new Date(); // Set closeDate1 to today
-          } else if (filterDate === "Next Week") {
-            const firstDayNextWeek =
-              currentDate.getDate() - currentDate.getDay() + 7; // Next week's first day
-            beginDate1 = new Date(currentDate.setDate(firstDayNextWeek));
-            closeDate1 = new Date(currentDate.setDate(firstDayNextWeek + 6)); // Next week's last day
-          } else if (filterDate === "All") {
-            // No specific date filter
-            beginDate1 = new Date("2024-01-01"); // Very early date to fetch all events
-            closeDate1 = new Date(); // Up to current date
-          }
-
-          console.log({entityIdbeforeFetching: entityId})
           // Fetch all meetings
           const allMeetings = await ZOHO.CRM.API.getRelatedRecords({
             Entity: "Contacts",
@@ -104,10 +64,12 @@ function App() {
           setEvents(allMeetingsData);
 
           const fetchCurrentContact = await ZOHO.CRM.API.getRecord({
-            Entity: "Contacts", approved: "both", RecordID: entityId
-           });
+            Entity: "Contacts",
+            approved: "both",
+            RecordID: entityId,
+          });
 
-           setCurrentContact(fetchCurrentContact.data[0])
+          setCurrentContact(fetchCurrentContact.data[0]);
 
           // Get organization variable
           await ZOHO.CRM.API.getOrgVariable("recent_colors").then(function (
@@ -136,8 +98,7 @@ function App() {
     }
 
     getData();
-  }, [zohoLoaded, filterDate, cache]);
-
+  }, [zohoLoaded, cache]);
 
   return (
     <ZohoContext.Provider

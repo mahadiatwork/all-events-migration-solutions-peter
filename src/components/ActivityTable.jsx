@@ -25,6 +25,7 @@ import { visuallyHidden } from "@mui/utils";
 import ClearActivityModal from "./ClearActivityModal";
 import EditActivityModal from "./EditActivityModal";
 import CreateActivityModal from "./CreateActivityModal";
+import { isDateInRange } from "./helperFunc";
 
 const headCells = [
   {
@@ -279,8 +280,6 @@ export default function ScheduleTable({
   setFilterDate,
   loggedInUser,
   setEvents,
-  customDateRange,
-  setCustomDateRange,
   currentContact,
 }) {
   const [selectedRowIndex, setSelectedRowIndex] = React.useState(null);
@@ -290,6 +289,7 @@ export default function ScheduleTable({
   const [selectedRowData, setSelectedRowData] = React.useState(null);
   const [openCreateModal, setOpenCreateModal] = React.useState(false);
   const [openCustomRangeModal, setOpenCustomRangeModal] = React.useState(false);
+  const [customDateRange, setCustomDateRange] = React.useState(null);
 
   const [filterType, setFilterType] = React.useState([]);
   const [filterPriority, setFilterPriority] = React.useState([]);
@@ -372,17 +372,22 @@ export default function ScheduleTable({
         const userMatch =
           filterUser.length === 0 ||
           filterUser.some((user) => row.scheduledFor.includes(user));
-        const dateMatch =
-          !customDateRange ||
-          (new Date(row.date) >= new Date(customDateRange.startDate) &&
-            new Date(row.date) <= new Date(customDateRange.endDate));
+  
+        // Apply either customDateRange or filterDate but not both
+        let dateMatch = true;
+        if (customDateRange) {
+          dateMatch =
+            new Date(row.date) >= new Date(customDateRange.startDate) &&
+            new Date(row.date) <= new Date(customDateRange.endDate);
+        } else {
+          dateMatch = isDateInRange(row.date, filterDate || "Default");
+        }
+  
         const clearedMatch = showCleared
           ? true // Show both open and closed items when showCleared is true
           : row.Event_Status !== "Closed";
-
-        return (
-          typeMatch && priorityMatch && userMatch && dateMatch && clearedMatch
-        );
+  
+        return typeMatch && priorityMatch && userMatch && dateMatch && clearedMatch;
       })
       .sort(getComparator(order, orderBy));
   }, [
@@ -391,11 +396,12 @@ export default function ScheduleTable({
     filterPriority,
     filterUser,
     customDateRange,
-    showCleared, // Ensure the "Cleared" checkbox state is included in dependencies
+    filterDate,
+    showCleared,
     order,
     orderBy,
   ]);
-
+  
   // Checkbox handler
   const handleClearedCheckboxChange = (event) => {
     setShowCleared(event.target.checked);
