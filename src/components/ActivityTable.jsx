@@ -734,7 +734,7 @@ const filteredRows = React.useMemo(() => {
           size="small" // Reduced button size
           sx={{ height: "30px" }} // Adjust height
         >
-          Create New Event
+          Create New Activity
         </Button>
       </Box>
 
