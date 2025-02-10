@@ -237,11 +237,10 @@ export default function ClearActivityModal({
 
       // CASE 2: Both "Clear" and "Erase" unchecked → Open the event
       if (!clearChecked && !eraseChecked) {
-        const historyResponse = await ZOHO.CRM.API.getRecords({
-          Entity: "History1",
-          Type: "criteria",
-          Criteria: `(Event_ID:equals:${selectedRowData?.id})`,
-        });
+
+        const historyResponse = await ZOHO.CRM.API.getRecord({
+          Entity: "Events", approved: "both", RecordID: selectedRowData?.id
+         });
 
         if (historyResponse.data.length > 0) {
           const latestHistory = historyResponse.data[0];
@@ -250,9 +249,7 @@ export default function ClearActivityModal({
             RecordID: selectedRowData?.id,
             APIData: {
               id: selectedRowData?.id,
-              Event_Status: "Open",
-              History_Details: latestHistory?.History_Details_Plain,
-              History_Result: latestHistory?.History_Result,
+              Event_Status: "Open"
             },
           });
 
@@ -269,8 +266,6 @@ export default function ClearActivityModal({
                   ? {
                       ...event,
                       Event_Status: "Open",
-                      History_Details: latestHistory?.History_Details_Plain,
-                      History_Result: latestHistory?.History_Result,
                     }
                   : event
               )
