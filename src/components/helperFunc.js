@@ -46,3 +46,89 @@ export const isDateInRange = (date, rangeType) => {
 
     return targetDate >= startDate && targetDate <= endDate;
 };
+
+
+
+export const typeOptions = [
+    "Call Attempted",
+    "Call Completed",
+    "Call Left Message",
+    "Call Received",
+    "Meeting Held",
+    "Meeting Not Held",
+    "To-do Done",
+    "To-do Not Done",
+    "Appointment Completed",
+    "Appointment Not Completed",
+    "Boardroom - Completed",
+    "Boardroom - Not Completed",
+    "Call Billing - Completed",
+    "Initial Consultation - Completed",
+    "Initial Consultation - Not Completed",
+    "Mail - Completed",
+    "Mail - Not Completed",
+    "Meeting Billing - Completed",
+    "Meeting Billing - Not Completed",
+    "Personal Activity - Completed",
+    "Personal Activity - Not Completed",
+    "Note",
+    "Mail Received",
+    "Mail Sent",
+    "Email Received",
+    "Courier Sent",
+    "Email Sent",
+    "Payment Received",
+    "Room 1 - Completed",
+    "Room 1 - Not Completed",
+    "Room 2 - Completed",
+    "Room 2 - Not Completed",
+    "Room 3 - Completed",
+    "Room 3 - Not Completed",
+    "To Do Billing - Completed",
+    "To Do Billing - Not Completed",
+    "Vacation - Completed",
+    "Vacation - Not Completed",
+    "Vacation Cancelled",
+    "Attachment",
+    "E-mail Attachment",
+  ];
+
+
+export const getResultBasedOnActivityType = (activityType) => {
+  switch (activityType) {
+    case "Meeting":
+      return "Meeting Held";
+    case "To-Do":
+      return "To-do Done";
+    case "Appointment":
+      return "Appointment Completed";
+    case "Boardroom":
+      return "Boardroom - Completed";
+    case "Call Billing":
+      return "Call Billing - Completed";
+    case "Email Billing":
+      return "Email Billing - Completed";
+    case "Initial Consultation":
+      return "Initial Consultation - Completed";
+    case "Call":
+      return "Call Attempted";
+    case "Mail":
+      return "Mail - Completed";
+    case "Meeting Billing":
+      return "Meeting Billing - Completed";
+    case "Personal Activity":
+      return "Personal Activity - Completed";
+    case "Room 1":
+      return "Room 1 - Completed";
+    case "Room 2":
+      return "Room 2 - Completed";
+    case "Room 3":
+      return "Room 3 - Completed";
+    case "To Do Billing":
+      return "To Do Billing - Completed";
+    case "Vacation":
+      return "Vacation - Completed";
+    default:
+      return "Note"; // Default result if no specific type is matched
+  }
+};  

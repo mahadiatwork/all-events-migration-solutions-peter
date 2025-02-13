@@ -954,6 +954,7 @@ export default function ScheduleTable({
           ZOHO={ZOHO}
           users={users}
           setEvents={setEvents}
+          currentContact={currentContact}
         />
       )}
 
