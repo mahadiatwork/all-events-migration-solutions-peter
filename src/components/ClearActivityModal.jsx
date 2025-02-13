@@ -22,45 +22,7 @@ import {
 } from "@mui/material";
 import "react-quill/dist/quill.snow.css";
 import { useEffect } from "react";
-
-const getResultBasedOnActivityType = (activityType) => {
-  switch (activityType) {
-    case "Meeting":
-      return "Meeting Held";
-    case "To-Do":
-      return "To-do Done";
-    case "Appointment":
-      return "Appointment Completed";
-    case "Boardroom":
-      return "Boardroom - Completed";
-    case "Call Billing":
-      return "Call Billing - Completed";
-    case "Email Billing":
-      return "Email Billing - Completed";
-    case "Initial Consultation":
-      return "Initial Consultation - Completed";
-    case "Call":
-      return "Call Attempted";
-    case "Mail":
-      return "Mail - Completed";
-    case "Meeting Billing":
-      return "Meeting Billing - Completed";
-    case "Personal Activity":
-      return "Personal Activity - Completed";
-    case "Room 1":
-      return "Room 1 - Completed";
-    case "Room 2":
-      return "Room 2 - Completed";
-    case "Room 3":
-      return "Room 3 - Completed";
-    case "To Do Billing":
-      return "To Do Billing - Completed";
-    case "Vacation":
-      return "Vacation - Completed";
-    default:
-      return "Note"; // Default result if no specific type is matched
-  }
-};
+import { getResultBasedOnActivityType, typeOptions } from "./helperFunc";
 
 export default function ClearActivityModal({
   open,
@@ -103,9 +65,14 @@ export default function ClearActivityModal({
 
   const [existingHistory, setExistingHistory] = React.useState([]);
 
-  const [activityDetails, setActivityDetails] = React.useState("");
+  const [activityDetails, setActivityDetails] = React.useState(
+    selectedRowData.Description || ""
+  );
 
   useEffect(() => {
+    if(selectedRowData.Description){
+      setAddActivityToHistory(true)
+    }
     const getRecords = async () => {
       const historyResponse = await ZOHO.CRM.API.searchRecord({
         Entity: "History1",
@@ -131,6 +98,7 @@ export default function ClearActivityModal({
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     try {
       // Helper to update only the history record
       const updateHistoryOnly = async () => {
@@ -138,6 +106,7 @@ export default function ClearActivityModal({
         const updatedHistoryData = {
           History_Details_Plain: activityDetails,
           History_Result: result,
+          id: historyRecordId
         };
 
         const updateResponse = await ZOHO.CRM.API.updateRecord({
@@ -182,6 +151,8 @@ export default function ClearActivityModal({
         if (existingHistory.length > 0) {
           return await updateHistoryOnly();
         } else {
+          console.log({ existingHistory });
+
           const historyResponse = await ZOHO.CRM.API.insertRecord({
             Entity: "History1",
             APIData: recordData,
@@ -189,6 +160,41 @@ export default function ClearActivityModal({
           });
 
           if (historyResponse.data[0].code === "SUCCESS") {
+            // Loop through each selected participant
+            for (const participant of selectedRowData.Participants) {
+              const historyXContactRecordData = {
+                Contact_Details: { id: participant.participant },
+                Contact_History_Info: {
+                  id: historyResponse?.data[0]?.details?.id,
+                },
+                Duration: selectedRowData?.Duration_Min,
+                History_Type: selectedRowData?.Type_of_Activity,
+                Stakeholder: { id: selectedRowData?.What_Id?.id },
+                Regarding: selectedRowData?.Regarding,
+                History_Date_Time: selectedRowData?.Start_DateTime,
+                Owner: selectedRowData?.Owner,
+                History_Details: activityDetails,
+                History_Result: result,
+                Event_ID: selectedRowData?.id,
+              };
+
+              try {
+                await ZOHO.CRM.API.insertRecord({
+                  Entity: "History_X_Contacts",
+                  APIData: historyXContactRecordData,
+                  Trigger: ["workflow"],
+                });
+                console.log(
+                  `Record inserted for participant ${participant.name}`
+                );
+              } catch (error) {
+                console.error(
+                  `Error inserting record for ${participant.name}:`,
+                  error
+                );
+              }
+            }
+
             setSnackbarMessage("New history created successfully!");
             setSnackbarSeverity("success");
             setSnackbarOpen(true);
@@ -226,10 +232,7 @@ export default function ClearActivityModal({
                 : event
             )
           );
-
-          if (addActivityToHistory) {
-            await createOrUpdateHistory();
-          }
+          await createOrUpdateHistory();
         } else {
           throw new Error("Failed to update the event.");
         }
@@ -237,22 +240,20 @@ export default function ClearActivityModal({
 
       // CASE 2: Both "Clear" and "Erase" unchecked → Open the event
       if (!clearChecked && !eraseChecked) {
-        const historyResponse = await ZOHO.CRM.API.getRecords({
-          Entity: "History1",
-          Type: "criteria",
-          Criteria: `(Event_ID:equals:${selectedRowData?.What_Id?.id})`,
+        const eventResponse = await ZOHO.CRM.API.getRecord({
+          Entity: "Events",
+          approved: "both",
+          RecordID: selectedRowData?.id,
         });
 
-        if (historyResponse.data.length > 0) {
-          const latestHistory = historyResponse.data[0];
+        if (eventResponse.data.length > 0) {
+          const latestHistory = eventResponse.data[0];
           const updateResponse = await ZOHO.CRM.API.updateRecord({
             Entity: "Events",
             RecordID: selectedRowData?.id,
             APIData: {
               id: selectedRowData?.id,
               Event_Status: "Open",
-              History_Details: latestHistory?.History_Details_Plain,
-              History_Result: latestHistory?.History_Result,
             },
           });
 
@@ -269,8 +270,6 @@ export default function ClearActivityModal({
                   ? {
                       ...event,
                       Event_Status: "Open",
-                      History_Details: latestHistory?.History_Details_Plain,
-                      History_Result: latestHistory?.History_Result,
                     }
                   : event
               )
@@ -351,39 +350,57 @@ export default function ClearActivityModal({
     React.useState(false);
   const handleActivityDetailsChange = (e) => {
     setActivityDetails(e.target.value);
-
-    // Enable the update button if content changes
-    if (
-      existingHistory.length > 0 &&
-      e.target.value !== existingHistory[0]?.History_Details_Plain
-    ) {
-      setIsActivityDetailsUpdated(true);
-    } else {
-      setIsActivityDetailsUpdated(true);
-    }
   };
 
   // Delete existing history
-const handleDeleteHistory = async () => {
-  const historyRecordId = existingHistory[0]?.id;
+  const handleDeleteHistory = async () => {
+    const historyRecordId = existingHistory[0]?.id;
 
-  const deleteResponse = await ZOHO.CRM.API.deleteRecord({
-    Entity: "History1",
-    RecordID: historyRecordId,
-  });
+    const getAllHistoryXcontacts = await ZOHO.CRM.API.getRelatedRecords({
+      Entity: "History1",
+      RecordID: historyRecordId,
+      RelatedList: "Contacts3",
+      page: 1,
+      per_page: 200,
+    });
 
-  if (deleteResponse.data[0].code === "SUCCESS") {
-    setSnackbarMessage("History deleted successfully!");
-    setSnackbarSeverity("success");
-    setSnackbarOpen(true);
-    setExistingHistory([]);
-  } else {
-    setSnackbarMessage("Failed to delete history.");
-    setSnackbarSeverity("error");
-    setSnackbarOpen(true);
-  }
-};
+    const deleteResponse = await ZOHO.CRM.API.deleteRecord({
+      Entity: "History1",
+      RecordID: historyRecordId,
+    });
 
+    if (deleteResponse.data[0].code === "SUCCESS") {
+      setActivityDetails("");
+      if (getAllHistoryXcontacts.data.length > 0) {
+        for (const participant of getAllHistoryXcontacts.data) {
+          const relatedRecordsDelete = await ZOHO.CRM.API.deleteRecord({
+            Entity: "History1",
+            RecordID: participant?.id,
+          });
+        }
+      }
+      setSnackbarMessage("History deleted successfully!");
+      setSnackbarSeverity("success");
+      setSnackbarOpen(true);
+      setExistingHistory([]);
+      setTimeout(() => {
+        handleClose();
+      }, 1000);
+    } else {
+      setSnackbarMessage("Failed to delete history.");
+      setSnackbarSeverity("error");
+      setSnackbarOpen(true);
+    }
+  };
+
+  const handleActivityToHistory = (e) => {
+    setAddActivityToHistory(e.target.checked);
+    if (e.target.checked === false) {
+      setActivityDetails("");
+    } else {
+      setActivityDetails(selectedRowData?.Description || "");
+    }
+  };
 
   return (
     <>
@@ -548,214 +565,24 @@ const handleDeleteHistory = async () => {
                     sx={{ marginLeft: 2, minWidth: 150, fontSize: "9pt" }} // Ensure font size for Select input
                     size="small"
                   >
-                    <MenuItem value="Call Attempted" sx={{ fontSize: "9pt" }}>
-                      Call Attempted
-                    </MenuItem>
-                    <MenuItem value="Call Completed" sx={{ fontSize: "9pt" }}>
-                      Call Completed
-                    </MenuItem>
-                    <MenuItem
-                      value="Call Left Message"
-                      sx={{ fontSize: "9pt" }}
-                    >
-                      Call Left Message
-                    </MenuItem>
-                    <MenuItem value="Call Received" sx={{ fontSize: "9pt" }}>
-                      Call Received
-                    </MenuItem>
-                    <MenuItem value="Meeting Held" sx={{ fontSize: "9pt" }}>
-                      Meeting Held
-                    </MenuItem>
-                    <MenuItem value="Meeting Not Held" sx={{ fontSize: "9pt" }}>
-                      Meeting Not Held
-                    </MenuItem>
-                    <MenuItem value="To-do Done" sx={{ fontSize: "9pt" }}>
-                      To-do Done
-                    </MenuItem>
-                    <MenuItem value="To-do Not Done" sx={{ fontSize: "9pt" }}>
-                      To-do Not Done
-                    </MenuItem>
-                    <MenuItem
-                      value="Appointment Completed"
-                      sx={{ fontSize: "9pt" }}
-                    >
-                      Appointment Completed
-                    </MenuItem>
-                    <MenuItem
-                      value="Appointment Not Completed"
-                      sx={{ fontSize: "9pt" }}
-                    >
-                      Appointment Not Completed
-                    </MenuItem>
-                    <MenuItem
-                      value="Boardroom - Completed"
-                      sx={{ fontSize: "9pt" }}
-                    >
-                      Boardroom - Completed
-                    </MenuItem>
-                    <MenuItem
-                      value="Boardroom - Not Completed"
-                      sx={{ fontSize: "9pt" }}
-                    >
-                      Boardroom - Not Completed
-                    </MenuItem>
-                    <MenuItem
-                      value="Call Billing - Completed"
-                      sx={{ fontSize: "9pt" }}
-                    >
-                      Call Billing - Completed
-                    </MenuItem>
-                    <MenuItem
-                      value="Initial Consultation - Completed"
-                      sx={{ fontSize: "9pt" }}
-                    >
-                      Initial Consultation - Completed
-                    </MenuItem>
-                    <MenuItem
-                      value="Initial Consultation - Not Completed"
-                      sx={{ fontSize: "9pt" }}
-                    >
-                      Initial Consultation - Not Completed
-                    </MenuItem>
-                    <MenuItem value="Mail - Completed" sx={{ fontSize: "9pt" }}>
-                      Mail - Completed
-                    </MenuItem>
-                    <MenuItem
-                      value="Mail - Not Completed"
-                      sx={{ fontSize: "9pt" }}
-                    >
-                      Mail - Not Completed
-                    </MenuItem>
-                    <MenuItem
-                      value="Meeting Billing - Completed"
-                      sx={{ fontSize: "9pt" }}
-                    >
-                      Meeting Billing - Completed
-                    </MenuItem>
-                    <MenuItem
-                      value="Meeting Billing - Not Completed"
-                      sx={{ fontSize: "9pt" }}
-                    >
-                      Meeting Billing - Not Completed
-                    </MenuItem>
-                    <MenuItem
-                      value="Personal Activity - Completed"
-                      sx={{ fontSize: "9pt" }}
-                    >
-                      Personal Activity - Completed
-                    </MenuItem>
-                    <MenuItem
-                      value="Personal Activity - Not Completed"
-                      sx={{ fontSize: "9pt" }}
-                    >
-                      Personal Activity - Not Completed
-                    </MenuItem>
-                    <MenuItem value="Note" sx={{ fontSize: "9pt" }}>
-                      Note
-                    </MenuItem>
-                    <MenuItem value="Mail Received" sx={{ fontSize: "9pt" }}>
-                      Mail Received
-                    </MenuItem>
-                    <MenuItem value="Mail Sent" sx={{ fontSize: "9pt" }}>
-                      Mail Sent
-                    </MenuItem>
-                    <MenuItem value="Email Received" sx={{ fontSize: "9pt" }}>
-                      Email Received
-                    </MenuItem>
-                    <MenuItem value="Courier Sent" sx={{ fontSize: "9pt" }}>
-                      Courier Sent
-                    </MenuItem>
-                    <MenuItem value="Email Sent" sx={{ fontSize: "9pt" }}>
-                      Email Sent
-                    </MenuItem>
-                    <MenuItem value="Payment Received" sx={{ fontSize: "9pt" }}>
-                      Payment Received
-                    </MenuItem>
-                    <MenuItem
-                      value="Room 1 - Completed"
-                      sx={{ fontSize: "9pt" }}
-                    >
-                      Room 1 - Completed
-                    </MenuItem>
-                    <MenuItem
-                      value="Room 1 - Not Completed"
-                      sx={{ fontSize: "9pt" }}
-                    >
-                      Room 1 - Not Completed
-                    </MenuItem>
-                    <MenuItem
-                      value="Room 2 - Completed"
-                      sx={{ fontSize: "9pt" }}
-                    >
-                      Room 2 - Completed
-                    </MenuItem>
-                    <MenuItem
-                      value="Room 2 - Not Completed"
-                      sx={{ fontSize: "9pt" }}
-                    >
-                      Room 2 - Not Completed
-                    </MenuItem>
-                    <MenuItem
-                      value="Room 3 - Completed"
-                      sx={{ fontSize: "9pt" }}
-                    >
-                      Room 3 - Completed
-                    </MenuItem>
-                    <MenuItem
-                      value="Room 3 - Not Completed"
-                      sx={{ fontSize: "9pt" }}
-                    >
-                      Room 3 - Not Completed
-                    </MenuItem>
-                    <MenuItem
-                      value="To Do Billing - Completed"
-                      sx={{ fontSize: "9pt" }}
-                    >
-                      To Do Billing - Completed
-                    </MenuItem>
-                    <MenuItem
-                      value="To Do Billing - Not Completed"
-                      sx={{ fontSize: "9pt" }}
-                    >
-                      To Do Billing - Not Completed
-                    </MenuItem>
-                    <MenuItem
-                      value="Vacation - Completed"
-                      sx={{ fontSize: "9pt" }}
-                    >
-                      Vacation - Completed
-                    </MenuItem>
-                    <MenuItem
-                      value="Vacation - Not Completed"
-                      sx={{ fontSize: "9pt" }}
-                    >
-                      Vacation - Not Completed
-                    </MenuItem>
-                    <MenuItem
-                      value="Vacation Cancelled"
-                      sx={{ fontSize: "9pt" }}
-                    >
-                      Vacation Cancelled
-                    </MenuItem>
-                    <MenuItem value="Attachment" sx={{ fontSize: "9pt" }}>
-                      Attachment
-                    </MenuItem>
-                    <MenuItem
-                      value="E-mail Attachment"
-                      sx={{ fontSize: "9pt" }}
-                    >
-                      E-mail Attachment
-                    </MenuItem>
+                    {typeOptions.map((option) => (
+                      <MenuItem
+                        key={option}
+                        value={option}
+                        sx={{ fontSize: "9pt" }}
+                      >
+                        {option}
+                      </MenuItem>
+                    ))}
                   </Select>
                 </FormGroup>
 
                 {existingHistory.length > 0 ? (
-                  <Box sx={{p: "20px 0px"}}>
+                  <Box sx={{ p: "20px 0px" }}>
                     <Typography variant="subtitle1">
                       Existing History:
                       <Link
                         href={`https://crm.zoho.com.au/crm/org7004396182/tab/CustomModule4/${existingHistory[0].id}`}
-                        onClick={() => setIsEditingHistory(true)}
                         target="_blank"
                         style={{
                           marginLeft: "8px",
@@ -785,9 +612,10 @@ const handleDeleteHistory = async () => {
                       control={
                         <Checkbox
                           checked={addActivityToHistory}
-                          onChange={(e) =>
-                            setAddActivityToHistory(e.target.checked)
-                          }
+                          onChange={handleActivityToHistory}
+                          // onChange={(e) =>
+                          //   setAddActivityToHistory(e.target.checked)
+                          // }
                           color="primary"
                         />
                       }
@@ -821,7 +649,8 @@ const handleDeleteHistory = async () => {
                   variant="contained"
                   color="primary"
                   onClick={handleSubmit}
-                  disabled={!addActivityToHistory || !isActivityDetailsUpdated}
+                  // disabled={!addActivityToHistory || !isActivityDetailsUpdated}
+                  disabled={false}
                 >
                   Update
                 </Button>
