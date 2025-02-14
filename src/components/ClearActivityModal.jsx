@@ -70,8 +70,8 @@ export default function ClearActivityModal({
   );
 
   useEffect(() => {
-    if(selectedRowData.Description){
-      setAddActivityToHistory(true)
+    if (selectedRowData.Description) {
+      setAddActivityToHistory(true);
     }
     const getRecords = async () => {
       const historyResponse = await ZOHO.CRM.API.searchRecord({
@@ -106,7 +106,7 @@ export default function ClearActivityModal({
         const updatedHistoryData = {
           History_Details_Plain: activityDetails,
           History_Result: result,
-          id: historyRecordId
+          id: historyRecordId,
         };
 
         const updateResponse = await ZOHO.CRM.API.updateRecord({
@@ -300,9 +300,7 @@ export default function ClearActivityModal({
             prevEvents.filter((event) => event.id !== selectedRowData?.id)
           );
 
-          if (addActivityToHistory) {
-            await createOrUpdateHistory();
-          }
+          await createOrUpdateHistory();
         } else {
           throw new Error("Failed to delete the event.");
         }
