@@ -327,6 +327,7 @@ export default function ScheduleTable({
     "Room 3",
     "Todo Billing",
     "Vacation",
+    "Other"
   ];
 
   const priorityOptions = ["Low", "Medium", "High"];

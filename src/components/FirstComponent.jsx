@@ -52,7 +52,6 @@ const parseDateString = (dateString) => {
 const formatTime = (date) => {
   const newDate = new Date(date);
 
-  console.log({ formatTime: newDate });
 
   const year = newDate.getFullYear();
   const month = String(newDate.getMonth() + 1).padStart(2, "0");
@@ -147,6 +146,7 @@ const FirstComponent = ({
     { type: "Room 3", resource: 14 },
     { type: "To Do Billing", resource: 15 },
     { type: "Vacation", resource: 16 },
+    { type: "Other", resource: 17 }
   ]);
 
   function addMinutesToDateTime(formatType, durationInMinutes) {

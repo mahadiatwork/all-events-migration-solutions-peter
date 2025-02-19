@@ -135,7 +135,6 @@ function App() {
           });
           const allMeetingsData = allMeetings?.data || [];
 
-          console.log("Original Events Count:", allMeetingsData.length);
 
           // Combine eventsData and allMeetingsData
           const combinedEvents = [...eventsData, ...allMeetingsData];
@@ -160,18 +159,6 @@ function App() {
           const sortedUniqueEvents = uniqueEvents.sort((a, b) => {
             return new Date(a.Start_DateTime) - new Date(b.Start_DateTime);
           });
-
-          console.log("Filtered Events Count:", filteredEvents.length);
-          console.log("Unique Events Count:", sortedUniqueEvents.length);
-
-          console.log(
-            "Filtered Events Details:",
-            filteredEvents.map((event) => event.id)
-          );
-          console.log(
-            "Unique Sorted Events Details:",
-            sortedUniqueEvents.map((event) => event.id)
-          );
 
           // Cache and update state
           setCache((prevCache) => ({
@@ -204,9 +191,6 @@ function App() {
     getData();
   }, [zohoLoaded, filterDate, customDateRange, cache]);
 
-  useEffect(() => {
-    events.forEach((event) => console.log("Name: ", event.Event_Title))
-  }, [])
 
   return (
     <ZohoContext.Provider

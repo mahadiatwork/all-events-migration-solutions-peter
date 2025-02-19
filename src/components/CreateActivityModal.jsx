@@ -86,7 +86,6 @@ function calculateRemindAt(reminderText, startDateTime) {
 }
 
 function formatDateWithOffset(dateString) {
-  console.log({ dateString });
   if (!dateString) return null;
 
   // Parse the date string using JavaScript's Date constructor
@@ -199,7 +198,6 @@ function transformFormSubmission(data, individualParticipant = null) {
     delete transformedData["Remind_Participants"];
   }
 
-  console.log({ recurring: transformedData.Recurring_Activity });
 
   if (
     transformedData.Remind_At == null ||
@@ -300,7 +298,6 @@ const CreateActivityModal = ({
       scheduledWith, // scheduledWith instead of Participants
     } = formData;
 
-    console.log({ formData });
 
     // Ensure all required fields are not empty or null
     return (
