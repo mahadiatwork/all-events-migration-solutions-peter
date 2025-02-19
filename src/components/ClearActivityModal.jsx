@@ -22,7 +22,7 @@ import {
 } from "@mui/material";
 import "react-quill/dist/quill.snow.css";
 import { useEffect } from "react";
-import { getResultBasedOnActivityType, typeOptions } from "./helperFunc";
+import { getResultBasedOnActivityType, getResultBasedOnActivityType2, typeOptions } from "./helperFunc";
 
 export default function ClearActivityModal({
   open,
@@ -70,8 +70,8 @@ export default function ClearActivityModal({
   );
 
   useEffect(() => {
-    if (selectedRowData.Description) {
-      setAddActivityToHistory(true);
+    if(selectedRowData.Description){
+      setAddActivityToHistory(true)
     }
     const getRecords = async () => {
       const historyResponse = await ZOHO.CRM.API.searchRecord({
@@ -106,7 +106,7 @@ export default function ClearActivityModal({
         const updatedHistoryData = {
           History_Details_Plain: activityDetails,
           History_Result: result,
-          id: historyRecordId,
+          id: historyRecordId
         };
 
         const updateResponse = await ZOHO.CRM.API.updateRecord({
@@ -300,7 +300,9 @@ export default function ClearActivityModal({
             prevEvents.filter((event) => event.id !== selectedRowData?.id)
           );
 
-          await createOrUpdateHistory();
+          if (addActivityToHistory) {
+            await createOrUpdateHistory();
+          }
         } else {
           throw new Error("Failed to delete the event.");
         }
@@ -399,6 +401,24 @@ export default function ClearActivityModal({
       setActivityDetails(selectedRowData?.Description || "");
     }
   };
+
+  const [filteredActivities, setFilteredActivities] = React.useState([]);
+  
+  useEffect(() => {
+    if (selectedRowData?.Type_of_Activity) {
+      const filteredOptions = getResultBasedOnActivityType2(selectedRowData.Type_of_Activity);
+      setFilteredActivities(filteredOptions);
+  
+      // Set the first option as the default if no result is already set
+      if (filteredOptions.length > 0 && !selectedRowData?.result) {
+        setResult(filteredOptions[0]);
+      }
+    }
+  }, [selectedRowData?.Type_of_Activity]);
+
+
+
+
 
   return (
     <>
@@ -563,7 +583,7 @@ export default function ClearActivityModal({
                     sx={{ marginLeft: 2, minWidth: 150, fontSize: "9pt" }} // Ensure font size for Select input
                     size="small"
                   >
-                    {typeOptions.map((option) => (
+                    {filteredActivities?.map((option) => (
                       <MenuItem
                         key={option}
                         value={option}
