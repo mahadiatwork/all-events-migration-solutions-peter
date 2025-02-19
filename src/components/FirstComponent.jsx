@@ -52,7 +52,6 @@ const parseDateString = (dateString) => {
 const formatTime = (date) => {
   const newDate = new Date(date);
 
-
   const year = newDate.getFullYear();
   const month = String(newDate.getMonth() + 1).padStart(2, "0");
   const day = String(newDate.getDate()).padStart(2, "0");
@@ -146,7 +145,7 @@ const FirstComponent = ({
     { type: "Room 3", resource: 14 },
     { type: "To Do Billing", resource: 15 },
     { type: "Vacation", resource: 16 },
-    { type: "Other", resource: 17 }
+    { type: "Other", resource: 17 },
   ]);
 
   function addMinutesToDateTime(formatType, durationInMinutes) {
@@ -482,9 +481,26 @@ const FirstComponent = ({
               fullWidth
               value={formData.Type_of_Activity} // Use formData
               onChange={handleActivityChange}
+              sx={{
+                fontSize: "9pt", // Ensures the selected text is 9pt
+                "& .MuiSelect-select": {
+                  fontSize: "9pt", // Ensures the selected value text is 9pt
+                },
+              }}
+              MenuProps={{
+                PaperProps: {
+                  sx: {
+                    fontSize: "9pt", // Ensures the dropdown options text is 9pt
+                  },
+                },
+              }}
             >
               {activityType.map((item, index) => (
-                <MenuItem value={item.type} key={index}>
+                <MenuItem
+                  value={item.type}
+                  key={index}
+                  sx={{ fontSize: "9pt" }} // Ensures the menu item text is 9pt
+                >
                   {item.type}
                 </MenuItem>
               ))}
@@ -585,7 +601,7 @@ const FirstComponent = ({
             </Select>
           </FormControl>
         </Grid>
-        <Grid  item xs={6} sm={4} md={2} sx={{ margin: "-13.6px 0px" }}>
+        <Grid item xs={6} sm={4} md={2} sx={{ margin: "-13.6px 0px" }}>
           <FormControlLabel
             control={
               <Checkbox
@@ -596,22 +612,30 @@ const FirstComponent = ({
             label="Banner/Timeless"
           />
         </Grid>
-        <Grid item xs={6} sm={4} md={2} display="flex" alignItems="center"  sx={{ margin: "-13.6px 0px" }}>
-            <Typography variant="body1" sx={{ mr: 1 }}>
-              Colour:
-            </Typography>
-            <div style={colorBoxStyle} onClick={handleClick} />
-            {displayColorPicker && (
-              <div style={popover}>
-                <div style={cover} />
-                <CustomColorPicker
-                  recentColors={recentColors}
-                  handleClose={handleClose}
-                  handleColorChange={handleColorChange}
-                />
-              </div>
-            )}
-          </Grid>
+        <Grid
+          item
+          xs={6}
+          sm={4}
+          md={2}
+          display="flex"
+          alignItems="center"
+          sx={{ margin: "-13.6px 0px" }}
+        >
+          <Typography variant="body1" sx={{ mr: 1 }}>
+            Colour:
+          </Typography>
+          <div style={colorBoxStyle} onClick={handleClick} />
+          {displayColorPicker && (
+            <div style={popover}>
+              <div style={cover} />
+              <CustomColorPicker
+                recentColors={recentColors}
+                handleClose={handleClose}
+                handleColorChange={handleColorChange}
+              />
+            </div>
+          )}
+        </Grid>
         <Grid size={12}>
           <ContactField
             formData={formData} // Use formData
@@ -644,23 +668,23 @@ const FirstComponent = ({
             label="Don't send reminders"
           />
         </Grid>
-        <Grid item xs={6}  sx={{ margin: "-13.6px 0px" }}>
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={formData.Create_Separate_Event_For_Each_Contact}
-                  onChange={(e) =>
-                    handleInputChange(
-                      "Create_Separate_Event_For_Each_Contact",
-                      e.target.checked
-                    )
-                  }
-                  disabled={isEditMode} // Disable the checkbox in edit mode
-                />
-              }
-              label="Create separate activity for each contact"
-            />
-          </Grid>
+        <Grid item xs={6} sx={{ margin: "-13.6px 0px" }}>
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={formData.Create_Separate_Event_For_Each_Contact}
+                onChange={(e) =>
+                  handleInputChange(
+                    "Create_Separate_Event_For_Each_Contact",
+                    e.target.checked
+                  )
+                }
+                disabled={isEditMode} // Disable the checkbox in edit mode
+              />
+            }
+            label="Create separate activity for each contact"
+          />
+        </Grid>
         <Grid size={12}>
           <AccountField
             formData={formData} // Use formData
@@ -707,7 +731,7 @@ const FirstComponent = ({
           </FormControl>
         </Grid>
         <Grid size={3}>
-          <FormControl fullWidth size="small"  className="custom-select">
+          <FormControl fullWidth size="small" className="custom-select">
             <InputLabel>Priority</InputLabel>
             <Select
               label="Priority"
@@ -723,7 +747,7 @@ const FirstComponent = ({
         </Grid>
         {/* Reminder Dropdown */}
         <Grid size={3}>
-          <FormControl fullWidth size="small"  className="custom-select">
+          <FormControl fullWidth size="small" className="custom-select">
             <InputLabel>Ring Alarm</InputLabel>
             <Select
               label="Ring Alarm"
