@@ -40,7 +40,7 @@ export const isDateInRange = (date, rangeType) => {
         default:
             startDate = new Date();
             startDate.setDate(today.getDate() - 14); // Last 14 days
-            endDate = today;
+            endDate = null;
             break;
     }
 
