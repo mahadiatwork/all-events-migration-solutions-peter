@@ -361,41 +361,38 @@ export default function ScheduleTable({
       )
     : [];
 
-  // Filter rows based on selected filters and "Cleared" checkbox
-  const filteredRows = React.useMemo(() => {
-    return rows
-      .filter((row) => {
-        const typeMatch =
-          filterType.length === 0 || filterType.includes(row.type);
-        const priorityMatch =
-          filterPriority.length === 0 || filterPriority.includes(row.priority);
-        const userMatch =
-          filterUser.length === 0 ||
-          filterUser.some((user) => row.scheduledFor.includes(user));
-        const dateMatch =
-          !customDateRange ||
-          (new Date(row.date) >= new Date(customDateRange.startDate) &&
-            new Date(row.date) <= new Date(customDateRange.endDate));
-        const clearedMatch = showCleared
-          ? true // Show both open and closed items when showCleared is true
-          : row.Event_Status !== "Closed";
-
-        return (
-          typeMatch && priorityMatch && userMatch && dateMatch && clearedMatch
-        );
-      })
-      .sort(getComparator(order, orderBy));
-  }, [
-    rows,
-    filterType,
-    filterPriority,
-    filterUser,
-    customDateRange,
-    showCleared, // Ensure the "Cleared" checkbox state is included in dependencies
-    order,
-    orderBy,
-  ]);
-
+    const filteredRows = React.useMemo(() => {
+      return rows
+        .filter((row) => {
+          const typeMatch =
+            filterType.length === 0 || filterType.includes(row.type);
+          const priorityMatch =
+            filterPriority.length === 0 || filterPriority.includes(row.priority);
+          const userMatch =
+            filterUser.length === 0 ||
+            filterUser.some((user) => row.scheduledFor.includes(user));
+          const dateMatch =
+            !customDateRange ||
+            (new Date(row.date) >= new Date(customDateRange.startDate) &&
+              new Date(row.date) <= new Date(customDateRange.endDate));
+          const clearedMatch = showCleared
+            ? true // Show both open and closed items when showCleared is true
+            : row.Event_Status !== "Closed";
+    
+          return (
+            typeMatch && priorityMatch && userMatch && dateMatch && clearedMatch
+          );
+        })
+        .sort((a, b) => new Date(b.date) - new Date(a.date)); // 🔥 Sort from latest to oldest
+    }, [
+      rows,
+      filterType,
+      filterPriority,
+      filterUser,
+      customDateRange,
+      showCleared,
+    ]);
+    
   // Checkbox handler
   const handleClearedCheckboxChange = (event) => {
     setShowCleared(event.target.checked);

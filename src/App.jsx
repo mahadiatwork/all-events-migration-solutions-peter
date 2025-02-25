@@ -14,7 +14,7 @@ function App() {
   const [events, setEvents] = useState([]);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true); // Add loading state
-  const [filterDate, setFilterDate] = useState("All");
+  const [filterDate, setFilterDate] = useState("Default");
   const [cache, setCache] = useState({}); // Cache to store fetched results
   const [recentColors, setRecentColor] = useState(""); // Move this to context
   const [loggedInUser, setLoggedInUser] = useState(null);
@@ -49,9 +49,14 @@ function App() {
         try {
           let beginDate1, closeDate1;
           const currentDate = new Date();
-
-          // Date range calculation
-          if (filterDate === "Custom Range" && customDateRange) {
+          
+          // Default: Last 30 days + future items
+          if (!filterDate || filterDate === "Default") {
+            beginDate1 = new Date(currentDate);
+            beginDate1.setDate(currentDate.getDate() - 29); // Last 30 days
+            closeDate1 = new Date(currentDate);
+            closeDate1.setFullYear(currentDate.getFullYear() + 1); // Future items (1 year ahead)
+          } else if (filterDate === "Custom Range" && customDateRange) {
             // Custom date range set by user
             beginDate1 = new Date(customDateRange.startDate);
             closeDate1 = new Date(customDateRange.endDate);
@@ -82,22 +87,12 @@ function App() {
             beginDate1.setDate(currentDate.getDate() - 89);
           } else if (filterDate === "Current Month") {
             // First day of the current month to the last day of the current month
-            beginDate1 = new Date(
-              currentDate.getFullYear(),
-              currentDate.getMonth(),
-              1
-            );
-            closeDate1 = new Date(
-              currentDate.getFullYear(),
-              currentDate.getMonth() + 1,
-              0
-            );
+            beginDate1 = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+            closeDate1 = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
           } else if (filterDate === "Next Week") {
             // Next week (from the next Sunday to the following Saturday)
             beginDate1 = new Date(currentDate);
-            beginDate1.setDate(
-              currentDate.getDate() - currentDate.getDay() + 7
-            ); // Next Sunday
+            beginDate1.setDate(currentDate.getDate() - currentDate.getDay() + 7); // Next Sunday
             closeDate1 = new Date(beginDate1);
             closeDate1.setDate(beginDate1.getDate() + 6); // Following Saturday
           }
