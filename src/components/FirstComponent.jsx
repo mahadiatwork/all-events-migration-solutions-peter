@@ -517,7 +517,21 @@ const FirstComponent = ({
               label="Start Time"
               value={startValue}
               disabled={formData.Banner ? true : false}
-              slotProps={{ textField: { size: "small" } }}
+              slotProps={{
+                popper: {
+                  modifiers: [
+                    {
+                      name: "offset",
+                      options: {
+                        offset: [80, -180], // You can adjust the offset if necessary
+                      },
+                    },
+                  ],
+                },
+                textField: {
+                  size: "small" 
+                },
+              }}
               onChange={(e) => {
                 const addedHour = new Date(dayjs(e.$d).add(1, "hour").toDate());
                 handleInputChange("start", e.$d);
@@ -539,9 +553,26 @@ const FirstComponent = ({
               label="End Time"
               value={endValue}
               disabled={formData.Banner ? true : false}
-              slotProps={{ textField: { size: "small" } }}
               onChange={(e) => handleEndDateChange(e)}
-              sx={{ "& input": { py: 0 } }}
+              sx={{
+                "& input": { py: 0 },
+              
+              }}
+              slotProps={{
+                popper: {
+                  modifiers: [
+                    {
+                      name: "offset",
+                      options: {
+                        offset: [80, -180], // You can adjust the offset if necessary
+                      },
+                    },
+                  ],
+                },
+                textField: {
+                  size: "small" 
+                },
+              }}
               renderInput={(params) => <TextField {...params} size="small" />}
               format="DD/MM/YYYY hh:mm A" // Ensures 24-hour format for clarity
             />
