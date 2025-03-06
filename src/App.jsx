@@ -49,7 +49,7 @@ function App() {
         try {
           let beginDate1, closeDate1;
           const currentDate = new Date();
-          
+
           // Default: Last 30 days + future items
           if (!filterDate || filterDate === "Default") {
             beginDate1 = new Date(currentDate);
@@ -87,12 +87,22 @@ function App() {
             beginDate1.setDate(currentDate.getDate() - 89);
           } else if (filterDate === "Current Month") {
             // First day of the current month to the last day of the current month
-            beginDate1 = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-            closeDate1 = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+            beginDate1 = new Date(
+              currentDate.getFullYear(),
+              currentDate.getMonth(),
+              1
+            );
+            closeDate1 = new Date(
+              currentDate.getFullYear(),
+              currentDate.getMonth() + 1,
+              0
+            );
           } else if (filterDate === "Next Week") {
             // Next week (from the next Sunday to the following Saturday)
             beginDate1 = new Date(currentDate);
-            beginDate1.setDate(currentDate.getDate() - currentDate.getDay() + 7); // Next Sunday
+            beginDate1.setDate(
+              currentDate.getDate() - currentDate.getDay() + 7
+            ); // Next Sunday
             closeDate1 = new Date(beginDate1);
             closeDate1.setDate(beginDate1.getDate() + 6); // Following Saturday
           }
@@ -120,47 +130,51 @@ function App() {
             "zoho_crm_conn",
             req_data_meetings1
           );
+
           const eventsData = data1?.details?.statusMessage?.data || [];
 
-          const allMeetings = await ZOHO.CRM.API.getAllRecords({
-            Entity: "Events",
-            sort_order: "asc",
-            per_page: 100,
-            page: 1,
-          });
-          const allMeetingsData = allMeetings?.data || [];
+          console.log({ eventsData });
+          let combinedEvents = [];
+          if (filterDate === "Custom Range") {
+            setEvents(eventsData);
+          } else {
+            const allMeetings = await ZOHO.CRM.API.getAllRecords({
+              Entity: "Events",
+              sort_order: "asc",
+              per_page: 100,
+              page: 1,
+            });
+            const allMeetingsData = allMeetings?.data || [];
+            combinedEvents = [...eventsData, ...allMeetingsData];
+            // Filter events by date range
+            const filteredEvents = combinedEvents.filter((event) => {
+              const eventStart = new Date(event.Start_DateTime);
+              const eventEnd = new Date(event.End_DateTime);
+              return eventStart >= beginDate1 && eventEnd <= closeDate1;
+            });
 
+            // Deduplicate events based on `id`
+            const uniqueEventsMap = new Map();
+            filteredEvents.forEach((event) => {
+              if (!uniqueEventsMap.has(event.id)) {
+                uniqueEventsMap.set(event.id, event);
+              }
+            });
+            const uniqueEvents = Array.from(uniqueEventsMap.values());
 
-          // Combine eventsData and allMeetingsData
-          const combinedEvents = [...eventsData, ...allMeetingsData];
+            // Sort events by `Start_DateTime`
+            const sortedUniqueEvents = uniqueEvents.sort((a, b) => {
+              return new Date(a.Start_DateTime) - new Date(b.Start_DateTime);
+            });
 
-          // Filter events by date range
-          const filteredEvents = combinedEvents.filter((event) => {
-            const eventStart = new Date(event.Start_DateTime);
-            const eventEnd = new Date(event.End_DateTime);
-            return eventStart >= beginDate1 && eventEnd <= closeDate1;
-          });
+            // Cache and update state
+            setCache((prevCache) => ({
+              ...prevCache,
+              [filterDate]: sortedUniqueEvents,
+            }));
 
-          // Deduplicate events based on `id`
-          const uniqueEventsMap = new Map();
-          filteredEvents.forEach((event) => {
-            if (!uniqueEventsMap.has(event.id)) {
-              uniqueEventsMap.set(event.id, event);
-            }
-          });
-          const uniqueEvents = Array.from(uniqueEventsMap.values());
-
-          // Sort events by `Start_DateTime`
-          const sortedUniqueEvents = uniqueEvents.sort((a, b) => {
-            return new Date(a.Start_DateTime) - new Date(b.Start_DateTime);
-          });
-
-          // Cache and update state
-          setCache((prevCache) => ({
-            ...prevCache,
-            [filterDate]: sortedUniqueEvents,
-          }));
-          setEvents(sortedUniqueEvents);
+            setEvents(sortedUniqueEvents);
+          }
 
           // Fetch org variable and users
           const orgVar = await ZOHO.CRM.API.getOrgVariable("recent_colors");
@@ -185,7 +199,6 @@ function App() {
 
     getData();
   }, [zohoLoaded, filterDate, customDateRange, cache]);
-
 
   return (
     <ZohoContext.Provider
@@ -228,7 +241,7 @@ function App() {
           setCustomDateRange={setCustomDateRange} // Pass setCustomDateRange to ActivityTable
         />
       )}
-       <DateRangeModal
+      <DateRangeModal
         open={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSave={handleCustomRangeSave}

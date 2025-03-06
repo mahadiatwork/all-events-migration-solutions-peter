@@ -300,7 +300,7 @@ export default function ScheduleTable({
   const [orderBy, setOrderBy] = React.useState("");
 
   const filterDateOptions = [
-    { label: "Default", value: "All" },
+    { label: "Default", value: "Default" },
     { label: "Last 7 Days", value: "Last 7 Days" },
     { label: "Last 30 Days", value: "Last 30 Days" },
     { label: "Last 90 Days", value: "Last 90 Days" },
@@ -327,10 +327,12 @@ export default function ScheduleTable({
     "Room 3",
     "Todo Billing",
     "Vacation",
-    "Other"
+    "Other",
   ];
 
   const priorityOptions = ["Low", "Medium", "High"];
+
+  console.log({ mahadi: events });
 
   const handleTypeChange = (event) => {
     const value = event.target.value;
@@ -361,38 +363,50 @@ export default function ScheduleTable({
       )
     : [];
 
-    const filteredRows = React.useMemo(() => {
-      return rows
-        .filter((row) => {
-          const typeMatch =
-            filterType.length === 0 || filterType.includes(row.type);
-          const priorityMatch =
-            filterPriority.length === 0 || filterPriority.includes(row.priority);
-          const userMatch =
-            filterUser.length === 0 ||
-            filterUser.some((user) => row.scheduledFor.includes(user));
-          const dateMatch =
-            !customDateRange ||
-            (new Date(row.date) >= new Date(customDateRange.startDate) &&
-              new Date(row.date) <= new Date(customDateRange.endDate));
-          const clearedMatch = showCleared
-            ? true // Show both open and closed items when showCleared is true
-            : row.Event_Status !== "Closed";
-    
-          return (
-            typeMatch && priorityMatch && userMatch && dateMatch && clearedMatch
-          );
-        })
-        .sort((a, b) => new Date(b.date) - new Date(a.date)); // 🔥 Sort from latest to oldest
-    }, [
-      rows,
-      filterType,
-      filterPriority,
-      filterUser,
-      customDateRange,
-      showCleared,
-    ]);
-    
+  const filteredRows = React.useMemo(() => {
+    return rows
+      .filter((row) => {
+        const typeMatch =
+          filterType.length === 0 || filterType.includes(row.type);
+        const priorityMatch =
+          filterPriority.length === 0 || filterPriority.includes(row.priority);
+        const userMatch =
+          filterUser.length === 0 ||
+          filterUser.some((user) => row.scheduledFor?.includes(user)); // Ensure row.scheduledFor is defined
+        const dateMatch =
+          !customDateRange ||
+          (new Date(row.date).setHours(0, 0, 0, 0) >=
+            new Date(customDateRange.startDate).setHours(0, 0, 0, 0) &&
+            new Date(row.date).setHours(23, 59, 59, 999) <=
+              new Date(customDateRange.endDate).setHours(23, 59, 59, 999));
+
+        const clearedMatch = showCleared
+          ? true // Show both open and closed items when showCleared is true
+          : row.Event_Status !== "Closed";
+
+        console.log({
+          row: row.Event_Title, // Show event title for reference
+          typeMatch,
+          priorityMatch,
+          userMatch,
+          dateMatch,
+          clearedMatch,
+        });
+
+        return (
+          typeMatch && priorityMatch && userMatch && dateMatch && clearedMatch
+        );
+      })
+      .sort((a, b) => new Date(b.date) - new Date(a.date)); // Sort from latest to oldest
+  }, [
+    rows,
+    filterType,
+    filterPriority,
+    filterUser,
+    customDateRange,
+    showCleared,
+  ]);
+
   // Checkbox handler
   const handleClearedCheckboxChange = (event) => {
     setShowCleared(event.target.checked);
