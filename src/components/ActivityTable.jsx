@@ -372,22 +372,27 @@ export default function ScheduleTable({
         const userMatch =
           filterUser.length === 0 ||
           filterUser.some((user) => row.scheduledFor.includes(user));
-  
+
         // Apply either customDateRange or filterDate but not both
         let dateMatch = true;
         if (customDateRange) {
           dateMatch =
-            new Date(row.date) >= new Date(customDateRange.startDate) &&
-            new Date(row.date) <= new Date(customDateRange.endDate);
+            !customDateRange ||
+            (new Date(row.date).setHours(0, 0, 0, 0) >=
+              new Date(customDateRange.startDate).setHours(0, 0, 0, 0) &&
+              new Date(row.date).setHours(23, 59, 59, 999) <=
+                new Date(customDateRange.endDate).setHours(23, 59, 59, 999));
         } else {
           dateMatch = isDateInRange(row.date, filterDate || "Default");
         }
-  
+
         const clearedMatch = showCleared
           ? true // Show both open and closed items when showCleared is true
           : row.Event_Status !== "Closed";
-  
-        return typeMatch && priorityMatch && userMatch && dateMatch && clearedMatch;
+
+        return (
+          typeMatch && priorityMatch && userMatch && dateMatch && clearedMatch
+        );
       })
       .sort(getComparator(order, orderBy));
   }, [
@@ -401,7 +406,7 @@ export default function ScheduleTable({
     order,
     orderBy,
   ]);
-  
+
   // Checkbox handler
   const handleClearedCheckboxChange = (event) => {
     setShowCleared(event.target.checked);
