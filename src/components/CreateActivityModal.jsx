@@ -192,12 +192,23 @@ function transformFormSubmission(data, individualParticipant = null) {
       formatDateWithOffset(data.start)
     );
     transformedData["Remind_At"] = remindAt;
-    transformedData["$send_notification"] = true;
-  } else {
-    console.log({ Reminder_Text: data?.Reminder_Text });
-    delete transformedData["Remind_Participants"];
+    
   }
 
+
+  if(data?.Send_Invites){
+    transformedData["$send_notification"] = true;
+  }else{
+    transformedData["$send_notification"] = false;
+  }
+
+  if(data?.Send_Reminders){
+    const participantReminderAt =calculateRemindAt(
+      "15 minutes before",
+      formatDateWithOffset(data.start)
+    );
+    transformedData["Participant_Reminder"] = participantReminderAt;
+  }
 
   if (
     transformedData.Remind_At == null ||
@@ -287,7 +298,8 @@ const CreateActivityModal = ({
     Reminder_Text: "15 minutes before",
     Remind_Participants: [],
     Send_Invites: false,
-    Send_Reminders: false
+    Send_Reminders: false,
+    $send_notification: false
     // Remind_Participants: [{ period: "minutes", unit: 15 }],
   });
 

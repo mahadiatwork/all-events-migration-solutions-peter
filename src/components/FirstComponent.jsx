@@ -112,7 +112,7 @@ const FirstComponent = ({
   const { events, filterDate, setFilterDate, recentColors, setRecentColor } =
     useContext(ZohoContext);
 
-  const [sendReminders, setSendReminders] = useState(false); // Initially, reminders are enabled
+  const [sendReminders, setSendReminders] = useState(formData?.Send_Reminders); // Initially, reminders are enabled
   const [reminderMinutes, setReminderMinutes] = useState(15);
 
   // useEffect(() => {
@@ -261,7 +261,9 @@ const FirstComponent = ({
   const [openEndDatepicker, setOpenEndDatepicker] = useState(false);
   const [displayColorPicker, setDisplayColorPicker] = useState(false);
   const [color, setColor] = useState(formData.Colour || "#ff0000");
-  const [sendNotification, setSendNotification] = useState(formData?.Send_Invites);
+  const [sendNotification, setSendNotification] = useState(
+    formData?.Send_Invites
+  );
 
   const handleBannerChecked = (e) => {
     handleInputChange("Banner", e.target.checked);
@@ -424,6 +426,7 @@ const FirstComponent = ({
       const newSendNotification = !sendNotification;
       setSendNotification(newSendNotification);
       handleInputChange("send_notification", newSendNotification);
+      handleInputChange("$send_notification", newSendNotification);
       handleInputChange("Send_Invites", newSendNotification);
     } else if (field === "Remind_Participants") {
       const newSendReminders = !sendReminders;
@@ -443,6 +446,7 @@ const FirstComponent = ({
         handleInputChange("Reminder_Text", "None");
         handleInputChange("Remind_At", []);
         handleInputChange("Send_Reminders", false);
+        handleInputChange("$send_notification", false);
       }
     }
   };
