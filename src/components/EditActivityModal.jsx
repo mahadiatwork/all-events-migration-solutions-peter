@@ -218,6 +218,7 @@ const EditActivityModal = ({
     scheduleFor: selectedRowData?.Owner || null,
     Reminder_Text: selectedRowData?.Reminder_Text || null,
     reminder: selectedRowData.$send_notification || false,
+    Send_Invites: selectedRowData.$send_notification || null,
   });
 
   const [isSnackbarOpen, setSnackbarOpen] = useState(false);
@@ -255,6 +256,10 @@ const EditActivityModal = ({
   };
   const handleSubmit = async () => {
     const transformedData = transformFormSubmission(formData);
+
+    console.log({formData})
+
+    return
 
     try {
       const data = await ZOHO.CRM.API.updateRecord({

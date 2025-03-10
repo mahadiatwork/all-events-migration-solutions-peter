@@ -285,7 +285,10 @@ const CreateActivityModal = ({
     Duration_Min: 60,
     Create_Separate_Event_For_Each_Contact: false,
     Reminder_Text: "15 minutes before",
-    Remind_Participants: [{ period: "minutes", unit: 15 }],
+    Remind_Participants: [],
+    Send_Invites: false,
+    Send_Reminders: false
+    // Remind_Participants: [{ period: "minutes", unit: 15 }],
   });
 
   const isFormValid = () => {
@@ -394,6 +397,7 @@ const CreateActivityModal = ({
     } else {
       // Handle single event creation
       const transformedData = transformFormSubmission(formData);
+
       try {
         const data = await ZOHO.CRM.API.insertRecord({
           Entity: "Events",

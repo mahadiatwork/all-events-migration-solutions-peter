@@ -112,7 +112,7 @@ const FirstComponent = ({
   const { events, filterDate, setFilterDate, recentColors, setRecentColor } =
     useContext(ZohoContext);
 
-  const [sendReminders, setSendReminders] = useState(true); // Initially, reminders are enabled
+  const [sendReminders, setSendReminders] = useState(false); // Initially, reminders are enabled
   const [reminderMinutes, setReminderMinutes] = useState(15);
 
   // useEffect(() => {
@@ -261,7 +261,7 @@ const FirstComponent = ({
   const [openEndDatepicker, setOpenEndDatepicker] = useState(false);
   const [displayColorPicker, setDisplayColorPicker] = useState(false);
   const [color, setColor] = useState(formData.Colour || "#ff0000");
-  const [sendNotification, setSendNotification] = useState(true);
+  const [sendNotification, setSendNotification] = useState(formData?.Send_Invites);
 
   const handleBannerChecked = (e) => {
     handleInputChange("Banner", e.target.checked);
@@ -420,18 +420,18 @@ const FirstComponent = ({
   // ); // Selected values in autocomplete
 
   const handleCheckboxChange = (field) => {
-    if (field === "$send_notification") {
+    if (field === "send_notification") {
       const newSendNotification = !sendNotification;
       setSendNotification(newSendNotification);
-      handleInputChange("$send_notification", newSendNotification);
+      handleInputChange("send_notification", newSendNotification);
+      handleInputChange("Send_Invites", newSendNotification);
     } else if (field === "Remind_Participants") {
       const newSendReminders = !sendReminders;
       setSendReminders(newSendReminders);
-
+      handleInputChange("Send_Reminders", newSendReminders);
       console.log({ newSendReminders });
 
       if (newSendReminders) {
-        console.log("Remind_Participants", true);
         // If reminders are enabled
         handleInputChange("Remind_Participants", [
           { period: "minutes", unit: reminderMinutes },
@@ -442,20 +442,19 @@ const FirstComponent = ({
         handleInputChange("Remind_Participants", []);
         handleInputChange("Reminder_Text", "None");
         handleInputChange("Remind_At", []);
-        console.log({ formDataTemp: formData });
+        handleInputChange("Send_Reminders", false);
       }
     }
   };
 
   const handleReminderChange = (value) => {
     setReminderMinutes(value);
-    handleInputChange("Remind_Participants", [
-      { period: "minutes", unit: value },
-    ]);
+    // handleInputChange("Remind_Participants", [
+    //   { period: "minutes", unit: value },
+    // ]);
+    handleInputChange("Reminder_Text", `${value} minutes before`);
     if (value === "None") {
       handleInputChange("Reminder_Text", "None");
-    } else {
-      handleInputChange("Reminder_Text", `${value} minutes before`);
     }
   };
 
@@ -648,11 +647,11 @@ const FirstComponent = ({
           <FormControlLabel
             control={
               <Checkbox
-                checked={!sendNotification} // Checked when invites are disabled
-                onChange={() => handleCheckboxChange("$send_notification")}
+                checked={sendNotification} // Checked when invites are disabled
+                onChange={() => handleCheckboxChange("send_notification")}
               />
             }
-            label="Don't send invites"
+            label="Send Invites"
           />
         </Grid>
 
@@ -661,11 +660,11 @@ const FirstComponent = ({
           <FormControlLabel
             control={
               <Checkbox
-                checked={!sendReminders} // Checked when reminders are disabled
+                checked={sendReminders} // Checked when reminders are disabled
                 onChange={() => handleCheckboxChange("Remind_Participants")}
               />
             }
-            label="Don't send reminders"
+            label="Send Reminders"
           />
         </Grid>
         <Grid item xs={6} sx={{ margin: "-13.6px 0px" }}>
@@ -751,9 +750,9 @@ const FirstComponent = ({
             <InputLabel>Ring Alarm</InputLabel>
             <Select
               label="Ring Alarm"
-              value={sendReminders ? reminderMinutes : "None"} // Show "None" if reminders are disabled
+              value={reminderMinutes} // Show "None" if reminders are disabled
               onChange={(e) => handleReminderChange(e.target.value)}
-              disabled={!sendReminders} // Disable when reminders are off
+              // disabled={!sendReminders} // Disable when reminders are off
             >
               <MenuItem value="None">None</MenuItem>
               <MenuItem value={5}>5 minutes</MenuItem>
