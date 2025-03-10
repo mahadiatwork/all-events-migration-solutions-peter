@@ -700,6 +700,7 @@ const FirstComponent = ({
           <RegardingField
             formData={formData}
             handleInputChange={handleInputChange}
+            selectedRowData={selectedRowData}
           />
         </Grid>
         <Grid size={12}>

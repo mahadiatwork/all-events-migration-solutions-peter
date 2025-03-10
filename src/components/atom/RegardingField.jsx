@@ -7,71 +7,57 @@ import {
   TextField,
   Box,
 } from "@mui/material";
+import { getRegardingOptions } from "../helperFunc"; // Import the function
 
-const RegardingField = ({ formData, handleInputChange }) => {
-  const predefinedOptions = [
-    "Hourly Consult $220",
-    "Initial Consultation Fee $165",
-    "No appointments today",
-    "No appointments tonight",
-  ]; // The predefined options
+const RegardingField = ({ formData, handleInputChange,selectedRowData }) => {
+  const existingValue = selectedRowData?.Regarding || formData.Regarding;
+  const predefinedOptions = getRegardingOptions(formData.Type_of_Activity, existingValue); // Get dynamic options based on type
 
-  const [selectedValue, setSelectedValue] = useState(formData.Regarding || "");
+  const [selectedValue, setSelectedValue] = useState(existingValue);
   const [manualInput, setManualInput] = useState("");
 
   useEffect(() => {
-    // Check if the selected value is part of the predefined options
-    if (selectedValue && !predefinedOptions.includes(selectedValue)) {
-      setSelectedValue("Other"); // Set to "Other" if it doesn't match any predefined option
-      setManualInput(formData.Regarding); // Populate manual input with the custom value
+    console.log({mahadiData: formData})
+    // If existingValue is not in the predefined options, set it to "Other" and show manual input
+    if (existingValue && !predefinedOptions.includes(existingValue)) {
+      setSelectedValue("Other");
+      setManualInput(existingValue);
+    } else {
+      setSelectedValue(existingValue);
+      setManualInput("");
     }
-  }, [selectedValue, formData.Regarding]);
+  }, [formData.Type_of_Activity, existingValue]);
 
   const handleSelectChange = (event) => {
     const value = event.target.value;
     setSelectedValue(value);
+    
     if (value !== "Other") {
-      setManualInput(""); // Clear manual input if predefined option is selected
-      handleInputChange("Regarding", value); // Pass the selected value to handleInputChange
+      setManualInput(""); // Clear manual input when a predefined option is selected
+      handleInputChange("Regarding", value);
+    } else {
+      setManualInput(""); // Reset manual input when "Other" is selected
     }
   };
 
   const handleManualInputChange = (event) => {
     const value = event.target.value;
     setManualInput(value);
-    handleInputChange("Regarding", value); // Pass the manual input value to handleInputChange
-  };
-
-  const commonTextStyles = {
-    fontSize: "9pt", // Set the font size to 9pt
-    "& .MuiOutlinedInput-input": { fontSize: "9pt" }, // For inputs
-    "& .MuiInputBase-input": { fontSize: "9pt" }, // For select inputs
-    "& .MuiTypography-root": { fontSize: "9pt" }, // For typography
-    "& .MuiFormLabel-root": { fontSize: "9pt" }, // For labels
+    handleInputChange("Regarding", value);
   };
 
   return (
     <Box sx={{ width: "100%" }}>
-      <FormControl fullWidth size="small" sx={commonTextStyles}>
+      <FormControl fullWidth size="small">
         <InputLabel id="regarding-label" sx={{ fontSize: "9pt" }}>
           Regarding
         </InputLabel>
         <Select
           labelId="regarding-label"
           id="regarding-select"
-          label="Regarding"
-          fullWidth
-          size="small"
           value={selectedValue}
           onChange={handleSelectChange}
-          sx={{
-            ...commonTextStyles,
-            "& .MuiOutlinedInput-root": { padding: 0 }, // Remove extra padding
-            "& .MuiInputBase-input": {
-              display: "flex",
-              alignItems: "center", // Vertically align the content
-            },
-          }}
+          sx={{ fontSize: "9pt" }}
         >
           {predefinedOptions.map((option) => (
             <MenuItem key={option} value={option} sx={{ fontSize: "9pt" }}>
@@ -93,8 +79,7 @@ const RegardingField = ({ formData, handleInputChange }) => {
           onChange={handleManualInputChange}
           sx={{
             mt: 2,
-            ...commonTextStyles,
-            "& .MuiOutlinedInput-root": { padding: 0 },
+            fontSize: "9pt",
           }}
         />
       )}
