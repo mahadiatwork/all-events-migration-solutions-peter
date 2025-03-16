@@ -48,27 +48,29 @@ const RegardingField = ({ formData, handleInputChange,selectedRowData }) => {
 
   return (
     <Box sx={{ width: "100%" }}>
-      <FormControl fullWidth size="small">
-        <InputLabel id="regarding-label" sx={{ fontSize: "9pt" }}>
-          Regarding
-        </InputLabel>
-        <Select
-          labelId="regarding-label"
-          id="regarding-select"
-          value={selectedValue}
-          onChange={handleSelectChange}
-          sx={{ fontSize: "9pt" }}
-        >
-          {predefinedOptions.map((option) => (
-            <MenuItem key={option} value={option} sx={{ fontSize: "9pt" }}>
-              {option}
-            </MenuItem>
-          ))}
-          <MenuItem value="Other" sx={{ fontSize: "9pt" }}>
-            Other (Manually enter)
-          </MenuItem>
-        </Select>
-      </FormControl>
+ <FormControl fullWidth size="small" variant="outlined">
+  <InputLabel id="regarding-label" sx={{ fontSize: "9pt" }}>
+    Regarding
+  </InputLabel>
+  <Select
+    labelId="regarding-label"
+    id="regarding-select"
+    value={selectedValue}
+    onChange={handleSelectChange}
+    label="Regarding"
+    sx={{ fontSize: "9pt" }}
+  >
+    {predefinedOptions.map((option) => (
+      <MenuItem key={option} value={option} sx={{ fontSize: "9pt" }}>
+        {option}
+      </MenuItem>
+    ))}
+    <MenuItem value="Other" sx={{ fontSize: "9pt" }}>
+      Other (Manually enter)
+    </MenuItem>
+  </Select>
+</FormControl>
+
 
       {selectedValue === "Other" && (
         <TextField

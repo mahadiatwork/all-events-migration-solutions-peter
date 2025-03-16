@@ -16,6 +16,7 @@ import {
   Checkbox,
   Typography,
 } from "@mui/material";
+import PersonIcon from "@mui/icons-material/Person";
 
 export default function ContactField({
   handleInputChange,
@@ -143,6 +144,7 @@ export default function ContactField({
           Mobile: contact.Mobile || "N/A",
           ID_Number: contact.ID_Number || "N/A",
           id: contact.id,
+          Staff_Type: contact.Staff_Type,
         }));
         setFilteredContacts(formattedContacts);
       } else {
@@ -238,6 +240,9 @@ export default function ContactField({
               <MenuItem value="ID_Number" sx={{ fontSize: "9pt" }}>
                 MS File Number
               </MenuItem>
+              <MenuItem value="Staff" sx={{ fontSize: "9pt" }}>
+                Staff
+              </MenuItem>
             </TextField>
 
             <TextField
@@ -299,7 +304,18 @@ export default function ContactField({
                           onChange={() => toggleContactSelection(contact)}
                         />
                       </TableCell>
-                      <TableCell>{contact.First_Name}</TableCell>
+                      <TableCell>
+                        <div  style={{display: "flex", alignItems: "center"}}>
+                        {contact.Staff_Type === "Staff" && (
+                          <PersonIcon
+                            fontSize="small"
+                            style={{ marginRight: 4 }}
+                          />
+                        )}
+                        {contact.First_Name}
+                        </div>
+                     
+                      </TableCell>
                       <TableCell>{contact.Last_Name}</TableCell>
                       <TableCell>{contact.Email}</TableCell>
                       <TableCell>{contact.Mobile}</TableCell>
@@ -353,7 +369,17 @@ export default function ContactField({
                           onChange={() => toggleContactSelection(contact)}
                         />
                       </TableCell>
-                      <TableCell>{contact.First_Name}</TableCell>
+                      <TableCell>
+                      <div  style={{display: "flex", alignItems: "center"}}>
+                        {contact.Staff_Type === "Staff" && (
+                          <PersonIcon
+                            fontSize="small"
+                            style={{ marginRight: 4 }}
+                          />
+                        )}
+                        {contact.First_Name}
+                        </div>
+                      </TableCell>
                       <TableCell>{contact.Last_Name}</TableCell>
                       <TableCell>{contact.Email}</TableCell>
                       <TableCell>{contact.Mobile}</TableCell>
