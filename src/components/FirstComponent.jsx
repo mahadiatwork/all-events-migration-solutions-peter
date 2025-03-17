@@ -115,8 +115,9 @@ const FirstComponent = ({
   const { events, filterDate, setFilterDate, recentColors, setRecentColor } =
     useContext(ZohoContext);
 
-  const [sendReminders, setSendReminders] = useState(true); // Initially, reminders are enabled
-  const [reminderMinutes, setReminderMinutes] = useState(15);
+  const [sendReminders, setSendReminders] = useState(selectedRowData?.Send_Reminders || false); // Initially, reminders are enabled
+  const [sendNotification, setSendNotification] = useState(selectedRowData?.Send_Invites || false);
+  const [reminderMinutes, setReminderMinutes] =   useState(15); 
 
   // useEffect(() => {
   //   // Initialize Remind_Participants and Reminder_Text
@@ -264,7 +265,7 @@ const FirstComponent = ({
   const [openEndDatepicker, setOpenEndDatepicker] = useState(false);
   const [displayColorPicker, setDisplayColorPicker] = useState(false);
   const [color, setColor] = useState(formData.Colour || "#ff0000");
-  const [sendNotification, setSendNotification] = useState(true);
+
 
   const handleBannerChecked = (e) => {
     handleInputChange("Banner", e.target.checked);
@@ -424,31 +425,36 @@ const FirstComponent = ({
 
   const handleCheckboxChange = (field) => {
     if (field === "$send_notification") {
-      const newSendNotification = !sendNotification;
-      setSendNotification(newSendNotification);
-      handleInputChange("$send_notification", newSendNotification);
+      console.log({sendNotification})
+      setSendNotification((prev) => {
+        const newSendNotification = !prev;
+        handleInputChange("$send_notification", newSendNotification);
+        handleInputChange("Send_Invites", newSendNotification);
+        return newSendNotification;
+      });
     } else if (field === "Remind_Participants") {
-      const newSendReminders = !sendReminders;
-      setSendReminders(newSendReminders);
-
-      console.log({ newSendReminders });
-
-      if (newSendReminders) {
-        console.log("Remind_Participants", true);
-        // If reminders are enabled
-        handleInputChange("Remind_Participants", [
-          { period: "minutes", unit: reminderMinutes },
-        ]);
-        handleInputChange("Reminder_Text", `${reminderMinutes} minutes before`);
-      } else {
-        // If reminders are disabled
-        handleInputChange("Remind_Participants", []);
-        handleInputChange("Reminder_Text", "None");
-        handleInputChange("Remind_At", []);
-        console.log({ formDataTemp: formData });
-      }
+      setSendReminders((prev) => {
+        const newSendReminders = !prev;
+  
+        if (newSendReminders) {
+          handleInputChange("Remind_Participants", [
+            { period: "minutes", unit: reminderMinutes },
+          ]);
+          handleInputChange("Reminder_Text", `${reminderMinutes} minutes before`);
+          handleInputChange("Remind_At", [reminderMinutes]);
+          handleInputChange("Send_Reminders", true);
+        } else {
+          handleInputChange("Remind_Participants", []);
+          handleInputChange("Reminder_Text", "None");
+          handleInputChange("Remind_At", []);
+          handleInputChange("Send_Reminders", false);
+        }
+  
+        return newSendReminders;
+      });
     }
   };
+  
 
   const handleReminderChange = (value) => {
     setReminderMinutes(value);
@@ -668,11 +674,11 @@ const FirstComponent = ({
           <FormControlLabel
             control={
               <Checkbox
-                checked={!sendNotification} // Checked when invites are disabled
+                checked={sendNotification} // Checked when invites are disabled
                 onChange={() => handleCheckboxChange("$send_notification")}
               />
             }
-            label="Don't send invites"
+            label="Send Invites"
           />
         </Grid>
 
@@ -681,11 +687,11 @@ const FirstComponent = ({
           <FormControlLabel
             control={
               <Checkbox
-                checked={!sendReminders} // Checked when reminders are disabled
+                checked={sendReminders} // Checked when reminders are disabled
                 onChange={() => handleCheckboxChange("Remind_Participants")}
               />
             }
-            label="Don't send reminders"
+            label="Send Reminders"
           />
         </Grid>
         <Grid item xs={6} sx={{ margin: "-13.6px 0px" }}>

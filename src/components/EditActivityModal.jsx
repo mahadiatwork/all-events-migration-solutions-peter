@@ -151,9 +151,15 @@ function transformFormSubmission(data) {
       formatDateWithOffset(data.start)
     );
     transformedData["Remind_At"] = remindAt;
-    transformedData["$send_notification"] = true;
+    // transformedData["$send_notification"] = true;
   }
 
+
+  if(data?.Send_Invites === true) {
+    transformedData["$send_notification"] = true;
+  }else {
+    transformedData["$send_notification"] = false;
+  }
   // Explicitly remove the scheduleWith, scheduleFor, and description keys
   delete transformedData.scheduledWith;
   // delete transformedData.scheduleFor;
@@ -219,6 +225,8 @@ const EditActivityModal = ({
     scheduleFor: selectedRowData?.Owner || null,
     Reminder_Text: selectedRowData?.Reminder_Text || null,
     reminder: selectedRowData.$send_notification || false,
+    Send_Reminders: selectedRowData.Send_Reminders || false,
+    Send_Invites: selectedRowData.Send_Invites || false
   });
 
   const [isSnackbarOpen, setSnackbarOpen] = useState(false);
@@ -256,6 +264,10 @@ const EditActivityModal = ({
   };
   const handleSubmit = async () => {
     const transformedData = transformFormSubmission(formData);
+
+    // console.log({transformedDataFromEdit: transformedData})
+
+    // return
 
     try {
       const data = await ZOHO.CRM.API.updateRecord({

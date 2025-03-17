@@ -196,13 +196,9 @@ function transformFormSubmission(data, individualParticipant = null) {
       formatDateWithOffset(data.start)
     );
     transformedData["Remind_At"] = remindAt;
-    transformedData["$send_notification"] = true;
-  } else {
-    console.log({ Reminder_Text: data?.Reminder_Text });
-    delete transformedData["Remind_Participants"];
-  }
-
-  console.log({ recurring: transformedData.Recurring_Activity });
+    // transformedData["$send_notification"] = true;
+  } 
+  
 
   if (
     transformedData.Remind_At == null ||
@@ -290,8 +286,9 @@ const CreateActivityModal = ({
     Regarding: "",
     Duration_Min: 60,
     Create_Separate_Event_For_Each_Contact: false,
-    Reminder_Text: "15 minutes before",
-    Remind_Participants: [{ period: "minutes", unit: 15 }],
+    Reminder_Text: "None",
+    Remind_Participants: null,
+    $send_notification: false
   });
 
   const isFormValid = () => {
@@ -413,10 +410,6 @@ const CreateActivityModal = ({
 
 
       const transformedData = transformFormSubmission(formData);
-
-      // console.log({transformedData})
-
-      // return
 
       try {
         const data = await ZOHO.CRM.API.insertRecord({
