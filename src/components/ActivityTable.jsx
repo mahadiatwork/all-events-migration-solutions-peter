@@ -292,7 +292,9 @@ export default function ScheduleTable({
 
   const [filterType, setFilterType] = React.useState([]);
   const [filterPriority, setFilterPriority] = React.useState([]);
-  const [filterUser, setFilterUser] = React.useState([]);
+  const [filterUser, setFilterUser] = React.useState(
+    loggedInUser?.full_name ? [loggedInUser.full_name] : []
+  );
 
   const [showCleared, setShowCleared] = React.useState(false); // State for "Cleared" checkbox
 
@@ -383,15 +385,6 @@ export default function ScheduleTable({
         const clearedMatch = showCleared
           ? true // Show both open and closed items when showCleared is true
           : row.Event_Status !== "Closed";
-
-        console.log({
-          row: row.Event_Title, // Show event title for reference
-          typeMatch,
-          priorityMatch,
-          userMatch,
-          dateMatch,
-          clearedMatch,
-        });
 
         return (
           typeMatch && priorityMatch && userMatch && dateMatch && clearedMatch

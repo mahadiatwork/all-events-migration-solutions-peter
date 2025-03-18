@@ -131,9 +131,10 @@ function App() {
             req_data_meetings1
           );
 
-          const eventsData = data1?.details?.statusMessage?.data || [];
+          // console.log("mahadi data fetch", data1?.details?.statusMessage?.info?.more_records)
 
-          console.log({ eventsData });
+          const eventsData = data1?.details?.statusMessage?.data || [];
+          
           let combinedEvents = [];
           if (filterDate === "Custom Range") {
             setEvents(eventsData);
