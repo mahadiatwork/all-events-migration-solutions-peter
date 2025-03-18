@@ -293,7 +293,9 @@ export default function ScheduleTable({
 
   const [filterType, setFilterType] = React.useState([]);
   const [filterPriority, setFilterPriority] = React.useState([]);
-  const [filterUser, setFilterUser] = React.useState([]);
+  const [filterUser, setFilterUser] = React.useState(
+    loggedInUser?.full_name ? [loggedInUser.full_name] : []
+  );
 
   const [showCleared, setShowCleared] = React.useState(false); // State for "Cleared" checkbox
 
