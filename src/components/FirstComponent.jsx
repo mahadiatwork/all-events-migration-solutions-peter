@@ -23,6 +23,7 @@ import CustomColorPicker from "./atom/CustomColorPicker";
 import { DateTimePicker, LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import dayjs from "dayjs";
+import { reminderMapping } from "./helperFunc";
 
 const commonTextStyles = {
   fontSize: "9pt", // Set the font size to 9pt
@@ -113,7 +114,10 @@ const FirstComponent = ({
     useContext(ZohoContext);
 
   const [sendReminders, setSendReminders] = useState(formData?.Send_Reminders); // Initially, reminders are enabled
-  const [reminderMinutes, setReminderMinutes] = useState(15);
+  // const reminderMinutesValue = reminderMapping[formData?.Reminder_Text] ?? 15;
+  const [reminderMinutes, setReminderMinutes] = useState(formData?.Reminder_Text || "15 minutes before");
+
+  // console.log({Reminder_Text: })
 
   // useEffect(() => {
   //   // Initialize Remind_Participants and Reminder_Text
@@ -406,20 +410,10 @@ const FirstComponent = ({
   }
 
   const handleEndDateChange = (e) => {
-    console.log("fahim", e.$d);
     handleInputChange("end", e.$d);
-    console.log("end", e.value);
     const getDiffInMinutes = getTimeDifference(e.$d);
     handleInputChange("Duration_Min", getDiffInMinutes);
-    console.log({ getDiffInMinutes });
-    // if (formData.end ) {
-    //   console.log('hello')
-    // }
   };
-
-  //  const [selectedParticipants, setSelectedParticipants] = useState(
-  //   selectedRowData?.Participants || []
-  // ); // Selected values in autocomplete
 
   const handleCheckboxChange = (field) => {
     if (field === "send_notification") {
@@ -437,9 +431,9 @@ const FirstComponent = ({
       if (newSendReminders) {
         // If reminders are enabled
         handleInputChange("Remind_Participants", [
-          { period: "minutes", unit: reminderMinutes },
+          { period: "minutes", unit: reminderMapping[reminderMinutes]},
         ]);
-        handleInputChange("Reminder_Text", `${reminderMinutes} minutes before`);
+        handleInputChange("Reminder_Text", reminderMinutes);
       } else {
         // If reminders are disabled
         handleInputChange("Remind_Participants", []);
@@ -456,7 +450,7 @@ const FirstComponent = ({
     // handleInputChange("Remind_Participants", [
     //   { period: "minutes", unit: value },
     // ]);
-    handleInputChange("Reminder_Text", `${value} minutes before`);
+    handleInputChange("Reminder_Text", value);
     if (value === "None") {
       handleInputChange("Reminder_Text", "None");
     }
@@ -512,21 +506,6 @@ const FirstComponent = ({
         </Grid>
 
         <Grid size={4}>
-          {/* <Datepicker
-            controls={["calendar", "time"]}
-            display="center"
-            inputComponent={() =>
-              customInputComponent(
-                "start",
-                "Start Time",
-                setOpenStartDatepicker
-              )
-            }
-            onClose={() => setOpenStartDatepicker(false)}
-            onChange={(e) => handleInputChangeWithEnd("start", e.value)} // Auto-populate end date and duration
-            isOpen={openStartDatepicker}
-            touchUi={true}
-          /> */}
           <LocalizationProvider dateAdapter={AdapterDayjs}>
             <DateTimePicker
               label="Start Time"
@@ -755,17 +734,17 @@ const FirstComponent = ({
             <InputLabel>Ring Alarm</InputLabel>
             <Select
               label="Ring Alarm"
-              value={reminderMinutes} // Show "None" if reminders are disabled
+              value={formData?.Reminder_Text} // Show "None" if reminders are disabled
               onChange={(e) => handleReminderChange(e.target.value)}
               // disabled={!sendReminders} // Disable when reminders are off
             >
               <MenuItem value="None">None</MenuItem>
-              <MenuItem value={5}>5 minutes</MenuItem>
-              <MenuItem value={10}>10 minutes</MenuItem>
-              <MenuItem value={15}>15 minutes</MenuItem>
-              <MenuItem value={30}>30 minutes</MenuItem>
-              <MenuItem value={60}>1 hour</MenuItem>
-              <MenuItem value={120}>2 hours</MenuItem>
+              <MenuItem value={"5 minutes before"}>5 minutes</MenuItem>
+              <MenuItem value={"10 minutes before"}>10 minutes</MenuItem>
+              <MenuItem value={"15 minutes before"}>15 minutes</MenuItem>
+              <MenuItem value={"30 minutes before"}>30 minutes</MenuItem>
+              <MenuItem value={"60 minutes before"}>1 hour</MenuItem>
+              <MenuItem value={"120 minutes before"}>2 hours</MenuItem>
             </Select>
           </FormControl>
         </Grid>

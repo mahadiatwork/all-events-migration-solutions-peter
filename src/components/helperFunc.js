@@ -197,3 +197,12 @@ export const getRegardingOptions = (type, existingValue) => {
 
   return predefinedOptions;
 };
+
+
+export const reminderMapping = {
+  "120 minutes before": 120,
+  "60 minutes before": 60,
+  "30 minutes before": 30,
+  "5 minutes before": 5,
+  "None": 0,
+};
