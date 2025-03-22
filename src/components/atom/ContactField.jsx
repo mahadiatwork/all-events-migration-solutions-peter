@@ -25,7 +25,9 @@ export default function ContactField({
   selectedRowData = {}, // Default to an empty object
 }) {
   const [contacts, setContacts] = useState([]);
-  const [selectedParticipants, setSelectedParticipants] = useState([]);
+  const [selectedParticipants, setSelectedParticipants] = useState(
+    formData?.scheduledWith || []
+  );
   const [searchType, setSearchType] = useState("First_Name");
   const [searchText, setSearchText] = useState("");
   const [filteredContacts, setFilteredContacts] = useState([]);
@@ -306,16 +308,15 @@ export default function ContactField({
                         />
                       </TableCell>
                       <TableCell>
-                        <div  style={{display: "flex", alignItems: "center"}}>
-                        {contact.Staff_Type === "Staff" && (
-                          <PersonIcon
-                            fontSize="small"
-                            style={{ marginRight: 4 }}
-                          />
-                        )}
-                        {contact.First_Name}
+                        <div style={{ display: "flex", alignItems: "center" }}>
+                          {contact.Staff_Type === "Staff" && (
+                            <PersonIcon
+                              fontSize="small"
+                              style={{ marginRight: 4 }}
+                            />
+                          )}
+                          {contact.First_Name}
                         </div>
-                     
                       </TableCell>
                       <TableCell>{contact.Last_Name}</TableCell>
                       <TableCell>{contact.Email}</TableCell>
@@ -371,14 +372,14 @@ export default function ContactField({
                         />
                       </TableCell>
                       <TableCell>
-                      <div  style={{display: "flex", alignItems: "center"}}>
-                        {contact.Staff_Type === "Staff" && (
-                          <PersonIcon
-                            fontSize="small"
-                            style={{ marginRight: 4 }}
-                          />
-                        )}
-                        {contact.First_Name}
+                        <div style={{ display: "flex", alignItems: "center" }}>
+                          {contact.Staff_Type === "Staff" && (
+                            <PersonIcon
+                              fontSize="small"
+                              style={{ marginRight: 4 }}
+                            />
+                          )}
+                          {contact.First_Name}
                         </div>
                       </TableCell>
                       <TableCell>{contact.Last_Name}</TableCell>

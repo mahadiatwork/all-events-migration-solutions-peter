@@ -9,7 +9,7 @@ export default function AccountField({
   selectedRowData,
 }) {
   const [accounts, setAccounts] = useState([]); // No initial accounts
-  const [selectedAccount, setSelectedAccount] = useState(null); // Selected account object
+  const [selectedAccount, setSelectedAccount] = useState(formData?.What_Id || null); // Selected account object
   const [inputValue, setInputValue] = useState("");
   const [notFoundMessage, setNotFoundMessage] = useState(""); // Message if nothing is found
   const [loading, setLoading] = useState(false); // Loading state for search
