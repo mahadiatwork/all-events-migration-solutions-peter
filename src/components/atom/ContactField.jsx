@@ -42,56 +42,66 @@ export default function ContactField({
     "& .MuiFormLabel-root": { fontSize: "9pt" }, // Form labels
   };
 
-  useEffect(() => {
-    const fetchParticipantsDetails = async () => {
-      if (selectedRowData.Participants && ZOHO) {
-        const participants = await Promise.all(
-          selectedRowData.Participants.map(async (participant) => {
-            try {
-              const contactDetails = await ZOHO.CRM.API.getRecord({
-                Entity: "Contacts",
-                RecordID: participant.participant,
-              });
+  const [participantsLoaded, setParticipantsLoaded] = useState(false);
 
-              if (contactDetails.data && contactDetails.data.length > 0) {
-                const contact = contactDetails.data[0];
-                return {
-                  id: contact.id,
-                  First_Name: contact.First_Name || "N/A",
-                  Last_Name: contact.Last_Name || "N/A",
-                  Email: contact.Email || "No Email",
-                  Mobile: contact.Mobile || "N/A",
-                  Full_Name: `${contact.First_Name || "N/A"} ${
-                    contact.Last_Name || "N/A"
-                  }`,
-                  ID_Number: contact.ID_Number || "N/A",
-                };
-              } else {
-                return {
-                  id: participant.participant,
-                  Full_Name: participant.name || "Unknown",
-                  Email: participant.Email || "No Email",
-                };
-              }
-            } catch (error) {
-              console.error(
-                `Error fetching contact details for ID ${participant.participant}:`,
-                error
-              );
+
+useEffect(() => {
+  const fetchParticipantsDetails = async () => {
+    if (
+      !participantsLoaded &&
+      formData?.scheduledWith?.length > 0 &&
+      ZOHO
+    ) {
+      const participants = await Promise.all(
+        formData.scheduledWith.map(async (participant) => {
+          try {
+            const contactDetails = await ZOHO.CRM.API.getRecord({
+              Entity: "Contacts",
+              RecordID: participant.participant,
+            });
+
+            if (contactDetails.data && contactDetails.data.length > 0) {
+              const contact = contactDetails.data[0];
+              return {
+                id: contact.id,
+                First_Name: contact.First_Name || "N/A",
+                Last_Name: contact.Last_Name || "N/A",
+                Email: contact.Email || "No Email",
+                Mobile: contact.Mobile || "N/A",
+                Full_Name: `${contact.First_Name || "N/A"} ${
+                  contact.Last_Name || "N/A"
+                }`,
+                ID_Number: contact.ID_Number || "N/A",
+              };
+            } else {
               return {
                 id: participant.participant,
                 Full_Name: participant.name || "Unknown",
                 Email: participant.Email || "No Email",
               };
             }
-          })
-        );
-        setSelectedParticipants(participants);
-      }
-    };
+          } catch (error) {
+            console.error(
+              `Error fetching contact details for ID ${participant.participant}:`,
+              error
+            );
+            return {
+              id: participant.participant,
+              Full_Name: participant.name || "Unknown",
+              Email: participant.Email || "No Email",
+            };
+          }
+        })
+      );
 
-    fetchParticipantsDetails();
-  }, [selectedRowData, ZOHO]);
+      setSelectedParticipants(participants);
+      handleInputChange("scheduledWith", participants);
+      setParticipantsLoaded(true); // prevent future fetches
+    }
+  };
+
+  fetchParticipantsDetails();
+}, [formData?.scheduledWith, ZOHO, participantsLoaded]);
 
   const handleOpen = () => {
     setFilteredContacts([]);
