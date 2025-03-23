@@ -18,6 +18,7 @@ import {
 } from "@mui/material";
 
 export default function ContactField({
+  formData,
   handleInputChange,
   ZOHO,
   selectedRowData = {}, // Default to an empty object
@@ -39,17 +40,23 @@ export default function ContactField({
     "& .MuiFormLabel-root": { fontSize: "9pt" }, // Form labels
   };
 
+  const [participantsLoaded, setParticipantsLoaded] = useState(false);
+
   useEffect(() => {
     const fetchParticipantsDetails = async () => {
-      if (selectedRowData.Participants && ZOHO) {
+      if (
+        !participantsLoaded &&
+        formData?.scheduledWith?.length > 0 &&
+        ZOHO
+      ) {
         const participants = await Promise.all(
-          selectedRowData.Participants.map(async (participant) => {
+          formData.scheduledWith.map(async (participant) => {
             try {
               const contactDetails = await ZOHO.CRM.API.getRecord({
                 Entity: "Contacts",
                 RecordID: participant.participant,
               });
-
+  
               if (contactDetails.data && contactDetails.data.length > 0) {
                 const contact = contactDetails.data[0];
                 return {
@@ -83,26 +90,15 @@ export default function ContactField({
             }
           })
         );
+  
         setSelectedParticipants(participants);
-      }else{
-        if(selectedParticipants.length === 0){
-          setSelectedParticipants([{
-            id: currentContact.id,
-            First_Name: currentContact.First_Name || "N/A",
-            Last_Name: currentContact.Last_Name || "N/A",
-            Email: currentContact.Email || "No Email",
-            Mobile: currentContact.Mobile || "N/A",
-            Full_Name: `${currentContact.First_Name || "N/A"} ${
-              currentContact.Last_Name || "N/A"
-            }`,
-            ID_Number: currentContact.ID_Number || "N/A",
-          }])
-        }
+        handleInputChange("scheduledWith", participants);
+        setParticipantsLoaded(true); // prevent future fetches
       }
     };
-
+  
     fetchParticipantsDetails();
-  }, [selectedRowData, ZOHO]);
+  }, [formData?.scheduledWith, ZOHO, participantsLoaded]);
 
   const handleOpen = () => {
     setFilteredContacts([]);

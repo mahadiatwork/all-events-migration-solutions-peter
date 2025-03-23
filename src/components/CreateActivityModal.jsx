@@ -274,7 +274,11 @@ const CreateActivityModal = ({
     Event_Title: "New Meeting",
     resource: 1,
     scheduleFor: loggedInUser || "",
-    scheduledWith: [],
+    scheduledWith: [{
+      Full_Name: currentContact.Full_Name,
+      participant: currentContact.id,
+      name: currentContact.Full_Name, // add this if you're referencing `.name`
+    }],
     Venue: "",
     priority: "Medium",
     repeat: "once",
