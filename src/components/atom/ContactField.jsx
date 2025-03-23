@@ -44,64 +44,59 @@ export default function ContactField({
 
   const [participantsLoaded, setParticipantsLoaded] = useState(false);
 
+  useEffect(() => {
+    const fetchParticipantsDetails = async () => {
+      if (!participantsLoaded && formData?.scheduledWith?.length > 0 && ZOHO) {
+        const participants = await Promise.all(
+          formData.scheduledWith.map(async (participant) => {
+            try {
+              const contactDetails = await ZOHO.CRM.API.getRecord({
+                Entity: "Contacts",
+                RecordID: participant.participant,
+              });
 
-useEffect(() => {
-  const fetchParticipantsDetails = async () => {
-    if (
-      !participantsLoaded &&
-      formData?.scheduledWith?.length > 0 &&
-      ZOHO
-    ) {
-      const participants = await Promise.all(
-        formData.scheduledWith.map(async (participant) => {
-          try {
-            const contactDetails = await ZOHO.CRM.API.getRecord({
-              Entity: "Contacts",
-              RecordID: participant.participant,
-            });
-
-            if (contactDetails.data && contactDetails.data.length > 0) {
-              const contact = contactDetails.data[0];
-              return {
-                id: contact.id,
-                First_Name: contact.First_Name || "N/A",
-                Last_Name: contact.Last_Name || "N/A",
-                Email: contact.Email || "No Email",
-                Mobile: contact.Mobile || "N/A",
-                Full_Name: `${contact.First_Name || "N/A"} ${
-                  contact.Last_Name || "N/A"
-                }`,
-                ID_Number: contact.ID_Number || "N/A",
-              };
-            } else {
+              if (contactDetails.data && contactDetails.data.length > 0) {
+                const contact = contactDetails.data[0];
+                return {
+                  id: contact.id,
+                  First_Name: contact.First_Name || "N/A",
+                  Last_Name: contact.Last_Name || "N/A",
+                  Email: contact.Email || "No Email",
+                  Mobile: contact.Mobile || "N/A",
+                  Full_Name: `${contact.First_Name || "N/A"} ${
+                    contact.Last_Name || "N/A"
+                  }`,
+                  ID_Number: contact.ID_Number || "N/A",
+                };
+              } else {
+                return {
+                  id: participant.participant,
+                  Full_Name: participant.name || "Unknown",
+                  Email: participant.Email || "No Email",
+                };
+              }
+            } catch (error) {
+              console.error(
+                `Error fetching contact details for ID ${participant.participant}:`,
+                error
+              );
               return {
                 id: participant.participant,
                 Full_Name: participant.name || "Unknown",
                 Email: participant.Email || "No Email",
               };
             }
-          } catch (error) {
-            console.error(
-              `Error fetching contact details for ID ${participant.participant}:`,
-              error
-            );
-            return {
-              id: participant.participant,
-              Full_Name: participant.name || "Unknown",
-              Email: participant.Email || "No Email",
-            };
-          }
-        })
-      );
+          })
+        );
 
-      setSelectedParticipants(participants);
-      handleInputChange("scheduledWith", participants);
-      setParticipantsLoaded(true); // prevent future fetches
-    }
-  };
+        setSelectedParticipants(participants);
+        handleInputChange("scheduledWith", participants);
+        setParticipantsLoaded(true); // prevent future fetches
+      }
+    };
 
-  fetchParticipantsDetails();
-}, [formData?.scheduledWith, ZOHO, participantsLoaded]);
+    fetchParticipantsDetails();
+  }, [formData?.scheduledWith, ZOHO, participantsLoaded]);
 
   const handleOpen = () => {
     setFilteredContacts([]);
@@ -190,6 +185,36 @@ useEffect(() => {
     handleInputChange("scheduledWith", updatedParticipants);
     setIsModalOpen(false);
   };
+
+  console.log({ searchType });
+
+  const [staffUsers, setStaffUsers] = useState([]);
+
+  useEffect(() => {
+    const fetchStaffUsers = async () => {
+      if (searchType === "Staff") {
+        try {
+          const response = await ZOHO.CRM.API.searchRecord({
+            Entity: "Contacts",
+            Type: "criteria",
+            Query: "(Staff_Type:equals:Staff)",
+          });
+
+          if (response && response.data) {
+            setStaffUsers(response.data); // Assuming response.data contains an array of staff users
+          } else {
+            setStaffUsers([]); // Reset if no data found
+          }
+        } catch (error) {
+          console.error("Error fetching staff users:", error);
+          setStaffUsers([]); // Reset on error
+        }
+      }
+    };
+
+    fetchStaffUsers();
+    // console.log({staffUsers})
+  }, [searchType]); // Added searchText as a dependency
 
   return (
     <Box>
@@ -306,34 +331,39 @@ useEffect(() => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {filteredContacts.length > 0 ? (
-                  filteredContacts.map((contact) => (
-                    <TableRow key={contact.id}>
-                      <TableCell>
-                        <Checkbox
-                          checked={selectedParticipants.some(
-                            (c) => c.id === contact.id
-                          )}
-                          onChange={() => toggleContactSelection(contact)}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <div style={{ display: "flex", alignItems: "center" }}>
-                          {contact.Staff_Type === "Staff" && (
-                            <PersonIcon
-                              fontSize="small"
-                              style={{ marginRight: 4 }}
-                            />
-                          )}
-                          {contact.First_Name}
-                        </div>
-                      </TableCell>
-                      <TableCell>{contact.Last_Name}</TableCell>
-                      <TableCell>{contact.Email}</TableCell>
-                      <TableCell>{contact.Mobile}</TableCell>
-                      <TableCell>{contact.ID_Number}</TableCell>
-                    </TableRow>
-                  ))
+                {(searchType === "Staff" ? staffUsers : filteredContacts)
+                  .length > 0 ? (
+                  (searchType === "Staff" ? staffUsers : filteredContacts).map(
+                    (contact) => (
+                      <TableRow key={contact.id}>
+                        <TableCell>
+                          <Checkbox
+                            checked={selectedParticipants.some(
+                              (c) => c.id === contact.id
+                            )}
+                            onChange={() => toggleContactSelection(contact)}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <div
+                            style={{ display: "flex", alignItems: "center" }}
+                          >
+                            {contact.Staff_Type === "Staff" && (
+                              <PersonIcon
+                                fontSize="small"
+                                style={{ marginRight: 4 }}
+                              />
+                            )}
+                            {contact.First_Name}
+                          </div>
+                        </TableCell>
+                        <TableCell>{contact.Last_Name}</TableCell>
+                        <TableCell>{contact.Email}</TableCell>
+                        <TableCell>{contact.Mobile}</TableCell>
+                        <TableCell>{contact.ID_Number}</TableCell>
+                      </TableRow>
+                    )
+                  )
                 ) : (
                   <TableRow>
                     <TableCell colSpan={6} align="center">
