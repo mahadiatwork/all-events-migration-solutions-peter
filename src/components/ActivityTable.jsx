@@ -565,31 +565,24 @@ export default function ScheduleTable({
             onChange={handleTypeChange}
             label="Type"
             size="small"
-            renderValue={(selected) => (
-              <Box
-                sx={{
-                  display: "flex",
-                  flexWrap: "wrap",
-                  gap: 0.5,
-                  fontSize: "9pt", // Set font size for selected text
-                }}
-              >
-                {selected.map((value) => (
-                  <Box key={value}>{value}</Box>
-                ))}
-              </Box>
-            )}
+            renderValue={(selected) => {
+              if (selected.length === 0) return "Select Type";
+              const displayedValues = selected.slice(0, 4).join(", "); // Show up to 2 items
+              return selected.length > 4
+                ? `${displayedValues}, ...`
+                : displayedValues;
+            }}
             sx={{
-              height: "30px", // Adjust height
+              height: "30px",
               "& .MuiSelect-select": {
-                fontSize: "9pt", // Ensure dropdown font matches
+                fontSize: "9pt",
               },
             }}
             MenuProps={{
               PaperProps: {
                 sx: {
                   "& .MuiMenuItem-root": {
-                    fontSize: "9pt", // Adjust font size for options
+                    fontSize: "9pt",
                   },
                 },
               },
@@ -665,31 +658,24 @@ export default function ScheduleTable({
             onChange={handleUserChange}
             label="User"
             size="small"
-            renderValue={(selected) => (
-              <Box
-                sx={{
-                  display: "flex",
-                  flexWrap: "wrap",
-                  gap: 0.5,
-                  fontSize: "9pt", // Set font size for selected text
-                }}
-              >
-                {selected.map((value) => (
-                  <Box key={value}>{value}</Box>
-                ))}
-              </Box>
-            )}
+            renderValue={(selected) => {
+              if (selected.length === 0) return "Select User";
+              const displayedValues = selected.slice(0, 3).join(", "); // Show up to 2 items
+              return selected.length > 3
+                ? `${displayedValues}, ...`
+                : displayedValues;
+            }}
             sx={{
-              height: "30px", // Adjust height
+              height: "30px",
               "& .MuiSelect-select": {
-                fontSize: "9pt", // Ensure selected font size
+                fontSize: "9pt",
               },
             }}
             MenuProps={{
               PaperProps: {
                 sx: {
                   "& .MuiMenuItem-root": {
-                    fontSize: "9pt", // Adjust font size for dropdown options
+                    fontSize: "9pt",
                   },
                 },
               },
@@ -699,7 +685,7 @@ export default function ScheduleTable({
               <MenuItem key={user.id} value={user.full_name}>
                 <Checkbox
                   checked={filterUser.indexOf(user.full_name) > -1}
-                  size="small" // Adjust checkbox size
+                  size="small"
                 />
                 {user.full_name}
               </MenuItem>
