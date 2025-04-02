@@ -409,10 +409,6 @@ const CreateActivityModal = ({
     } else {
       // Handle single event creation
       const transformedData = transformFormSubmission(formData);
-
-      console.log({formData})
-
-      return
       try {
         const data = await ZOHO.CRM.API.insertRecord({
           Entity: "Events",
@@ -460,7 +456,7 @@ const CreateActivityModal = ({
     // setIsSubmitEnabled(isFormValid());
   }, [formData]); // Effect runs whenever formData changes
 
-  console.log("mahadi", formData);
+
 
   return (
     <Box
