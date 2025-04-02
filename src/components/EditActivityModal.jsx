@@ -113,7 +113,7 @@ function transformFormSubmission(data) {
       name: contact.Full_Name || null, // Use Full_Name for the name
       invited: false, // Default to false
       type: "contact", // Default type to "contact"
-      participant: contact.id || null, // Use id as participant ID
+      participant: contact.id || contact.participant, // Use id as participant ID
       status: "not_known", // Default status to "not_known"
     }));
   };

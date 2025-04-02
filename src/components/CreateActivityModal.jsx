@@ -119,7 +119,7 @@ function transformFormSubmission(data, individualParticipant = null) {
       name: contact.Full_Name || null,
       invited: false,
       type: "contact",
-      participant: contact.participant || null,
+      participant: contact?.participant || contact?.id,
       status: "not_known",
     }));
   };
@@ -409,6 +409,7 @@ const CreateActivityModal = ({
     } else {
       // Handle single event creation
       const transformedData = transformFormSubmission(formData);
+
       try {
         const data = await ZOHO.CRM.API.insertRecord({
           Entity: "Events",
