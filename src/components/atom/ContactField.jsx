@@ -30,7 +30,9 @@ export default function ContactField({
   );
   const [searchType, setSearchType] = useState("First_Name");
   const [searchText, setSearchText] = useState("");
-  const [filteredContacts, setFilteredContacts] = useState([]);
+  const [filteredContacts, setFilteredContacts] = useState(
+    selectedRowData?.Participants || []
+  );
   const [isModalOpen, setIsModalOpen] = useState(false);
   const debounceTimer = useRef(null);
 
@@ -44,59 +46,59 @@ export default function ContactField({
 
   const [participantsLoaded, setParticipantsLoaded] = useState(false);
 
-  useEffect(() => {
-    const fetchParticipantsDetails = async () => {
-      if (!participantsLoaded && formData?.scheduledWith?.length > 0 && ZOHO) {
-        const participants = await Promise.all(
-          formData.scheduledWith.map(async (participant) => {
-            try {
-              const contactDetails = await ZOHO.CRM.API.getRecord({
-                Entity: "Contacts",
-                RecordID: participant.participant,
-              });
+  // useEffect(() => {
+  //   const fetchParticipantsDetails = async () => {
+  //     if (!participantsLoaded && formData?.scheduledWith?.length > 0 && ZOHO) {
+  //       const participants = await Promise.all(
+  //         formData.scheduledWith.map(async (participant) => {
+  //           try {
+  //             const contactDetails = await ZOHO.CRM.API.getRecord({
+  //               Entity: "Contacts",
+  //               RecordID: participant.participant,
+  //             });
 
-              if (contactDetails.data && contactDetails.data.length > 0) {
-                const contact = contactDetails.data[0];
-                return {
-                  id: contact.id,
-                  First_Name: contact.First_Name || "N/A",
-                  Last_Name: contact.Last_Name || "N/A",
-                  Email: contact.Email || "No Email",
-                  Mobile: contact.Mobile || "N/A",
-                  Full_Name: `${contact.First_Name || "N/A"} ${
-                    contact.Last_Name || "N/A"
-                  }`,
-                  ID_Number: contact.ID_Number || "N/A",
-                };
-              } else {
-                return {
-                  id: participant.participant,
-                  Full_Name: participant.name || "Unknown",
-                  Email: participant.Email || "No Email",
-                };
-              }
-            } catch (error) {
-              console.error(
-                `Error fetching contact details for ID ${participant.participant}:`,
-                error
-              );
-              return {
-                id: participant.participant,
-                Full_Name: participant.name || "Unknown",
-                Email: participant.Email || "No Email",
-              };
-            }
-          })
-        );
+  //             if (contactDetails.data && contactDetails.data.length > 0) {
+  //               const contact = contactDetails.data[0];
+  //               return {
+  //                 id: contact.id,
+  //                 First_Name: contact.First_Name || "N/A",
+  //                 Last_Name: contact.Last_Name || "N/A",
+  //                 Email: contact.Email || "No Email",
+  //                 Mobile: contact.Mobile || "N/A",
+  //                 Full_Name: `${contact.First_Name || "N/A"} ${
+  //                   contact.Last_Name || "N/A"
+  //                 }`,
+  //                 ID_Number: contact.ID_Number || "N/A",
+  //               };
+  //             } else {
+  //               return {
+  //                 id: participant.participant,
+  //                 Full_Name: participant.name || "Unknown",
+  //                 Email: participant.Email || "No Email",
+  //               };
+  //             }
+  //           } catch (error) {
+  //             console.error(
+  //               `Error fetching contact details for ID ${participant.participant}:`,
+  //               error
+  //             );
+  //             return {
+  //               id: participant.participant,
+  //               Full_Name: participant.name || "Unknown",
+  //               Email: participant.Email || "No Email",
+  //             };
+  //           }
+  //         })
+  //       );
 
-        setSelectedParticipants(participants);
-        handleInputChange("scheduledWith", participants);
-        setParticipantsLoaded(true); // prevent future fetches
-      }
-    };
+  //       setSelectedParticipants(participants);
+  //       handleInputChange("scheduledWith", participants);
+  //       setParticipantsLoaded(true); // prevent future fetches
+  //     }
+  //   };
 
-    fetchParticipantsDetails();
-  }, [formData?.scheduledWith, ZOHO, participantsLoaded]);
+  //   fetchParticipantsDetails();
+  // }, [formData?.scheduledWith, ZOHO, participantsLoaded]);
 
   const handleOpen = () => {
     setFilteredContacts([]);
@@ -175,7 +177,7 @@ export default function ContactField({
   const handleOk = () => {
     const updatedParticipants = selectedParticipants.map((participant) => ({
       Full_Name:
-        participant.Full_Name ||
+        participant.Full_Name || participant.name ||
         `${participant.First_Name} ${participant.Last_Name}`,
       Email: participant.Email,
       participant: participant.id,
@@ -185,8 +187,6 @@ export default function ContactField({
     handleInputChange("scheduledWith", updatedParticipants);
     setIsModalOpen(false);
   };
-
-  console.log({ searchType });
 
   const [staffUsers, setStaffUsers] = useState([]);
 
@@ -216,13 +216,16 @@ export default function ContactField({
     // console.log({staffUsers})
   }, [searchType]); // Added searchText as a dependency
 
+
+  console.log("selectedParticipants", selectedParticipants)
+
   return (
     <Box>
       <Box display="flex" alignItems="center" gap={2}>
         <TextField
           fullWidth
           value={selectedParticipants
-            .map((c) => c.Full_Name || `${c.First_Name} ${c.Last_Name}`)
+            .map((c) => c.Full_Name || c.name || `${c.First_Name} ${c.Last_Name}`)
             .join(", ")}
           variant="outlined"
           placeholder="Selected contacts"
