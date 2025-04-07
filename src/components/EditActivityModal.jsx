@@ -265,9 +265,7 @@ const EditActivityModal = ({
   const handleSubmit = async () => {
     const transformedData = transformFormSubmission(formData);
 
-    // console.log({transformedDataFromEdit: transformedData})
 
-    // return
 
     try {
       const data = await ZOHO.CRM.API.updateRecord({

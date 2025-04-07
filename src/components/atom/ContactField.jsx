@@ -16,19 +16,23 @@ import {
   Checkbox,
   Typography,
 } from "@mui/material";
+import PersonIcon from "@mui/icons-material/Person";
 
 export default function ContactField({
   formData,
   handleInputChange,
   ZOHO,
   selectedRowData = {}, // Default to an empty object
-  currentContact
 }) {
   const [contacts, setContacts] = useState([]);
-  const [selectedParticipants, setSelectedParticipants] = useState([]);
+  const [selectedParticipants, setSelectedParticipants] = useState(
+    formData?.scheduledWith || []
+  );
   const [searchType, setSearchType] = useState("First_Name");
   const [searchText, setSearchText] = useState("");
-  const [filteredContacts, setFilteredContacts] = useState([]);
+  const [filteredContacts, setFilteredContacts] = useState(
+    selectedRowData?.Participants || []
+  );
   const [isModalOpen, setIsModalOpen] = useState(false);
   const debounceTimer = useRef(null);
 
@@ -44,11 +48,7 @@ export default function ContactField({
 
   useEffect(() => {
     const fetchParticipantsDetails = async () => {
-      if (
-        !participantsLoaded &&
-        formData?.scheduledWith?.length > 0 &&
-        ZOHO
-      ) {
+      if (!participantsLoaded && formData?.scheduledWith?.length > 0 && ZOHO) {
         const participants = await Promise.all(
           formData.scheduledWith.map(async (participant) => {
             try {
@@ -56,9 +56,10 @@ export default function ContactField({
                 Entity: "Contacts",
                 RecordID: participant.participant,
               });
-  
+
               if (contactDetails.data && contactDetails.data.length > 0) {
                 const contact = contactDetails.data[0];
+                console.log({contact})
                 return {
                   id: contact.id,
                   First_Name: contact.First_Name || "N/A",
@@ -90,13 +91,13 @@ export default function ContactField({
             }
           })
         );
-  
+
         setSelectedParticipants(participants);
         handleInputChange("scheduledWith", participants);
         setParticipantsLoaded(true); // prevent future fetches
       }
     };
-  
+
     fetchParticipantsDetails();
   }, [formData?.scheduledWith, ZOHO, participantsLoaded]);
 
@@ -154,6 +155,7 @@ export default function ContactField({
           Mobile: contact.Mobile || "N/A",
           ID_Number: contact.ID_Number || "N/A",
           id: contact.id,
+          Staff_Type: contact.Staff_Type,
         }));
         setFilteredContacts(formattedContacts);
       } else {
@@ -176,7 +178,7 @@ export default function ContactField({
   const handleOk = () => {
     const updatedParticipants = selectedParticipants.map((participant) => ({
       Full_Name:
-        participant.Full_Name ||
+        participant.Full_Name || participant.name ||
         `${participant.First_Name} ${participant.Last_Name}`,
       Email: participant.Email,
       participant: participant.id,
@@ -187,7 +189,36 @@ export default function ContactField({
     setIsModalOpen(false);
   };
 
-  console.log({currentContact})
+  const [staffUsers, setStaffUsers] = useState([]);
+
+  useEffect(() => {
+    const fetchStaffUsers = async () => {
+      if (searchType === "Staff") {
+        try {
+          const response = await ZOHO.CRM.API.searchRecord({
+            Entity: "Contacts",
+            Type: "criteria",
+            Query: "(Staff_Type:equals:Staff)",
+          });
+
+          if (response && response.data) {
+            setStaffUsers(response.data); // Assuming response.data contains an array of staff users
+          } else {
+            setStaffUsers([]); // Reset if no data found
+          }
+        } catch (error) {
+          console.error("Error fetching staff users:", error);
+          setStaffUsers([]); // Reset on error
+        }
+      }
+    };
+
+    fetchStaffUsers();
+    // console.log({staffUsers})
+  }, [searchType]); // Added searchText as a dependency
+
+
+  console.log("selectedParticipants", selectedParticipants)
 
   return (
     <Box>
@@ -195,7 +226,7 @@ export default function ContactField({
         <TextField
           fullWidth
           value={selectedParticipants
-            .map((c) => c.Full_Name || `${c.First_Name} ${c.Last_Name}`)
+            .map((c) => c.Full_Name || c.name || `${c.First_Name} ${c.Last_Name}`)
             .join(", ")}
           variant="outlined"
           placeholder="Selected contacts"
@@ -251,6 +282,9 @@ export default function ContactField({
               <MenuItem value="ID_Number" sx={{ fontSize: "9pt" }}>
                 MS File Number
               </MenuItem>
+              <MenuItem value="Staff" sx={{ fontSize: "9pt" }}>
+                Staff
+              </MenuItem>
             </TextField>
 
             <TextField
@@ -301,24 +335,39 @@ export default function ContactField({
                 </TableRow>
               </TableHead>
               <TableBody>
-                {filteredContacts.length > 0 ? (
-                  filteredContacts.map((contact) => (
-                    <TableRow key={contact.id}>
-                      <TableCell>
-                        <Checkbox
-                          checked={selectedParticipants.some(
-                            (c) => c.id === contact.id
-                          )}
-                          onChange={() => toggleContactSelection(contact)}
-                        />
-                      </TableCell>
-                      <TableCell>{contact.First_Name}</TableCell>
-                      <TableCell>{contact.Last_Name}</TableCell>
-                      <TableCell>{contact.Email}</TableCell>
-                      <TableCell>{contact.Mobile}</TableCell>
-                      <TableCell>{contact.ID_Number}</TableCell>
-                    </TableRow>
-                  ))
+                {(searchType === "Staff" ? staffUsers : filteredContacts)
+                  .length > 0 ? (
+                  (searchType === "Staff" ? staffUsers : filteredContacts).map(
+                    (contact) => (
+                      <TableRow key={contact.id}>
+                        <TableCell>
+                          <Checkbox
+                            checked={selectedParticipants.some(
+                              (c) => c.id === contact.id
+                            )}
+                            onChange={() => toggleContactSelection(contact)}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <div
+                            style={{ display: "flex", alignItems: "center" }}
+                          >
+                            {contact.Staff_Type === "Staff" && (
+                              <PersonIcon
+                                fontSize="small"
+                                style={{ marginRight: 4 }}
+                              />
+                            )}
+                            {contact.First_Name}
+                          </div>
+                        </TableCell>
+                        <TableCell>{contact.Last_Name}</TableCell>
+                        <TableCell>{contact.Email}</TableCell>
+                        <TableCell>{contact.Mobile}</TableCell>
+                        <TableCell>{contact.ID_Number}</TableCell>
+                      </TableRow>
+                    )
+                  )
                 ) : (
                   <TableRow>
                     <TableCell colSpan={6} align="center">
@@ -366,7 +415,17 @@ export default function ContactField({
                           onChange={() => toggleContactSelection(contact)}
                         />
                       </TableCell>
-                      <TableCell>{contact.First_Name}</TableCell>
+                      <TableCell>
+                        <div style={{ display: "flex", alignItems: "center" }}>
+                          {contact.Staff_Type === "Staff" && (
+                            <PersonIcon
+                              fontSize="small"
+                              style={{ marginRight: 4 }}
+                            />
+                          )}
+                          {contact.First_Name}
+                        </div>
+                      </TableCell>
                       <TableCell>{contact.Last_Name}</TableCell>
                       <TableCell>{contact.Email}</TableCell>
                       <TableCell>{contact.Mobile}</TableCell>
