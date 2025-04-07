@@ -9,15 +9,17 @@ import {
 } from "@mui/material";
 import { getRegardingOptions } from "../helperFunc"; // Import the function
 
-const RegardingField = ({ formData, handleInputChange,selectedRowData }) => {
-  const existingValue = selectedRowData?.Regarding || formData.Regarding;
-  const predefinedOptions = getRegardingOptions(formData.Type_of_Activity, existingValue); // Get dynamic options based on type
+const RegardingField = ({ formData, handleInputChange }) => {
+  const existingValue = formData.Regarding;
+  const predefinedOptions = getRegardingOptions(
+    formData.Type_of_Activity,
+    existingValue
+  ); // Get dynamic options based on type
 
   const [selectedValue, setSelectedValue] = useState(existingValue);
   const [manualInput, setManualInput] = useState("");
 
   useEffect(() => {
-    console.log({mahadiData: formData})
     // If existingValue is not in the predefined options, set it to "Other" and show manual input
     if (existingValue && !predefinedOptions.includes(existingValue)) {
       setSelectedValue("Other");
@@ -31,7 +33,7 @@ const RegardingField = ({ formData, handleInputChange,selectedRowData }) => {
   const handleSelectChange = (event) => {
     const value = event.target.value;
     setSelectedValue(value);
-    
+
     if (value !== "Other") {
       setManualInput(""); // Clear manual input when a predefined option is selected
       handleInputChange("Regarding", value);
@@ -43,12 +45,16 @@ const RegardingField = ({ formData, handleInputChange,selectedRowData }) => {
   const handleManualInputChange = (event) => {
     const value = event.target.value;
     setManualInput(value);
-    handleInputChange("Regarding", value);
+    
   };
+
+  const handleBlur = () => {
+    handleInputChange("Regarding", manualInput);
+  }
 
   return (
     <Box sx={{ width: "100%" }}>
-      <FormControl fullWidth size="small">
+      <FormControl fullWidth size="small" variant="outlined">
         <InputLabel id="regarding-label" sx={{ fontSize: "9pt" }}>
           Regarding
         </InputLabel>
@@ -57,6 +63,7 @@ const RegardingField = ({ formData, handleInputChange,selectedRowData }) => {
           id="regarding-select"
           value={selectedValue}
           onChange={handleSelectChange}
+          label="Regarding"
           sx={{ fontSize: "9pt" }}
         >
           {predefinedOptions.map((option) => (
@@ -77,6 +84,7 @@ const RegardingField = ({ formData, handleInputChange,selectedRowData }) => {
           size="small"
           value={manualInput}
           onChange={handleManualInputChange}
+          onBlur={handleBlur}
           sx={{
             mt: 2,
             fontSize: "9pt",
