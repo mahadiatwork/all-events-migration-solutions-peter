@@ -120,7 +120,7 @@ function transformFormSubmission(data, individualParticipant = null) {
       name: contact.Full_Name || null,
       invited: false,
       type: "contact",
-      participant: contact.participant || null,
+      participant: contact?.participant || contact?.id || null,
       status: "not_known",
       Full_Name: contact.Full_Name || null,
     }));
@@ -199,6 +199,43 @@ function transformFormSubmission(data, individualParticipant = null) {
     // transformedData["$send_notification"] = true;
   } 
   
+  if (data.Send_Reminders) {
+    const startTime = dayjs(data.start);
+
+    let modifiedReminderDate = null;
+
+    if (data.Reminder_Text === "At time of meeting") {
+      modifiedReminderDate = startTime.tz("Australia/Adelaide")
+        .format("YYYY-MM-DDTHH:mm:ssZ");
+    } else {
+      const reminderTime = startTime.subtract(parseInt(data?.Reminder_Text.split(" ")[0]), 'minute');
+      modifiedReminderDate = reminderTime.tz("Australia/Adelaide")
+        .format("YYYY-MM-DDTHH:mm:ssZ");
+      transformedData.Remind_At = modifiedReminderDate;
+      // transformedData.Participant_Reminder = modifiedReminderDate;
+      transformedData.User_Reminder = modifiedReminderDate;
+    }
+    transformedData.Send_Reminders = true;
+  }
+
+  if(data.Send_Invites){
+    const startTime = dayjs(data.start);
+
+    let modifiedReminderDate = null;
+
+    if (data.Reminder_Text === "At time of meeting") {
+      modifiedReminderDate = startTime.tz("Australia/Adelaide")
+        .format("YYYY-MM-DDTHH:mm:ssZ");
+    } else {
+      const reminderTime = startTime.subtract(parseInt(data?.Reminder_Text.split(" ")[0]), 'minute');
+      modifiedReminderDate = reminderTime.tz("Australia/Adelaide")
+        .format("YYYY-MM-DDTHH:mm:ssZ");
+      transformedData.Remind_At = modifiedReminderDate;
+      transformedData.User_Reminder = modifiedReminderDate;
+    }
+    transformedData.send_notification = true;
+  }
+
 
   if (
     transformedData.Remind_At == null ||
@@ -411,7 +448,6 @@ const CreateActivityModal = ({
           "Full_Name": currentContact?.Full_Name
         }];
       }
-
 
       const transformedData = transformFormSubmission(formData);
 

@@ -24,6 +24,21 @@ import { DateTimePicker, LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import dayjs from "dayjs";
 
+
+const ringAlarm = [
+  { name: "At time of meeting", value: 0 },
+  { name: "5 minutes before", value: 5 },
+  { name: "10 minutes before", value: 10 },
+  { name: "15 minutes before", value: 15 },
+  { name: "30 minutes before", value: 30 },
+  { name: "1 hour before", value: 60 },
+  { name: "2 hours before", value: 120 },
+  { name: "1 day before", value: 1440 },
+  { name: "2 day before", value: 2880 },
+];
+
+
+
 const commonTextStyles = {
   fontSize: "9pt", // Set the font size to 9pt
   "& .MuiOutlinedInput-input": { fontSize: "9pt" }, // For TextField and Select inputs
@@ -430,6 +445,7 @@ const FirstComponent = ({
         const newSendNotification = !prev;
         handleInputChange("$send_notification", newSendNotification);
         handleInputChange("Send_Invites", newSendNotification);
+        handleInputChange("Reminder_Text", `${reminderMinutes} minutes before`);
         return newSendNotification;
       });
     } else if (field === "Remind_Participants") {
@@ -676,6 +692,7 @@ const FirstComponent = ({
               <Checkbox
                 checked={sendNotification} // Checked when invites are disabled
                 onChange={() => handleCheckboxChange("$send_notification")}
+                disabled={sendReminders} // Disable if "Send reminders" is checked
               />
             }
             label="Send Invites"
@@ -689,6 +706,7 @@ const FirstComponent = ({
               <Checkbox
                 checked={sendReminders} // Checked when reminders are disabled
                 onChange={() => handleCheckboxChange("Remind_Participants")}
+                disabled={sendNotification} // Disable if "Send invites" is checked
               />
             }
             label="Send Reminders"
@@ -774,21 +792,69 @@ const FirstComponent = ({
         </Grid>
         {/* Reminder Dropdown */}
         <Grid size={3}>
-          <FormControl fullWidth size="small" className="custom-select">
-            <InputLabel>Ring Alarm</InputLabel>
-            <Select
-              label="Ring Alarm"
-              value={sendReminders ? reminderMinutes : "None"} // Show "None" if reminders are disabled
-              onChange={(e) => handleReminderChange(e.target.value)}
-              disabled={!sendReminders} // Disable when reminders are off
+        <FormControl fullWidth size="small">
+            <InputLabel
+              id="demo-simple-select-standard-label"
+              sx={{ fontSize: "9pt" }} // ✅ Label text size
             >
-              <MenuItem value="None">None</MenuItem>
-              <MenuItem value={5}>5 minutes</MenuItem>
-              <MenuItem value={10}>10 minutes</MenuItem>
-              <MenuItem value={15}>15 minutes</MenuItem>
-              <MenuItem value={30}>30 minutes</MenuItem>
-              <MenuItem value={60}>1 hour</MenuItem>
-              <MenuItem value={120}>2 hours</MenuItem>
+              Ring Alarm
+            </InputLabel>
+            <Select
+              labelId="demo-simple-select-standard-label"
+              id="demo-simple-select-standard"
+              label="Ring Alarm"
+              fullWidth
+              // disabled={!formData.Remind_Participants}
+              value={formData.Reminder_Text || ""} // Use `Reminder_Text` to display selected text
+              onChange={(e) => {
+                // Find the selected ring object
+                const selectedRing = ringAlarm.find(
+                  (ring) => ring.name === e.target.value
+                );
+
+                if (selectedRing) {
+                  // Update the `Remind_At` with the calculated date/time
+                  addMinutesToDateTime("remindAt", selectedRing);
+                  // Update the `Reminder_Text` with the selected reminder text
+                  handleInputChange("Reminder_Text", selectedRing.name);
+                  handleInputChange("Remind_Participants", [
+                    { period: "minutes", unit: e.target.value },
+                  ]);
+                }
+              }}
+              MenuProps={{
+                PaperProps: {
+                  sx: {
+                    fontSize: "9pt", // ✅ Dropdown menu text size
+                  },
+                },
+              }}
+              sx={{
+                "& .MuiSelect-select": {
+                  padding: "3px 10px", // Adjust padding for dropdown content
+                  fontSize: "9pt", // ✅ Selected value text size
+                },
+                "& .MuiOutlinedInput-root": {
+                  padding: 0, // Ensure no extra padding
+                },
+                "& .MuiInputBase-input": {
+                  display: "flex",
+                  alignItems: "center", // Align content vertically
+                  fontSize: "9pt", // ✅ Input text size
+                },
+              }}
+            >
+              {ringAlarm.map((ring, index) => (
+                <MenuItem
+                  key={index}
+                  value={ring.name}
+                  sx={{ fontSize: "9pt" }}
+                >
+                  {" "}
+                  {/* ✅ Menu item text size */}
+                  {ring.name}
+                </MenuItem>
+              ))}
             </Select>
           </FormControl>
         </Grid>
