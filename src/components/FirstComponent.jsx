@@ -115,7 +115,7 @@ const FirstComponent = ({
 
   const [sendReminders, setSendReminders] = useState(formData?.Send_Reminders); // Initially, reminders are enabled
   // const reminderMinutesValue = reminderMapping[formData?.Reminder_Text] ?? 15;
-  const [reminderMinutes, setReminderMinutes] = useState(formData?.Reminder_Text || "15 minutes before");
+  const [reminderMinutes, setReminderMinutes] = useState(15);
 
   // console.log({Reminder_Text: })
 
@@ -433,7 +433,7 @@ const FirstComponent = ({
         handleInputChange("Remind_Participants", [
           { period: "minutes", unit: reminderMapping[reminderMinutes]},
         ]);
-        handleInputChange("Reminder_Text", reminderMinutes);
+        handleInputChange("Reminder_Text", `${reminderMinutes} minutes before`);
       } else {
         // If reminders are disabled
         handleInputChange("Remind_Participants", []);
@@ -632,6 +632,7 @@ const FirstComponent = ({
               <Checkbox
                 checked={sendNotification} // Checked when invites are disabled
                 onChange={() => handleCheckboxChange("send_notification")}
+                disabled={sendReminders} // Disable if "Send reminders" is checked
               />
             }
             label="Send Invites"
@@ -645,6 +646,7 @@ const FirstComponent = ({
               <Checkbox
                 checked={sendReminders} // Checked when reminders are disabled
                 onChange={() => handleCheckboxChange("Remind_Participants")}
+                disabled={sendNotification} // Disable if "Send invites" is checked
               />
             }
             label="Send Reminders"

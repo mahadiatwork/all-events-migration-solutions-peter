@@ -192,22 +192,45 @@ function transformFormSubmission(data, individualParticipant = null) {
       formatDateWithOffset(data.start)
     );
     transformedData["Remind_At"] = remindAt;
-    
+    delete transformedData.User_Reminder;
   }
 
 
-  if(data?.Send_Invites){
-    transformedData["$send_notification"] = true;
-  }else{
-    transformedData["$send_notification"] = false;
+  if (data.Send_Reminders) {
+    const startTime = dayjs(data.start);
+
+    let modifiedReminderDate = null;
+
+    if (data.Reminder_Text === "At time of meeting") {
+      modifiedReminderDate = startTime.tz("Australia/Adelaide")
+        .format("YYYY-MM-DDTHH:mm:ssZ");
+    } else {
+      const reminderTime = startTime.subtract(parseInt(data?.Reminder_Text.split(" ")[0]), 'minute');
+      modifiedReminderDate = reminderTime.tz("Australia/Adelaide")
+        .format("YYYY-MM-DDTHH:mm:ssZ");
+      transformedData.Remind_At = modifiedReminderDate;
+      // transformedData.Participant_Reminder = modifiedReminderDate;
+      transformedData.User_Reminder = modifiedReminderDate;
+    }
+    transformedData.Send_Reminders = true;
   }
 
-  if(data?.Send_Reminders){
-    const participantReminderAt =calculateRemindAt(
-      "15 minutes before",
-      formatDateWithOffset(data.start)
-    );
-    transformedData["Participant_Reminder"] = participantReminderAt;
+  if(data.Send_Invites){
+    const startTime = dayjs(data.start);
+
+    let modifiedReminderDate = null;
+
+    if (data.Reminder_Text === "At time of meeting") {
+      modifiedReminderDate = startTime.tz("Australia/Adelaide")
+        .format("YYYY-MM-DDTHH:mm:ssZ");
+    } else {
+      const reminderTime = startTime.subtract(parseInt(data?.Reminder_Text.split(" ")[0]), 'minute');
+      modifiedReminderDate = reminderTime.tz("Australia/Adelaide")
+        .format("YYYY-MM-DDTHH:mm:ssZ");
+      transformedData.Remind_At = modifiedReminderDate;
+      transformedData.User_Reminder = modifiedReminderDate;
+    }
+    transformedData.send_notification = true;
   }
 
   if (
@@ -409,7 +432,6 @@ const CreateActivityModal = ({
     } else {
       // Handle single event creation
       const transformedData = transformFormSubmission(formData);
-
       try {
         const data = await ZOHO.CRM.API.insertRecord({
           Entity: "Events",
