@@ -228,23 +228,23 @@ const FirstComponent = ({
         ? new Date(selectedRowData.End_DateTime)
         : null;
 
-      // Set start, end, and duration if valid times are provided
-      if (formattedStart && formattedEnd) {
-        handleInputChange("start", formattedStart.toISOString());
-        handleInputChange("end", formattedEnd.toISOString());
-        const calculatedDuration = calculateDuration(
-          formattedStart,
-          formattedEnd
-        );
-        handleInputChange(
-          "duration",
-          selectedRowData.duration || calculatedDuration
-        );
-        setStartValue(dayjs(formattedStart));
-        setEndValue(dayjs(formattedEnd));
-      } else {
-        initializeDefaultValues();
-      }
+      // // Set start, end, and duration if valid times are provided
+      // if (formattedStart && formattedEnd) {
+      //   handleInputChange("start", formattedStart.toISOString());
+      //   handleInputChange("end", formattedEnd.toISOString());
+      //   const calculatedDuration = calculateDuration(
+      //     formattedStart,
+      //     formattedEnd
+      //   );
+      //   handleInputChange(
+      //     "duration",
+      //     selectedRowData.duration || calculatedDuration
+      //   );
+      //   setStartValue(dayjs(formattedStart));
+      //   setEndValue(dayjs(formattedEnd));
+      // } else {
+      //   initializeDefaultValues();
+      // }
 
       handleInputChange("Venue", selectedRowData.Venue || "");
       handleInputChange("priority", selectedRowData.Event_Priority || "");
