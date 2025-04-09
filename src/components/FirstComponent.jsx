@@ -257,16 +257,16 @@ const FirstComponent = ({
       );
       handleInputChange("scheduleFor", owner || null);
 
-      handleInputChange(
-        "scheduledWith",
-        selectedRowData.Participants
-          ? selectedRowData.Participants.map((participant) => ({
-              name: participant.name,
-              participant: participant.participant,
-              type: participant.type,
-            }))
-          : []
-      );
+      // handleInputChange(
+      //   "scheduledWith",
+      //   selectedRowData.Participants
+      //     ? selectedRowData.Participants.map((participant) => ({
+      //         name: participant.name,
+      //         participant: participant.participant,
+      //         type: participant.type,
+      //       }))
+      //     : []
+      // );
     };
 
     if (!selectedRowData) {

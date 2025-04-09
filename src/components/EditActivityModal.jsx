@@ -264,9 +264,6 @@ const EditActivityModal = ({
   };
   const handleSubmit = async () => {
     const transformedData = transformFormSubmission(formData);
-
-
-
     try {
       const data = await ZOHO.CRM.API.updateRecord({
         Entity: "Events",
@@ -309,7 +306,6 @@ const EditActivityModal = ({
     setSnackbarOpen(false);
   };
 
-  console.log({ selectedRowData });
 
   return (
     <Box

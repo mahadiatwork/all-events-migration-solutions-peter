@@ -31,7 +31,7 @@ export default function ContactField({
   const [searchType, setSearchType] = useState("First_Name");
   const [searchText, setSearchText] = useState("");
   const [filteredContacts, setFilteredContacts] = useState(
-    selectedRowData?.Participants || []
+    formData?.scheduledWith || []
   );
   const [isModalOpen, setIsModalOpen] = useState(false);
   const debounceTimer = useRef(null);
@@ -51,15 +51,28 @@ export default function ContactField({
       if (!participantsLoaded && formData?.scheduledWith?.length > 0 && ZOHO) {
         const participants = await Promise.all(
           formData.scheduledWith.map(async (participant) => {
+            const recordId = participant.participant || participant.id;
+
+            if (!recordId) {
+              // No participant.participant or participant.id available
+              return {
+                id: null,
+                Full_Name: participant.name || "Unknown",
+                Email: participant.Email || "No Email",
+                type: "contact",
+              };
+            }
+
             try {
+              console.log("Fetching for participant:", recordId);
               const contactDetails = await ZOHO.CRM.API.getRecord({
                 Entity: "Contacts",
-                RecordID: participant.participant,
+                RecordID: recordId,
               });
 
               if (contactDetails.data && contactDetails.data.length > 0) {
                 const contact = contactDetails.data[0];
-                console.log({contact})
+                console.log({ contactDetails });
                 return {
                   id: contact.id,
                   First_Name: contact.First_Name || "N/A",
@@ -70,23 +83,29 @@ export default function ContactField({
                     contact.Last_Name || "N/A"
                   }`,
                   ID_Number: contact.ID_Number || "N/A",
+                  participant: recordId,
+                  type: "contact",
                 };
               } else {
                 return {
-                  id: participant.participant,
+                  id: recordId,
                   Full_Name: participant.name || "Unknown",
                   Email: participant.Email || "No Email",
+                  participant: recordId,
+                  type: "contact",
                 };
               }
             } catch (error) {
               console.error(
-                `Error fetching contact details for ID ${participant.participant}:`,
+                `Error fetching contact details for ID ${recordId}:`,
                 error
               );
               return {
-                id: participant.participant,
+                id: recordId,
                 Full_Name: participant.name || "Unknown",
                 Email: participant.Email || "No Email",
+                participant: recordId,
+                type: "contact",
               };
             }
           })
@@ -156,6 +175,7 @@ export default function ContactField({
           ID_Number: contact.ID_Number || "N/A",
           id: contact.id,
           Staff_Type: contact.Staff_Type,
+          type: "contact",
         }));
         setFilteredContacts(formattedContacts);
       } else {
@@ -178,7 +198,8 @@ export default function ContactField({
   const handleOk = () => {
     const updatedParticipants = selectedParticipants.map((participant) => ({
       Full_Name:
-        participant.Full_Name || participant.name ||
+        participant.Full_Name ||
+        participant.name ||
         `${participant.First_Name} ${participant.Last_Name}`,
       Email: participant.Email,
       participant: participant.id,
@@ -217,8 +238,7 @@ export default function ContactField({
     // console.log({staffUsers})
   }, [searchType]); // Added searchText as a dependency
 
-
-  console.log("selectedParticipants", selectedParticipants)
+  console.log("selectedParticipants", selectedParticipants);
 
   return (
     <Box>
@@ -226,7 +246,9 @@ export default function ContactField({
         <TextField
           fullWidth
           value={selectedParticipants
-            .map((c) => c.Full_Name || c.name || `${c.First_Name} ${c.Last_Name}`)
+            .map(
+              (c) => c.Full_Name || c.name || `${c.First_Name} ${c.Last_Name}`
+            )
             .join(", ")}
           variant="outlined"
           placeholder="Selected contacts"
