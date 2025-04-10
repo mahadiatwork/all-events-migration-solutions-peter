@@ -264,6 +264,10 @@ const EditActivityModal = ({
   };
   const handleSubmit = async () => {
     const transformedData = transformFormSubmission(formData);
+
+    formData.Participants = formData.scheduledWith;
+    formData.Owner = formData.scheduleFor;
+
     try {
       const data = await ZOHO.CRM.API.updateRecord({
         Entity: "Events",
@@ -283,10 +287,15 @@ const EditActivityModal = ({
         // Ensure updateEvent always receives the latest associateWith value
         setEvents((prevEvents) =>
           prevEvents.map((event) =>
-            event.id === formData.id ? { ...event, ...transformedData } : event
+            event.id === formData.id ? { ...event, ...formData } : event
           )
         );
-        console.log("Events after update", events)
+
+        // setEvents((prev) => [
+        //   { ...transformedData, id: data?.data[0].details?.id },
+        //   ...prev,
+        // ]);
+
         setTimeout(() => {
           // window.location.reload();
           handleClose();
