@@ -191,8 +191,8 @@ const FirstComponent = ({
       const oneHourLater = new Date(now);
       oneHourLater.setHours(now.getHours() + 1);
 
-      handleInputChange("start", now.toISOString());
-      handleInputChange("end", oneHourLater.toISOString());
+      // handleInputChange("start", now.toISOString());
+      // handleInputChange("end", oneHourLater.toISOString());
       handleInputChange("duration", 60); // Default duration of 60 minutes
       // setStartValue(dayjs(now));
       // setEndValue(dayjs(oneHourLater));
@@ -410,6 +410,7 @@ const FirstComponent = ({
     const end = dayjs(formData.end);
     return end.isValid() ? end : initialStart.add(60, 'minute');
   });
+
 
   function getTimeDifference(end) {
     const startDate = new Date(formData.start);
