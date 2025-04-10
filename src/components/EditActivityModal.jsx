@@ -18,6 +18,7 @@ import FirstComponent from "./FirstComponent";
 import SecondComponent from "./SecondComponent";
 import ThirdComponent from "./ThirdComponent";
 import CloseIcon from "@mui/icons-material/Close";
+import dayjs from "dayjs";
 
 // Helper function to format date with timezone offset
 function formatDateForRemindAt(date) {
@@ -264,10 +265,13 @@ const EditActivityModal = ({
   };
   const handleSubmit = async () => {
     const transformedData = transformFormSubmission(formData);
-
+    const dateFormatted = dayjs(formData.start).format('DD/MM/YYYY');
+    const timeFormatted = dayjs(formData.start).format('hh:mm A');
+    formData.time = timeFormatted;
     formData.Participants = formData.scheduledWith;
     formData.Owner = formData.scheduleFor;
-
+    formData.date = dateFormatted;
+    formData.Start_DateTime = formData.start;
     try {
       const data = await ZOHO.CRM.API.updateRecord({
         Entity: "Events",
