@@ -214,22 +214,22 @@ const FirstComponent = ({
         : null;
 
       // Set start, end, and duration if valid times are provided
-      if (formattedStart && formattedEnd) {
-        handleInputChange("start", formattedStart.toISOString());
-        handleInputChange("end", formattedEnd.toISOString());
-        const calculatedDuration = calculateDuration(
-          formattedStart,
-          formattedEnd
-        );
-        handleInputChange(
-          "duration",
-          selectedRowData.duration || calculatedDuration
-        );
-        setStartValue(dayjs(formattedStart));
-        setEndValue(dayjs(formattedEnd));
-      } else {
-        initializeDefaultValues();
-      }
+      // if (formattedStart && formattedEnd) {
+      //   handleInputChange("start", formattedStart.toISOString());
+      //   handleInputChange("end", formattedEnd.toISOString());
+      //   const calculatedDuration = calculateDuration(
+      //     formattedStart,
+      //     formattedEnd
+      //   );
+      //   handleInputChange(
+      //     "duration",
+      //     selectedRowData.duration || calculatedDuration
+      //   );
+      //   setStartValue(dayjs(formattedStart));
+      //   setEndValue(dayjs(formattedEnd));
+      // } else {
+      //   initializeDefaultValues();
+      // }
 
       handleInputChange("Venue", selectedRowData.Venue || "");
       handleInputChange("priority", selectedRowData.Event_Priority || "");
@@ -237,10 +237,10 @@ const FirstComponent = ({
       handleInputChange("Colour", selectedRowData.Colour || "#ff0000");
       handleInputChange("Banner", selectedRowData.Banner || false);
 
-      const owner = users.find(
-        (user) => user.full_name === selectedRowData.Owner?.name
-      );
-      handleInputChange("scheduleFor", owner || null);
+      // const owner = users.find(
+      //   (user) => user.full_name === selectedRowData.Owner?.name
+      // );
+      // handleInputChange("scheduleFor", owner || null);
 
       // handleInputChange(
       //   "scheduledWith",
@@ -690,7 +690,7 @@ const FirstComponent = ({
               id="schedule-for-autocomplete"
               size="small"
               options={users} // Ensure users array is correctly passed
-              getOptionLabel={(option) => option.full_name || ""} // Use full_name to display
+              getOptionLabel={(option) => option.full_name || option.name || ""} // Use full_name to display
               value={formData.scheduleFor || null} // Ensure it's an object, or null if not set
               onChange={(event, newValue) => {
                 handleInputChange("scheduleFor", newValue || null); // Set the selected value

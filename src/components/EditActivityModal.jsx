@@ -296,6 +296,9 @@ const EditActivityModal = ({
   const handleSubmit = async () => {
     const transformedData = transformFormSubmission(formData);
 
+    formData.Participants = formData.scheduledWith;
+    formData.Owner = formData.scheduleFor;
+
     try {
       const data = await ZOHO.CRM.API.updateRecord({
         Entity: "Events",
@@ -318,6 +321,11 @@ const EditActivityModal = ({
             event.id === formData.id ? { ...event, ...formData } : event
           )
         );
+
+        // setEvents((prev) => [
+        //   { ...transformedData, id: data?.data[0].details?.id },
+        //   ...prev,
+        // ]);
 
         setTimeout(() => {
           // window.location.reload();

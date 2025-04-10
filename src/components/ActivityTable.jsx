@@ -501,6 +501,7 @@ export default function ScheduleTable({
 
   // console.log({ events, filteredRows });
 
+
   return (
     <>
       {/* Filters */}
