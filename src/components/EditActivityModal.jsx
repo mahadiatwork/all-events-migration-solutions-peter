@@ -296,6 +296,8 @@ const EditActivityModal = ({
   const handleSubmit = async () => {
     const transformedData = transformFormSubmission(formData);
 
+    const timeFormatted = dayjs(formData.start).format('hh:mm A');
+    formData.time = timeFormatted;
     formData.Participants = formData.scheduledWith;
     formData.Owner = formData.scheduleFor;
 
