@@ -6,6 +6,7 @@ import {
   FormControlLabel,
   Grid2 as Grid,
   InputLabel,
+  Link,
   MenuItem,
   Select,
   TextField,
@@ -24,7 +25,6 @@ import { DateTimePicker, LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import dayjs from "dayjs";
 
-
 const ringAlarm = [
   { name: "At time of meeting", value: 0 },
   { name: "5 minutes before", value: 5 },
@@ -36,8 +36,6 @@ const ringAlarm = [
   { name: "1 day before", value: 1440 },
   { name: "2 day before", value: 2880 },
 ];
-
-
 
 const commonTextStyles = {
   fontSize: "9pt", // Set the font size to 9pt
@@ -130,9 +128,13 @@ const FirstComponent = ({
   const { events, filterDate, setFilterDate, recentColors, setRecentColor } =
     useContext(ZohoContext);
 
-  const [sendReminders, setSendReminders] = useState(selectedRowData?.Send_Reminders || false); // Initially, reminders are enabled
-  const [sendNotification, setSendNotification] = useState(selectedRowData?.Send_Invites || false);
-  const [reminderMinutes, setReminderMinutes] =   useState(15); 
+  const [sendReminders, setSendReminders] = useState(
+    selectedRowData?.Send_Reminders || false
+  ); // Initially, reminders are enabled
+  const [sendNotification, setSendNotification] = useState(
+    selectedRowData?.Send_Invites || false
+  );
+  const [reminderMinutes, setReminderMinutes] = useState(15);
 
   // useEffect(() => {
   //   // Initialize Remind_Participants and Reminder_Text
@@ -281,7 +283,6 @@ const FirstComponent = ({
   const [displayColorPicker, setDisplayColorPicker] = useState(false);
   const [color, setColor] = useState(formData.Colour || "#ff0000");
 
-
   const handleBannerChecked = (e) => {
     handleInputChange("Banner", e.target.checked);
     const selectedDate = formData.start;
@@ -411,18 +412,17 @@ const FirstComponent = ({
 
   const durations = Array.from({ length: 24 }, (_, i) => (i + 1) * 10);
 
-  
   const now = new Date();
 
   const start = dayjs(formData.start);
   const initialStart = start.isValid() ? start : dayjs(now);
-  
+
   const [startValue, setStartValue] = useState(initialStart);
-  
+
   // Add 60 minutes to the start value
   const [endValue, setEndValue] = useState(() => {
     const end = dayjs(formData.end);
-    return end.isValid() ? end : initialStart.add(60, 'minute');
+    return end.isValid() ? end : initialStart.add(60, "minute");
   });
 
   function getTimeDifference(end) {
@@ -451,7 +451,7 @@ const FirstComponent = ({
 
   const handleCheckboxChange = (field) => {
     if (field === "$send_notification") {
-      console.log({sendNotification})
+      console.log({ sendNotification });
       setSendNotification((prev) => {
         const newSendNotification = !prev;
         handleInputChange("$send_notification", newSendNotification);
@@ -462,12 +462,15 @@ const FirstComponent = ({
     } else if (field === "Remind_Participants") {
       setSendReminders((prev) => {
         const newSendReminders = !prev;
-  
+
         if (newSendReminders) {
           handleInputChange("Remind_Participants", [
             { period: "minutes", unit: reminderMinutes },
           ]);
-          handleInputChange("Reminder_Text", `${reminderMinutes} minutes before`);
+          handleInputChange(
+            "Reminder_Text",
+            `${reminderMinutes} minutes before`
+          );
           handleInputChange("Remind_At", [reminderMinutes]);
           handleInputChange("Send_Reminders", true);
         } else {
@@ -476,12 +479,11 @@ const FirstComponent = ({
           handleInputChange("Remind_At", []);
           handleInputChange("Send_Reminders", false);
         }
-  
+
         return newSendReminders;
       });
     }
   };
-  
 
   const handleReminderChange = (value) => {
     setReminderMinutes(value);
@@ -562,7 +564,7 @@ const FirstComponent = ({
                   ],
                 },
                 textField: {
-                  size: "small" 
+                  size: "small",
                 },
               }}
               onChange={(e) => {
@@ -589,7 +591,6 @@ const FirstComponent = ({
               onChange={(e) => handleEndDateChange(e)}
               sx={{
                 "& input": { py: 0 },
-              
               }}
               slotProps={{
                 popper: {
@@ -603,7 +604,7 @@ const FirstComponent = ({
                   ],
                 },
                 textField: {
-                  size: "small" 
+                  size: "small",
                 },
               }}
               renderInput={(params) => <TextField {...params} size="small" />}
@@ -739,6 +740,15 @@ const FirstComponent = ({
             }
             label="Create separate activity for each contact"
           />
+          {formData?.id && (
+            <Link
+              href={`https://crm.zoho.com.au/crm/org7004396182/tab/Events/${formData.id}`}
+              target="_blank"
+              sx={{ fontSize: "9pt" }}
+            >
+              Meeting Link
+            </Link>
+          )}
         </Grid>
         <Grid size={12}>
           <AccountField
@@ -761,7 +771,7 @@ const FirstComponent = ({
               id="schedule-for-autocomplete"
               size="small"
               options={users} // Ensure users array is correctly passed
-              getOptionLabel={(option) => option.full_name ||  option.name || ""} // Use full_name to display
+              getOptionLabel={(option) => option.full_name || option.name || ""} // Use full_name to display
               value={formData.scheduleFor || null} // Ensure it's an object, or null if not set
               onChange={(event, newValue) => {
                 handleInputChange("scheduleFor", newValue || null); // Set the selected value
@@ -803,7 +813,7 @@ const FirstComponent = ({
         </Grid>
         {/* Reminder Dropdown */}
         <Grid size={3}>
-        <FormControl fullWidth size="small">
+          <FormControl fullWidth size="small">
             <InputLabel
               id="demo-simple-select-standard-label"
               sx={{ fontSize: "9pt" }} // ✅ Label text size
