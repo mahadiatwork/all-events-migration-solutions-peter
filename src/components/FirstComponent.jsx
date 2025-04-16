@@ -6,6 +6,7 @@ import {
   FormControlLabel,
   Grid2 as Grid,
   InputLabel,
+  Link,
   MenuItem,
   Select,
   TextField,
@@ -679,7 +680,17 @@ const FirstComponent = ({
             }
             label="Create separate activity for each contact"
           />
+             {formData?.id && (
+              <Link
+                href={`https://crm.zoho.com.au/crm/org7004396182/tab/Events/${formData.id}`}
+                target="_blank"
+                sx={{ fontSize: "9pt" }}
+              >
+                Meeting Link
+              </Link>
+            )}
         </Grid>
+        
         <Grid size={12}>
           <AccountField
             formData={formData} // Use formData
