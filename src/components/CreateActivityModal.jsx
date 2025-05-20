@@ -392,7 +392,7 @@ const CreateActivityModal = ({
 
   const [isSubmitting, setIsSubmitting] = useState(false); // State for form submission
 
-const logResponse = async ({ name, payload, response, result, trigger, meetingType }) => {
+const logResponse = async ({ name, payload, response, result, trigger, meetingType, Widget_Source }) => {
 
 const timeOccurred = dayjs().tz("Australia/Adelaide").format("YYYY-MM-DDTHH:mm:ssZ");
 
@@ -407,6 +407,7 @@ const timeOccurred = dayjs().tz("Australia/Adelaide").format("YYYY-MM-DDTHH:mm:s
       Trigger: trigger,
       Time_Occured: timeOccurred,
       Meeting_Type: meetingType,
+      Widget_Source: Widget_Source
     },
   });
 };
@@ -434,6 +435,7 @@ const handleSubmit = async () => {
           result: wasSuccessful ? "Success" : "Error",
           trigger: "Record Create",
           meetingType: formData.Meeting_Type || "",
+          Widget_Source: "Contact Activities"
         });
 
         if (wasSuccessful) {
@@ -457,6 +459,7 @@ const handleSubmit = async () => {
           result: "Error",
           trigger: "Record Create",
           meetingType: formData.Meeting_Type || "",
+          Widget_Source: "Contact Activities"
         });
         setSnackbarSeverity("error");
         setSnackbarMessage("Error creating events.");
@@ -498,6 +501,7 @@ const handleSubmit = async () => {
         result: wasSuccessful ? "Success" : "Error",
         trigger: "Record Create",
         meetingType: formData.Meeting_Type || "",
+        Widget_Source: "Contact Activities"
       });
 
       if (wasSuccessful) {
@@ -523,6 +527,7 @@ const handleSubmit = async () => {
         result: "Error",
         trigger: "Record Create",
         meetingType: formData.Meeting_Type || "",
+        Widget_Source: "Contact Activities"
       });
       console.error("Error submitting the form:", error);
       setSnackbarSeverity("error");
