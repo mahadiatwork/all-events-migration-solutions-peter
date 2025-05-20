@@ -297,6 +297,15 @@ const CreateActivityModal = ({
   const theme = useTheme();
   const [value, setValue] = useState(0);
 
+    const currentTimeInAdelaide = dayjs()
+  .tz("Australia/Adelaide")
+  .format("YYYY-MM-DDTHH:mm:ssZ");
+
+const oneHourFromNowInAdelaide = dayjs()
+  .tz("Australia/Adelaide")
+  .add(1, 'hour')
+  .format("YYYY-MM-DDTHH:mm:ssZ");
+
   const [formData, setFormData] = useState({
     Type_of_Activity: "Meeting",
     startTime: "",
@@ -310,8 +319,8 @@ const CreateActivityModal = ({
     Venue: "",
     priority: "Medium",
     repeat: "once",
-    start: "",
-    end: "",
+    start: currentTimeInAdelaide || "",
+    end: oneHourFromNowInAdelaide || "",
     noEndDate: false,
     Description: "",
     color: "#fff",
