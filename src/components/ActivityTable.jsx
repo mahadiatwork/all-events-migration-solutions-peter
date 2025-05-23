@@ -294,7 +294,7 @@ export default function ScheduleTable({
   const [filterType, setFilterType] = React.useState([]);
   const [filterPriority, setFilterPriority] = React.useState([]);
   const [filterUser, setFilterUser] = React.useState(
-    loggedInUser?.full_name ? [loggedInUser.full_name] : []
+    loggedInUser?.full_name ? [loggedInUser?.full_name] : []
   );
 
   const [showCleared, setShowCleared] = React.useState(false); // State for "Cleared" checkbox
@@ -685,12 +685,12 @@ export default function ScheduleTable({
             }}
           >
             {users.map((user) => (
-              <MenuItem key={user.id} value={user.full_name}>
+              <MenuItem key={user.id} value={user?.full_name}>
                 <Checkbox
-                  checked={filterUser.indexOf(user.full_name) > -1}
+                  checked={filterUser.indexOf(user?.full_name) > -1}
                   size="small"
                 />
-                {user.full_name}
+                {user?.full_name}
               </MenuItem>
             ))}
           </Select>

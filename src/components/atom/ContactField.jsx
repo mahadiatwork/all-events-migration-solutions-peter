@@ -57,8 +57,8 @@ export default function ContactField({
               // No participant.participant or participant.id available
               return {
                 id: null,
-                Full_Name: participant.name || "Unknown",
-                Email: participant.Email || "No Email",
+                Full_Name: participant?.name || "Unknown",
+                Email: participant?.Email || "No Email",
                 type: "contact",
               };
             }
@@ -75,22 +75,22 @@ export default function ContactField({
                 console.log({ contactDetails });
                 return {
                   id: contact.id,
-                  First_Name: contact.First_Name || "N/A",
-                  Last_Name: contact.Last_Name || "N/A",
-                  Email: contact.Email || "No Email",
-                  Mobile: contact.Mobile || "N/A",
-                  Full_Name: `${contact.First_Name || "N/A"} ${
-                    contact.Last_Name || "N/A"
+                  First_Name: contact?.First_Name || "N/A",
+                  Last_Name: contact?.Last_Name || "N/A",
+                  Email: contact?.Email || "No Email",
+                  Mobile: contact?.Mobile || "N/A",
+                  Full_Name: `${contact?.First_Name || "N/A"} ${
+                    contact?.Last_Name || "N/A"
                   }`,
-                  ID_Number: contact.ID_Number || "N/A",
+                  ID_Number: contact?.ID_Number || "N/A",
                   participant: recordId,
                   type: "contact",
                 };
               } else {
                 return {
                   id: recordId,
-                  Full_Name: participant.name || "Unknown",
-                  Email: participant.Email || "No Email",
+                  Full_Name: participant?.name || "Unknown",
+                  Email: participant?.Email || "No Email",
                   participant: recordId,
                   type: "contact",
                 };
@@ -102,8 +102,8 @@ export default function ContactField({
               );
               return {
                 id: recordId,
-                Full_Name: participant.name || "Unknown",
-                Email: participant.Email || "No Email",
+                Full_Name: participant?.name || "Unknown",
+                Email: participant?.Email || "No Email",
                 participant: recordId,
                 type: "contact",
               };
@@ -198,7 +198,7 @@ export default function ContactField({
   const handleOk = () => {
     const updatedParticipants = selectedParticipants.map((participant) => ({
       Full_Name:
-        participant.Full_Name ||
+        participant?.Full_Name ||
         participant.name ||
         `${participant.First_Name} ${participant.Last_Name}`,
       Email: participant.Email,
@@ -247,7 +247,7 @@ export default function ContactField({
           fullWidth
           value={selectedParticipants
             .map(
-              (c) => c.Full_Name || c.name || `${c.First_Name} ${c.Last_Name}`
+              (c) => c?.Full_Name || c.name || `${c.First_Name} ${c.Last_Name}`
             )
             .join(", ")}
           variant="outlined"

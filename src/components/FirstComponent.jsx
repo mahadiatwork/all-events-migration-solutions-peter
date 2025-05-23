@@ -771,7 +771,7 @@ const FirstComponent = ({
               id="schedule-for-autocomplete"
               size="small"
               options={users} // Ensure users array is correctly passed
-              getOptionLabel={(option) => option.full_name || option.name || ""} // Use full_name to display
+              getOptionLabel={(option) => option?.full_name || option?.name || ""} // Use full_name to display
               value={formData.scheduleFor || null} // Ensure it's an object, or null if not set
               onChange={(event, newValue) => {
                 handleInputChange("scheduleFor", newValue || null); // Set the selected value

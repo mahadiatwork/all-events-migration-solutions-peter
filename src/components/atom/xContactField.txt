@@ -29,16 +29,16 @@ export default function ContactField({
   useEffect(() => {
     if (formData.scheduledWith && formData.scheduledWith.length > 0) {
       const initialParticipants = formData.scheduledWith.map((contact) => ({
-        Full_Name: contact.Full_Name || contact.name,
-        Email: contact.Email || "No Email", // Add Email
-        id: contact.participant,
+        Full_Name: contact?.Full_Name || contact?.name,
+        Email: contact?.Email || "No Email", // Add Email
+        id: contact?.participant,
       }));
       setSelectedParticipants(initialParticipants);
     } else if (selectedRowData?.Participants?.length > 0) {
       const defaultParticipants = selectedRowData.Participants.map((participant) => ({
-        Full_Name: participant.name,
-        Email: participant.email || "No Email", // Add Email
-        id: participant.participant,
+        Full_Name: participant?.name,
+        Email: participant?.email || "No Email", // Add Email
+        id: participant?.participant,
       }));
       setSelectedParticipants(defaultParticipants);
     }
@@ -126,7 +126,7 @@ export default function ContactField({
     const updatedParticipants = newValue.map((selected) => {
       const fullContact = contacts.find((contact) => contact.id === selected.id);
       return {
-        Full_Name: selected.Full_Name,
+        Full_Name: selected?.Full_Name,
         Email: fullContact?.Email || "No Email", // Ensure Email is included
         id: selected.id,
       };
@@ -138,7 +138,7 @@ export default function ContactField({
     handleInputChange(
       "scheduledWith",
       updatedParticipants.map((contact) => ({
-        Full_Name: contact.Full_Name,
+        Full_Name: contact?.Full_Name,
         Email: contact.Email,
         participant: contact.id,
         type: "contact",
@@ -174,7 +174,7 @@ export default function ContactField({
         getOptionLabel={(option) => {
           // Handle both dropdown options and selected values
           const email = option.Email || "No Email";
-          const fullName = option.Full_Name || "No Name";
+          const fullName = option?.Full_Name || "No Name";
           return searchType === "Email" ? `${email} (${fullName})` : fullName;
         }}
         value={selectedParticipants}

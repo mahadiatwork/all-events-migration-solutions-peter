@@ -117,12 +117,12 @@ function formatDateWithOffset(dateString) {
 function transformFormSubmission(data, individualParticipant = null) {
   const transformScheduleWithToParticipants = (scheduleWith) => {
     return scheduleWith.map((contact) => ({
-      name: contact.Full_Name || null,
+      name: contact?.Full_Name || null,
       invited: false,
       type: "contact",
       participant: contact?.participant || contact?.id || null,
       status: "not_known",
-      Full_Name: contact.Full_Name || null,
+      Full_Name: contact?.Full_Name || null,
     }));
   };
 
@@ -131,10 +131,10 @@ function transformFormSubmission(data, individualParticipant = null) {
   const participants = individualParticipant
     ? [
         {
-          name: individualParticipant.Full_Name || null,
+          name: individualParticipant?.Full_Name || null,
           invited: false,
           type: "contact",
-          participant: individualParticipant.participant || null,
+          participant: individualParticipant?.participant || null,
           status: "not_known",
         },
       ]
@@ -163,7 +163,7 @@ function transformFormSubmission(data, individualParticipant = null) {
 
     // Update Event_Title to include participant's name if creating separate events
     Event_Title: individualParticipant
-      ? `${data.Event_Title} - ${individualParticipant.Full_Name}`
+      ? `${data.Event_Title} - ${individualParticipant?.Full_Name}`
       : data.Event_Title, // If no individual participant, use the default title
 
     What_Id: data.What_Id,
@@ -322,9 +322,9 @@ const oneHourFromNowInAdelaide = dayjs()
     resource: 1,
     scheduleFor: loggedInUser || "",
     scheduledWith: [{
-      Full_Name: currentContact.Full_Name,
-      participant: currentContact.id,
-      name: currentContact.Full_Name, // add this if you're referencing `.name`
+      Full_Name: currentContact?.Full_Name,
+      participant: currentContact?.id,
+      name: currentContact?.Full_Name, // add this if you're referencing `.name`
     }],
     Venue: "",
     priority: "Medium",

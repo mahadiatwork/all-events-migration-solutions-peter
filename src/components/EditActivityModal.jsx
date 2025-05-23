@@ -110,8 +110,8 @@ function transformFormSubmission(data) {
   // Function to transform scheduleWith data into the Participants format
   const transformScheduleWithToParticipants = (scheduleWith) => {
     return scheduleWith.map((contact) => ({
-      Email: contact.Email || null, // Use Email if available, or set to null
-      name: contact.Full_Name || null, // Use Full_Name for the name
+      Email: contact?.Email || null, // Use Email if available, or set to null
+      name: contact?.Full_Name || null, // Use Full_Name for the name
       invited: false, // Default to false
       type: "contact", // Default type to "contact"
       participant: contact?.participant || contact?.id || null,
