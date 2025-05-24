@@ -825,7 +825,7 @@ const FirstComponent = ({
               id="demo-simple-select-standard"
               label="Ring Alarm"
               fullWidth
-              // disabled={!formData.Remind_Participants}
+              disabled={!sendNotification && !sendReminders} // Disable when neither checkbox is selected
               value={formData.Reminder_Text || ""} // Use `Reminder_Text` to display selected text
               onChange={(e) => {
                 // Find the selected ring object

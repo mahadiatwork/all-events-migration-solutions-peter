@@ -964,6 +964,7 @@ export default function ScheduleTable({
           updateEvent={updateEvent}
           setEvents={setEvents}
           events={events}
+          currentContact={currentContact}
         />
       )}
 

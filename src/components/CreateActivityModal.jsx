@@ -445,7 +445,8 @@ const handleSubmit = async () => {
           result: wasSuccessful ? "Success" : "Error",
           trigger: "Record Create",
           meetingType: formData.Meeting_Type || "",
-          Widget_Source: "Contact Activities"
+          Widget_Source: "Contact Activities",
+          Time_Occured: formatDateWithOffset(new Date().toISOString())
         });
 
         if (wasSuccessful) {
@@ -465,11 +466,12 @@ const handleSubmit = async () => {
         await logResponse({
           name: `Event for ${participant.name}`,
           payload: transformedData,
-          response: { error: error.message },
+          response: { error: error },
           result: "Error",
           trigger: "Record Create",
           meetingType: formData.Meeting_Type || "",
-          Widget_Source: "Contact Activities"
+          Widget_Source: "Contact Activities",
+          Time_Occured: formatDateWithOffset(new Date().toISOString())
         });
         setSnackbarSeverity("error");
         setSnackbarMessage("Error creating events.");
@@ -493,7 +495,6 @@ const handleSubmit = async () => {
 
     const transformedData = transformFormSubmission(formData);
 
-
     try {
       const data = await ZOHO.CRM.API.insertRecord({
         Entity: "Events",
@@ -511,7 +512,8 @@ const handleSubmit = async () => {
         result: wasSuccessful ? "Success" : "Error",
         trigger: "Record Create",
         meetingType: formData.Meeting_Type || "",
-        Widget_Source: "Contact Activities"
+        Widget_Source: "Contact Activities",
+        Time_Occured: formatDateWithOffset(new Date().toISOString())
       });
 
       if (wasSuccessful) {
@@ -533,11 +535,12 @@ const handleSubmit = async () => {
       await logResponse({
         name: `Event for ${currentContact?.Full_Name || "Unknown"}`,
         payload: transformedData,
-        response: { error: error.message },
+        response: { error: error },
         result: "Error",
         trigger: "Record Create",
         meetingType: formData.Meeting_Type || "",
-        Widget_Source: "Contact Activities"
+        Widget_Source: "Contact Activities",
+        Time_Occured: formatDateWithOffset(new Date().toISOString())
       });
       console.error("Error submitting the form:", error);
       setSnackbarSeverity("error");
