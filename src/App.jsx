@@ -115,25 +115,77 @@ function App() {
             closeDate1.toISOString().split("T")[0]
           }T23:59:59+11:00`;
 
-          const req_data_meetings1 = {
-            url: `https://www.zohoapis.com.au/crm/v3/Events/search?criteria=((Start_DateTime:greater_equal:${encodeURIComponent(
-              formattedBeginDate
-            )})and(End_DateTime:less_equal:${encodeURIComponent(
-              formattedCloseDate
-            )}))`,
-            method: "GET",
-            param_type: 1,
-          };
+          // Replace the single API call with pagination loop
+          let allEventsData = [];
+          let currentPage = 1;
+          let hasMoreRecords = true;
+          let recordsPerPage = 100;
 
-          // Fetch data
-          const data1 = await ZOHO.CRM.CONNECTION.invoke(
-            "zoho_crm_conn",
-            req_data_meetings1
-          );
+          while (hasMoreRecords && currentPage < 11) {
+            const req_data_meetings = {
+              url: `https://www.zohoapis.com.au/crm/v3/Events/search?criteria=((Start_DateTime:greater_equal:${encodeURIComponent(
+                formattedBeginDate
+              )})and(End_DateTime:less_equal:${encodeURIComponent(
+                formattedCloseDate
+              )}))&per_page=${recordsPerPage}&page=${currentPage}`,
+              method: "GET",
+              param_type: 1,
+            };
 
-          // console.log("mahadi data fetch", data1?.details?.statusMessage?.info?.more_records)
+            try {
+              // Fetch data for current page
+              const data = await ZOHO.CRM.CONNECTION.invoke(
+                "zoho_crm_conn",
+                req_data_meetings
+              );
 
-          const eventsData = data1?.details?.statusMessage?.data || [];
+              console.log(`Page ${currentPage} data:`, data);
+
+              const pageEventsData = data?.details?.statusMessage?.data || [];
+              const moreRecords = data?.details?.statusMessage?.info?.more_records || false;
+
+              // Add current page data to all events
+              allEventsData = [...allEventsData, ...pageEventsData];
+
+              // Check if there are more records to fetch
+              hasMoreRecords = moreRecords;
+              currentPage++;
+
+              console.log(`Fetched page ${currentPage - 1}, more records: ${moreRecords}, total events so far: ${allEventsData.length}`);
+
+            } catch (error) {
+              console.error(`Error fetching page ${currentPage}:`, error);
+              hasMoreRecords = false; // Stop pagination on error
+            }
+          }
+
+          console.log(`Total events fetched: ${allEventsData.length}`);
+
+          // Replace: const eventsData = data1?.details?.statusMessage?.data || [];
+          // With:
+          const eventsData = allEventsData;
+
+          // const req_data_meetings1 = {
+          //   url: `https://www.zohoapis.com.au/crm/v3/Events/search?criteria=((Start_DateTime:greater_equal:${encodeURIComponent(
+          //     formattedBeginDate
+          //   )})and(End_DateTime:less_equal:${encodeURIComponent(
+          //     formattedCloseDate
+          //   )}))&per_page=10&page=1`,
+          //   method: "GET",
+          //   param_type: 1,
+          // };
+
+          // // Fetch data
+          // const data1 = await ZOHO.CRM.CONNECTION.invoke(
+          //   "zoho_crm_conn",
+          //   req_data_meetings1
+          // );
+
+          // console.log({data1})
+
+          // // console.log("mahadi data fetch", data1?.details?.statusMessage?.info?.more_records)
+
+          // const eventsData = data1?.details?.statusMessage?.data || [];
           
           let combinedEvents = [];
           if (filterDate === "Custom Range") {
