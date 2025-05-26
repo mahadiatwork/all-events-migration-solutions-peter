@@ -65,43 +65,47 @@ function App() {
       setLoading(true)
 
       try {
-        // Fetch all data in parallel for better performance
-        const [meetingsResponse, contactResponse, colorsResponse, usersResponse] = await Promise.all([
-          // Fetch all meetings
-          ZOHO.CRM.API.getRelatedRecords({
-            Entity: "Contacts",
-            RecordID: entityId,
-            RelatedList: "Invited_Events",
-            page: 1,
-            per_page: 200,
-          }),
-
-          // Fetch current contact
-          ZOHO.CRM.API.getRecord({
-            Entity: "Contacts",
-            approved: "both",
-            RecordID: entityId,
-          }),
-
-          // Get organization variable for recent colors
-          ZOHO.CRM.API.getOrgVariable("recent_colors"),
-
-          // Get users data
-          ZOHO.CRM.API.getAllRecords({
-            Entity: "users",
-            sort_order: "asc",
-            per_page: 100,
-            page: 1,
-          }),
-        ])
-
-        // Process the responses
+        // Fetch all meetings
+        console.log("Fetching meetings...")
+        const meetingsResponse = await ZOHO.CRM.API.getRelatedRecords({
+          Entity: "Contacts",
+          RecordID: entityId,
+          RelatedList: "Invited_Events",
+          page: 1,
+          per_page: 200,
+        })
         const allMeetingsData = meetingsResponse?.data || []
-        const contactData = contactResponse?.data?.[0] || null
-        const colorsArray = JSON.parse(colorsResponse?.Success?.Content || "[]")
-        const usersData = usersResponse?.users || []
+        console.log("Meetings fetched:", allMeetingsData.length)
 
-        // Update all states
+        // Fetch current contact
+        console.log("Fetching current contact...")
+        const contactResponse = await ZOHO.CRM.API.getRecord({
+          Entity: "Contacts",
+          approved: "both",
+          RecordID: entityId,
+        })
+        const contactData = contactResponse?.data?.[0] || null
+        console.log("Contact fetched:", contactData?.id)
+
+        // Get organization variable for recent colors
+        console.log("Fetching recent colors...")
+        const colorsResponse = await ZOHO.CRM.API.getOrgVariable("recent_colors")
+        const colorsArray = JSON.parse(colorsResponse?.Success?.Content || "[]")
+        console.log("Colors fetched:", colorsArray.length)
+
+        // Get users data
+        console.log("Fetching users...")
+        const usersResponse = await ZOHO.CRM.API.getAllRecords({
+          Entity: "users",
+          sort_order: "asc",
+          per_page: 100,
+          page: 1,
+        })
+        const usersData = usersResponse?.users || []
+        console.log("Users fetched:", usersData.length)
+
+        // Update all states after ALL data is fetched
+        console.log("All data fetched successfully, updating states...")
         setEvents(allMeetingsData)
         setCurrentContact(contactData)
         setRecentColor(colorsArray)
@@ -114,11 +118,13 @@ function App() {
         }))
 
         setDataFetched(true)
+        console.log("All states updated, data fetch complete!")
       } catch (error) {
         console.error("Error fetching data:", error)
       } finally {
         // Always set loading to false when done
         setLoading(false)
+        console.log("Loading set to false")
       }
     }
 
