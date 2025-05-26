@@ -1,104 +1,145 @@
-import React, { useEffect, useState, createContext, useContext } from "react";
-import "./App.css";
-import ActivityTable from "./components/ActivityTable";
-import { CircularProgress, Box } from "@mui/material"; // Add MUI CircularProgress for the loader
-import { subDays } from "date-fns";
+import { useEffect, useState, createContext } from "react"
+import "./App.css"
+import ActivityTable from "./components/ActivityTable"
+import { CircularProgress, Box } from "@mui/material"
 
-const ZOHO = window.ZOHO;
+const ZOHO = window.ZOHO
 
 // Create a ZohoContext to hold the ZOHO data
-export const ZohoContext = createContext();
+export const ZohoContext = createContext()
 
 function App() {
-  const [zohoLoaded, setZohoLoaded] = useState(false);
-  const [events, setEvents] = useState([]);
-  const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true); // Add loading state
-  const [filterDate, setFilterDate] = useState("Default");
-  const [cache, setCache] = useState({}); // Cache to store fetched results
-  const [recentColors, setRecentColor] = useState(""); // Move this to context
-  const [loggedInUser, setLoggedInUser] = useState(null);
-  const [entityId, setEntityId] = useState(null);
-  const [currentContact, setCurrentContact] = useState(null);
+  const [zohoLoaded, setZohoLoaded] = useState(false)
+  const [events, setEvents] = useState([])
+  const [users, setUsers] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [filterDate, setFilterDate] = useState("Default")
+  const [cache, setCache] = useState({})
+  const [recentColors, setRecentColor] = useState("")
+  const [loggedInUser, setLoggedInUser] = useState(null)
+  const [entityId, setEntityId] = useState(null)
+  const [currentContact, setCurrentContact] = useState(null)
+  const [dataFetched, setDataFetched] = useState(false) // Track if initial data fetch is complete
 
-
+  // Initialize Zoho
   useEffect(() => {
-    ZOHO.embeddedApp.on("PageLoad", async function (data) {
-      setEntityId(data.EntityId);
-    });
-    // Initialize Zoho Embedded App once
-    ZOHO.embeddedApp.init().then(() => {
-      setZohoLoaded(true);
-      // Fetch the logged-in user
-      ZOHO.CRM.CONFIG.getCurrentUser().then(function (data) {
-        console.log({ data });
-        setLoggedInUser(data?.users[0]);
-      });
-    });
-  }, []);
+    const initializeZoho = async () => {
+      try {
+        // Set up PageLoad listener
+        ZOHO.embeddedApp.on("PageLoad", (data) => {
+          setEntityId(data.EntityId)
+        })
 
+        // Initialize Zoho Embedded App
+        await ZOHO.embeddedApp.init()
+        setZohoLoaded(true)
+
+        // Fetch the logged-in user
+        const userData = await ZOHO.CRM.CONFIG.getCurrentUser()
+        console.log({ userData })
+        setLoggedInUser(userData?.users[0])
+      } catch (error) {
+        console.error("Error initializing Zoho:", error)
+        setLoading(false)
+      }
+    }
+
+    initializeZoho()
+  }, [])
+
+  // Fetch data when Zoho is loaded and entityId is available
   useEffect(() => {
-    async function getData() {
-      // Check if the data for the current filterDate is already in the cache
-      if (cache[filterDate]) {
-        setEvents(cache[filterDate]);
-        setLoading(false); // Set loading to false since we're using cached data
-        return;
+    const fetchAllData = async () => {
+      // Only proceed if we have both zohoLoaded and entityId
+      if (!zohoLoaded || !entityId) {
+        return
       }
 
-      if (zohoLoaded) {
-        setLoading(true); // Set loading to true when data fetching starts
-        try {
+      // Check if the data for the current filterDate is already in the cache
+      if (cache[filterDate] && dataFetched) {
+        setEvents(cache[filterDate])
+        setLoading(false)
+        return
+      }
+
+      setLoading(true)
+
+      try {
+        // Fetch all data in parallel for better performance
+        const [meetingsResponse, contactResponse, colorsResponse, usersResponse] = await Promise.all([
           // Fetch all meetings
-          const allMeetings = await ZOHO.CRM.API.getRelatedRecords({
+          ZOHO.CRM.API.getRelatedRecords({
             Entity: "Contacts",
             RecordID: entityId,
             RelatedList: "Invited_Events",
             page: 1,
             per_page: 200,
-          });
+          }),
 
-          const allMeetingsData = allMeetings?.data || [];
-
-          // // Set the events state
-          setEvents(allMeetingsData);
-
-          const fetchCurrentContact = await ZOHO.CRM.API.getRecord({
+          // Fetch current contact
+          ZOHO.CRM.API.getRecord({
             Entity: "Contacts",
             approved: "both",
             RecordID: entityId,
-          });
+          }),
 
-          setCurrentContact(fetchCurrentContact.data[0]);
-
-          // Get organization variable
-          await ZOHO.CRM.API.getOrgVariable("recent_colors").then(function (
-            data
-          ) {
-            // Parse the string to an array and store it in the state
-            const colorsArray = JSON.parse(data?.Success?.Content || "[]");
-            setRecentColor(colorsArray);
-          });
+          // Get organization variable for recent colors
+          ZOHO.CRM.API.getOrgVariable("recent_colors"),
 
           // Get users data
-          const usersResponse = await ZOHO.CRM.API.getAllRecords({
+          ZOHO.CRM.API.getAllRecords({
             Entity: "users",
             sort_order: "asc",
             per_page: 100,
             page: 1,
-          });
-          setUsers(usersResponse.users); // Set the users in the state
+          }),
+        ])
 
-          setLoading(false); // Ensure loading is turned off when the data fetching is complete
-        } catch (error) {
-          console.error("Error fetching data", error);
-          setLoading(false); // Ensure loading is turned off even if there's an error
-        }
+        // Process the responses
+        const allMeetingsData = meetingsResponse?.data || []
+        const contactData = contactResponse?.data?.[0] || null
+        const colorsArray = JSON.parse(colorsResponse?.Success?.Content || "[]")
+        const usersData = usersResponse?.users || []
+
+        // Update all states
+        setEvents(allMeetingsData)
+        setCurrentContact(contactData)
+        setRecentColor(colorsArray)
+        setUsers(usersData)
+
+        // Cache the events data
+        setCache((prevCache) => ({
+          ...prevCache,
+          [filterDate]: allMeetingsData,
+        }))
+
+        setDataFetched(true)
+      } catch (error) {
+        console.error("Error fetching data:", error)
+      } finally {
+        // Always set loading to false when done
+        setLoading(false)
       }
     }
 
-    getData();
-  }, [zohoLoaded, cache]);
+    fetchAllData()
+  }, [zohoLoaded, entityId, filterDate]) // Added entityId as dependency
+
+  // Show loading until all data is fetched
+  if (loading || !dataFetched) {
+    return (
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "100vh",
+        }}
+      >
+        <CircularProgress />
+      </Box>
+    )
+  }
 
   return (
     <ZohoContext.Provider
@@ -112,34 +153,20 @@ function App() {
         setRecentColor,
       }}
     >
-      {/* Conditionally render the loader or the main content */}
-      {loading ? (
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            height: "100vh",
-          }}
-        >
-          <CircularProgress /> {/* MUI loader */}
-        </Box>
-      ) : (
-        <ActivityTable
-          events={events}
-          ZOHO={ZOHO}
-          users={users}
-          filterDate={filterDate}
-          setFilterDate={setFilterDate}
-          recentColors={recentColors}
-          setRecentColor={setRecentColor}
-          loggedInUser={loggedInUser}
-          setEvents={setEvents}
-          currentContact={currentContact}
-        />
-      )}
+      <ActivityTable
+        events={events}
+        ZOHO={ZOHO}
+        users={users}
+        filterDate={filterDate}
+        setFilterDate={setFilterDate}
+        recentColors={recentColors}
+        setRecentColor={setRecentColor}
+        loggedInUser={loggedInUser}
+        setEvents={setEvents}
+        currentContact={currentContact}
+      />
     </ZohoContext.Provider>
-  );
+  )
 }
 
-export default App;
+export default App
