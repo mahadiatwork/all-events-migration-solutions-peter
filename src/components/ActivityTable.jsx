@@ -365,40 +365,41 @@ export default function ScheduleTable({
       )
     : [];
 
-  const filteredRows = React.useMemo(() => {
-    return rows
-      .filter((row) => {
-        const typeMatch =
-          filterType.length === 0 || filterType.includes(row.type);
-        const priorityMatch =
-          filterPriority.length === 0 || filterPriority.includes(row.priority);
-        const userMatch =
-          filterUser.length === 0 ||
-          filterUser.some((user) => row.scheduledFor?.includes(user)); // Ensure row.scheduledFor is defined
-        const dateMatch =
-          !customDateRange ||
-          (new Date(row.date).setHours(0, 0, 0, 0) >=
-            new Date(customDateRange.startDate).setHours(0, 0, 0, 0) &&
-            new Date(row.date).setHours(23, 59, 59, 999) <=
-              new Date(customDateRange.endDate).setHours(23, 59, 59, 999));
+const filteredRows = React.useMemo(() => {
+  return rows
+    .filter((row) => {
+      const typeMatch =
+        filterType.length === 0 || filterType.includes(row.type);
+      const priorityMatch =
+        filterPriority.length === 0 || filterPriority.includes(row.priority);
+      const userMatch =
+        filterUser.length === 0 ||
+        filterUser.some((user) => row.scheduledFor?.includes(user));
+      const dateMatch =
+        !customDateRange ||
+        (new Date(row.date).setHours(0, 0, 0, 0) >=
+          new Date(customDateRange.startDate).setHours(0, 0, 0, 0) &&
+          new Date(row.date).setHours(23, 59, 59, 999) <=
+            new Date(customDateRange.endDate).setHours(23, 59, 59, 999));
 
-        const clearedMatch = showCleared
-          ? true // Show both open and closed items when showCleared is true
-          : row.Event_Status !== "Closed";
+      const clearedMatch = showCleared
+        ? true
+        : row.Event_Status !== "Closed";
 
-        return (
-          typeMatch && priorityMatch && userMatch && dateMatch && clearedMatch
-        );
-      })
-      .sort((a, b) => new Date(b.date) - new Date(a.date)); // Sort from latest to oldest
-  }, [
-    rows,
-    filterType,
-    filterPriority,
-    filterUser,
-    customDateRange,
-    showCleared,
-  ]);
+      return typeMatch && priorityMatch && userMatch && dateMatch && clearedMatch;
+    })
+    .sort(getComparator(order, orderBy)); // ✅ This line enables sorting
+}, [
+  rows,
+  filterType,
+  filterPriority,
+  filterUser,
+  customDateRange,
+  showCleared,
+  order,
+  orderBy, // ✅ include these in the dependency list too
+]);
+
 
   // Checkbox handler
   const handleClearedCheckboxChange = (event) => {
