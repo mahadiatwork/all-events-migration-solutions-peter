@@ -352,10 +352,10 @@ export default function ScheduleTable({
   };
 
   const handleClearFilters = () => {
-    setFilterDate("All");
+    setFilterDate("Default");
     setFilterType([]);
     setFilterPriority([]);
-    setFilterUser([]);
+    // setFilterUser([]);
     setCustomDateRange(null);
   };
 
