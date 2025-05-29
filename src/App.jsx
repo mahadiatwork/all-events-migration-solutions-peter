@@ -129,7 +129,7 @@ function App() {
     }
 
     fetchAllData()
-  }, [zohoLoaded, entityId, filterDate]) // Added entityId as dependency
+  }, [zohoLoaded, entityId]) // Added entityId as dependency
 
   // Show loading until all data is fetched
   if (loading || !dataFetched) {

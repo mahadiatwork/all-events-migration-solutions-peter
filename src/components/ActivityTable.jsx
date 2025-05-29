@@ -364,6 +364,7 @@ export default function ScheduleTable({
     : [];
 
   // Filter rows based on selected filters and "Cleared" checkbox
+  console.log({filterType,filterPriority,filterUser,filterDate  })
   const filteredRows = React.useMemo(() => {
     return rows
       .filter((row) => {
@@ -373,7 +374,12 @@ export default function ScheduleTable({
           filterPriority.length === 0 || filterPriority.includes(row.priority);
         const userMatch =
           filterUser.length === 0 ||
-          filterUser.some((user) => row.scheduledFor.includes(user));
+          filterUser.some((user) => {
+            const a = row.scheduledFor?.trim().toLowerCase();
+            const b = user?.trim().toLowerCase();
+            console.log(`Comparing: "${a}" vs "${b}"`);
+            return a === b;
+          });
 
         // Apply either customDateRange or filterDate but not both
         let dateMatch = true;
@@ -508,8 +514,7 @@ export default function ScheduleTable({
     });
   };
 
-
-  console.log({events})
+  console.log({ filterUser, rows, filteredRows });
 
   return (
     <>
