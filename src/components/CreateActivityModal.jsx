@@ -173,17 +173,17 @@ function transformFormSubmission(data, individualParticipant = null) {
     Owner: {
       id: data?.scheduleFor?.id,
     },
-    Recurring_Activity: {
-      RRULE: `FREQ=${data?.occurrence?.toUpperCase()};INTERVAL=1;UNTIL=${customEndTime}${
-        data.occurrence === "weekly"
-          ? `;BYDAY=${dayName.toUpperCase()}`
-          : data.occurrence === "monthly"
-          ? `;BYMONTHDAY=${dayOfMonth}`
-          : data.occurrence === "yearly"
-          ? `;BYMONTH=${monthNumber};BYMONTHDAY=${dayOfMonth}`
-          : ""
-      };DTSTART=${dayjs(data.startTime).format("YYYY-MM-DD")}`,
-    },
+    // Recurring_Activity: {
+    //   RRULE: `FREQ=${data?.occurrence?.toUpperCase()};INTERVAL=1;UNTIL=${customEndTime}${
+    //     data.occurrence === "weekly"
+    //       ? `;BYDAY=${dayName.toUpperCase()}`
+    //       : data.occurrence === "monthly"
+    //       ? `;BYMONTHDAY=${dayOfMonth}`
+    //       : data.occurrence === "yearly"
+    //       ? `;BYMONTH=${monthNumber};BYMONTHDAY=${dayOfMonth}`
+    //       : ""
+    //   };DTSTART=${dayjs(data.startTime).format("YYYY-MM-DD")}`,
+    // },
   };
 
   if (
