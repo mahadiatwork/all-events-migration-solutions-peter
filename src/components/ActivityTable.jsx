@@ -26,6 +26,7 @@ import ClearActivityModal from "./ClearActivityModal";
 import EditActivityModal from "./EditActivityModal";
 import CreateActivityModal from "./CreateActivityModal";
 import { isDateInRange } from "./helperFunc";
+import dayjs from "dayjs";
 
 const headCells = [
   {
@@ -364,45 +365,65 @@ export default function ScheduleTable({
     : [];
 
   // Filter rows based on selected filters and "Cleared" checkbox
-  console.log({filterType,filterPriority,filterUser,filterDate  })
+  // console.log({filterType,filterPriority,filterUser,filterDate  })
+  // Replace your existing filteredRows useMemo with this:
   const filteredRows = React.useMemo(() => {
-    return rows
-      .filter((row) => {
-        const typeMatch =
-          filterType.length === 0 || filterType.includes(row.type);
-        const priorityMatch =
-          filterPriority.length === 0 || filterPriority.includes(row.priority);
-        const userMatch =
-          filterUser.length === 0 ||
-          filterUser.some((user) => {
-            const a = row.scheduledFor?.trim().toLowerCase();
-            const b = user?.trim().toLowerCase();
-            console.log(`Comparing: "${a}" vs "${b}"`);
-            return a === b;
-          });
+    return rows.filter((row) => {
+      // Type filter
+      const typeMatch =
+        filterType.length === 0 || filterType.includes(row.type);
 
-        // Apply either customDateRange or filterDate but not both
-        let dateMatch = true;
-        if (customDateRange) {
-          dateMatch =
-            !customDateRange ||
-            (new Date(row.date).setHours(0, 0, 0, 0) >=
-              new Date(customDateRange.startDate).setHours(0, 0, 0, 0) &&
-              new Date(row.date).setHours(23, 59, 59, 999) <=
-                new Date(customDateRange.endDate).setHours(23, 59, 59, 999));
-        } else {
-          dateMatch = isDateInRange(row.date, filterDate || "Default");
-        }
+      // Priority filter
+      const priorityMatch =
+        filterPriority.length === 0 || filterPriority.includes(row.priority);
 
-        const clearedMatch = showCleared
-          ? true // Show both open and closed items when showCleared is true
-          : row.Event_Status !== "Closed";
+      // Enhanced user filter with debugging
+      const userMatch =
+        filterUser.length === 0 ||
+        filterUser.some((user) => {
+          const a = (row.scheduledFor || "").trim().toLowerCase();
+          const b = (user || "").trim().toLowerCase();
 
-        return (
-          typeMatch && priorityMatch && userMatch && dateMatch && clearedMatch
-        );
-      })
-      .sort(getComparator(order, orderBy));
+          // console.log(`Comparing user: "${a}" vs "${b}"`);
+
+          // Try both exact and flexible matching
+          const exactMatch = a === b;
+          const flexibleMatch = a.includes(b) || b.includes(a);
+
+          // console.log(`Exact: ${exactMatch}, Flexible: ${flexibleMatch}`);
+          return exactMatch || flexibleMatch;
+        });
+
+      // Enhanced date filter using Day.js
+      let dateMatch = true;
+      if (customDateRange) {
+        const rowDate = dayjs(row.date, "M/D/YYYY").utc().startOf("day");
+        const startDate = dayjs(customDateRange.startDate).utc().startOf("day");
+        const endDate = dayjs(customDateRange.endDate).utc().endOf("day");
+
+        dateMatch = rowDate.isBetween(startDate, endDate, null, "[]");
+        console.log(`Date range check: ${row.date} -> ${dateMatch}`);
+      } else if (filterDate && filterDate !== "Default") {
+        // Use your existing isDateInRange but with Day.js parsing
+        const date = dayjs(row.date, "M/D/YYYY").utc();
+        const today = dayjs().utc().startOf("day");
+
+        // Add your existing date range logic here with Day.js
+        dateMatch = isDateInRange(row.date, filterDate);
+        console.log(`Date filter "${filterDate}": ${row.date} -> ${dateMatch}`);
+      } else {
+        // Always use isDateInRange as a fallback (includes "Default")
+        dateMatch = isDateInRange(row.date, filterDate || "Default");
+      }
+
+      const clearedMatch = showCleared ? true : row.Event_Status !== "Closed";
+
+      const result =
+        typeMatch && priorityMatch && userMatch && dateMatch && clearedMatch;
+      // console.log(`Row "${row.title}": type=${typeMatch}, priority=${priorityMatch}, user=${userMatch}, date=${dateMatch}, cleared=${clearedMatch} -> ${result}`);
+
+      return result;
+    });
   }, [
     rows,
     filterType,
