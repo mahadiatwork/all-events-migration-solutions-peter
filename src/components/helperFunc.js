@@ -1,51 +1,48 @@
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
+dayjs.extend(utc);
 
-// Function to check if a date falls within a specific range
 export const isDateInRange = (date, rangeType) => {
-  const today = new Date();
-  const targetDate = new Date(date);
+  const targetDate = dayjs.utc(date, "M/D/YYYY").startOf("day").valueOf();
+  const today = dayjs.utc().startOf("day");
+
   let startDate, endDate;
 
   switch (rangeType) {
     case "Current Week":
-      startDate = new Date(today);
-      startDate.setDate(today.getDate() - today.getDay()); // Start of the week (Sunday)
-      endDate = new Date(startDate);
-      endDate.setDate(startDate.getDate() + 6); // End of the week (Saturday)
+      startDate = today.startOf("week").valueOf(); // Sunday
+      endDate = today.startOf("week").add(6, "day").endOf("day").valueOf();
       break;
     case "Current Month":
-      startDate = new Date(today.getFullYear(), today.getMonth(), 1);
-      endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+      startDate = today.startOf("month").valueOf();
+      endDate = today.endOf("month").valueOf();
       break;
     case "Last 7 Days":
-      startDate = new Date();
-      startDate.setDate(today.getDate() - 7);
-      endDate = today;
+      startDate = today.subtract(7, "day").valueOf();
+      endDate = today.valueOf();
       break;
     case "Last 30 Days":
-      startDate = new Date();
-      startDate.setDate(today.getDate() - 30);
-      endDate = today;
+      startDate = today.subtract(30, "day").valueOf();
+      endDate = today.valueOf();
       break;
     case "Last 90 Days":
-      startDate = new Date();
-      startDate.setDate(today.getDate() - 90);
-      endDate = today;
+      startDate = today.subtract(90, "day").valueOf();
+      endDate = today.valueOf();
       break;
     case "Next Week":
-      startDate = new Date();
-      startDate.setDate(today.getDate() + (7 - today.getDay())); // Start of next week
-      endDate = new Date(startDate);
-      endDate.setDate(startDate.getDate() + 6); // End of next week
+      startDate = today.add(7 - today.day(), "day").startOf("day").valueOf(); // next Sunday
+      endDate = dayjs.utc(startDate).add(6, "day").endOf("day").valueOf();
       break;
     case "Default":
     default:
-      startDate = new Date();
-      startDate.setDate(today.getDate() - 14); // Last 14 days
-      endDate = null; // Allow all future events
+      startDate = today.subtract(14, "day").valueOf();
+      endDate = null;
       break;
   }
 
-  return endDate ? targetDate >= startDate && targetDate <= endDate : targetDate >= startDate;
+  return endDate
+    ? targetDate >= startDate && targetDate <= endDate
+    : targetDate >= startDate;
 };
 
 

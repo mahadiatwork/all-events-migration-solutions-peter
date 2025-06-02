@@ -298,6 +298,7 @@ export default function ScheduleTable({
     loggedInUser?.full_name ? [loggedInUser?.full_name] : []
   );
 
+
   const [showCleared, setShowCleared] = React.useState(false); // State for "Cleared" checkbox
 
   const [order, setOrder] = React.useState("asc");
@@ -419,7 +420,7 @@ export default function ScheduleTable({
       const clearedMatch = showCleared ? true : row.Event_Status !== "Closed";
 
       const result =
-        typeMatch && priorityMatch && userMatch && dateMatch && clearedMatch;
+        typeMatch && priorityMatch && clearedMatch && userMatch && dateMatch;
       // console.log(`Row "${row.title}": type=${typeMatch}, priority=${priorityMatch}, user=${userMatch}, date=${dateMatch}, cleared=${clearedMatch} -> ${result}`);
 
       return result;
