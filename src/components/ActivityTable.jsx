@@ -120,11 +120,8 @@ function getComparator(order, orderBy) {
 }
 // Function to format dates
 function formatDate(dateString) {
-  const date = new Date(dateString);
-  const day = String(date.getDate()).padStart(2, "0");
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const year = date.getFullYear();
-  return `${day}/${month}/${year}`;
+  const parsed = dayjs(dateString);
+  return parsed.isValid() ? parsed.format("DD/MM/YYYY") : "Invalid Date";
 }
 
 // Custom TableCell component for conditional styling
@@ -156,45 +153,26 @@ const CustomTableCell = ({
 };
 
 function createData(event, type) {
-  const startDateTime = event.Start_DateTime
-    ? new Date(event.Start_DateTime)
-    : new Date();
-  const endDateTime = event.End_DateTime
-    ? new Date(event.End_DateTime)
-    : new Date();
-  const time = startDateTime.toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-  const duration = event.Duration_Min ? `${event.Duration_Min} minutes` : " - ";
-  // startDateTime && endDateTime
-  //   ? `${Math.round((endDateTime - startDateTime) / 60000)} minutes`
-  //   : "Unknown duration";
+  const startDateTime = event.Start_DateTime && dayjs(event.Start_DateTime).isValid()
+    ? dayjs(event.Start_DateTime)
+    : null;
 
-  // ScheduledFor field handling
-  const scheduledFor =
-    event.Owner?.name || event.scheduleFor?.full_name || "Unknown";
+  const endDateTime = event.End_DateTime && dayjs(event.End_DateTime).isValid()
+    ? dayjs(event.End_DateTime)
+    : null;
 
-  // AssociateWith field handling
-  // let associateWith = "";
-  const associateWith =
-    event.What_Id?.name || event.associateWith?.Account_Name || "None";
+  const date = startDateTime ? startDateTime.format("MM/DD/YYYY") : "Invalid Date";
+  const time = dayjs(startDateTime).format("hh:mm A");
+  const duration = event.Duration_Min ? `${event.Duration_Min} minutes` : "-";
 
-  // if(event.associateWith !== null){
-  //   associateWith = event.associateWith?.Account_Name;
-  // }
-
-  // Participants field handling
+  const scheduledFor = event.Owner?.name || event.scheduleFor?.full_name || "Unknown";
+  const associateWith = event.What_Id?.name || event.associateWith?.Account_Name || "None";
   const participants = event.Participants || event.scheduledWith || [];
 
-  const title = event.Event_Title || "Untitled Event";
-  const color = event.Colour || "black";
-  const Event_Status = event.Event_Status || "";
-
   return {
-    title,
+    title: event.Event_Title || "Untitled Event",
     type,
-    date: startDateTime.toLocaleDateString(),
+    date,
     time,
     priority: event.priority || event.Event_Priority || "",
     scheduledFor,
@@ -203,8 +181,8 @@ function createData(event, type) {
     duration,
     associateWith,
     id: event.id || "No ID",
-    color,
-    Event_Status,
+    color: event.Colour || "black",
+    Event_Status: event.Event_Status || "",
   };
 }
 
