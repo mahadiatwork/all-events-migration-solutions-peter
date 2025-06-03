@@ -25,6 +25,7 @@ import { visuallyHidden } from "@mui/utils";
 import ClearActivityModal from "./ClearActivityModal";
 import EditActivityModal from "./EditActivityModal";
 import CreateActivityModal from "./CreateActivityModal";
+import { isDateInRange } from "./helperFunc";
 
 const headCells = [
   {
