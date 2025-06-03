@@ -365,40 +365,75 @@ export default function ScheduleTable({
       )
     : [];
 
-const filteredRows = React.useMemo(() => {
-  return rows
-    .filter((row) => {
+  // Replace your existing filteredRows useMemo with this:
+  const filteredRows = React.useMemo(() => {
+    return rows.filter((row) => {
+      // Type filter
       const typeMatch =
         filterType.length === 0 || filterType.includes(row.type);
+
+      // Priority filter
       const priorityMatch =
         filterPriority.length === 0 || filterPriority.includes(row.priority);
+
+      // Enhanced user filter with debugging
       const userMatch =
         filterUser.length === 0 ||
-        filterUser.some((user) => row.scheduledFor?.includes(user));
-      const dateMatch =
-        !customDateRange ||
-        (new Date(row.date).setHours(0, 0, 0, 0) >=
-          new Date(customDateRange.startDate).setHours(0, 0, 0, 0) &&
-          new Date(row.date).setHours(23, 59, 59, 999) <=
-            new Date(customDateRange.endDate).setHours(23, 59, 59, 999));
+        filterUser.some((user) => {
+          const a = (row.scheduledFor || "").trim().toLowerCase();
+          const b = (user || "").trim().toLowerCase();
 
-      const clearedMatch = showCleared
-        ? true
-        : row.Event_Status !== "Closed";
+          // console.log(`Comparing user: "${a}" vs "${b}"`);
 
-      return typeMatch && priorityMatch && userMatch && dateMatch && clearedMatch;
-    })
-    .sort(getComparator(order, orderBy)); // ✅ This line enables sorting
-}, [
-  rows,
-  filterType,
-  filterPriority,
-  filterUser,
-  customDateRange,
-  showCleared,
-  order,
-  orderBy, // ✅ include these in the dependency list too
-]);
+          // Try both exact and flexible matching
+          const exactMatch = a === b;
+          const flexibleMatch = a.includes(b) || b.includes(a);
+
+          // console.log(`Exact: ${exactMatch}, Flexible: ${flexibleMatch}`);
+          return exactMatch || flexibleMatch;
+        });
+
+      // Enhanced date filter using Day.js
+      let dateMatch = true;
+      if (customDateRange) {
+        const rowDate = dayjs(row.date, "M/D/YYYY").utc().startOf("day");
+        const startDate = dayjs(customDateRange.startDate).utc().startOf("day");
+        const endDate = dayjs(customDateRange.endDate).utc().endOf("day");
+
+        dateMatch = rowDate.isBetween(startDate, endDate, null, "[]");
+        console.log(`Date range check: ${row.date} -> ${dateMatch}`);
+      } else if (filterDate && filterDate !== "Default") {
+        // Use your existing isDateInRange but with Day.js parsing
+        const date = dayjs(row.date, "M/D/YYYY").utc();
+        const today = dayjs().utc().startOf("day");
+
+        // Add your existing date range logic here with Day.js
+        dateMatch = isDateInRange(row.date, filterDate);
+        console.log(`Date filter "${filterDate}": ${row.date} -> ${dateMatch}`);
+      } else {
+        // Always use isDateInRange as a fallback (includes "Default")
+        dateMatch = isDateInRange(row.date, filterDate || "Default");
+      }
+
+      const clearedMatch = showCleared ? true : row.Event_Status !== "Closed";
+
+      const result =
+        typeMatch && priorityMatch && clearedMatch && userMatch && dateMatch;
+      // console.log(`Row "${row.title}": type=${typeMatch}, priority=${priorityMatch}, user=${userMatch}, date=${dateMatch}, cleared=${clearedMatch} -> ${result}`);
+
+      return result;
+    });
+  }, [
+    rows,
+    filterType,
+    filterPriority,
+    filterUser,
+    customDateRange,
+    filterDate,
+    showCleared,
+    order,
+    orderBy,
+  ]);
 
 
   // Checkbox handler
