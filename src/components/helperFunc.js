@@ -1,101 +1,86 @@
-import dayjs from "dayjs"
-import utc from "dayjs/plugin/utc"
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
 
-// Only extend with UTC plugin since it's the most reliable
-dayjs.extend(utc)
+dayjs.extend(utc);
 
-// Simplified version without problematic plugins
+// --- Helper: Parse date from known formats ---
 const safeParseDateString = (dateString) => {
   if (!dateString || dateString === "NaN/NaN/NaN" || dateString === "") {
-    return null
+    return null;
   }
 
-  // Try common date patterns manually
-  const datePatterns = [
-    /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/, // M/D/YYYY or MM/DD/YYYY
-    /^(\d{4})-(\d{1,2})-(\d{1,2})$/, // YYYY-MM-DD
-  ]
+  // Try DD/MM/YYYY format explicitly
+  const dmyPattern = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/;
+  const isoPattern = /^(\d{4})-(\d{1,2})-(\d{1,2})$/;
 
-  for (const pattern of datePatterns) {
-    const match = dateString.match(pattern)
-    if (match) {
-      if (pattern.source.includes("\\/")) {
-        // M/D/YYYY format
-        const [, month, day, year] = match
-        const parsed = dayjs.utc(`${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`)
-        if (parsed.isValid()) {
-          return parsed.startOf("day")
-        }
-      } else {
-        // YYYY-MM-DD format
-        const parsed = dayjs.utc(dateString)
-        if (parsed.isValid()) {
-          return parsed.startOf("day")
-        }
-      }
-    }
+  if (dmyPattern.test(dateString)) {
+    const [, day, month, year] = dateString.match(dmyPattern);
+    const parsed = dayjs.utc(`${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`);
+    if (parsed.isValid()) return parsed.startOf("day");
   }
 
-  // Fallback to default parsing
-  const defaultParsed = dayjs.utc(dateString)
-  if (defaultParsed.isValid()) {
-    return defaultParsed.startOf("day")
+  if (isoPattern.test(dateString)) {
+    const parsed = dayjs.utc(dateString);
+    if (parsed.isValid()) return parsed.startOf("day");
   }
 
-  console.warn(`Failed to parse date: "${dateString}"`)
-  return null
-}
+  // Fallback to default Day.js parsing
+  const fallback = dayjs.utc(dateString);
+  if (fallback.isValid()) return fallback.startOf("day");
 
+  console.warn(`❌ Failed to parse date: "${dateString}"`);
+  return null;
+};
+
+// --- Main Range Filter Function ---
 export const isDateInRange = (date, rangeType) => {
-  const parsedDate = safeParseDateString(date)
-
+  const parsedDate = safeParseDateString(date);
   if (!parsedDate) {
-    console.warn(`Invalid date for filtering: "${date}"`)
-    return false
+    console.warn(`⚠️ Invalid date for filtering: "${date}"`);
+    return false;
   }
 
-  const targetDate = parsedDate.valueOf()
-  const today = dayjs.utc().startOf("day")
+  const targetDate = parsedDate.valueOf();
+  const today = dayjs.utc().startOf("day");
 
-  let startDate, endDate
+  let startDate, endDate;
 
   switch (rangeType) {
     case "Current Week":
-      startDate = today.startOf("week").valueOf()
-      endDate = today.startOf("week").add(6, "day").endOf("day").valueOf()
-      break
+      startDate = today.startOf("week").valueOf();
+      endDate = today.startOf("week").add(6, "day").endOf("day").valueOf();
+      break;
     case "Current Month":
-      startDate = today.startOf("month").valueOf()
-      endDate = today.endOf("month").valueOf()
-      break
+      startDate = today.startOf("month").valueOf();
+      endDate = today.endOf("month").valueOf();
+      break;
     case "Last 7 Days":
-      startDate = today.subtract(7, "day").valueOf()
-      endDate = today.valueOf()
-      break
+      startDate = today.subtract(7, "day").valueOf();
+      endDate = today.valueOf();
+      break;
     case "Last 30 Days":
-      startDate = today.subtract(30, "day").valueOf()
-      endDate = today.valueOf()
-      break
+      startDate = today.subtract(30, "day").valueOf();
+      endDate = today.valueOf();
+      break;
     case "Last 90 Days":
-      startDate = today.subtract(90, "day").valueOf()
-      endDate = today.valueOf()
-      break
+      startDate = today.subtract(90, "day").valueOf();
+      endDate = today.valueOf();
+      break;
     case "Next Week":
-      startDate = today
-        .add(7 - today.day(), "day")
-        .startOf("day")
-        .valueOf()
-      endDate = dayjs.utc(startDate).add(6, "day").endOf("day").valueOf()
-      break
+      startDate = today.add(7 - today.day(), "day").startOf("day").valueOf();
+      endDate = dayjs.utc(startDate).add(6, "day").endOf("day").valueOf();
+      break;
     case "Default":
     default:
-      startDate = today.subtract(14, "day").valueOf()
-      endDate = null
-      break
+      startDate = today.subtract(14, "day").valueOf();
+      endDate = null;
+      break;
   }
 
-  return endDate ? targetDate >= startDate && targetDate <= endDate : targetDate >= startDate
-}
+  return endDate
+    ? targetDate >= startDate && targetDate <= endDate
+    : targetDate >= startDate;
+};
 
 
 

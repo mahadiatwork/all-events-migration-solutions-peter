@@ -26,6 +26,13 @@ import ClearActivityModal from "./ClearActivityModal";
 import EditActivityModal from "./EditActivityModal";
 import CreateActivityModal from "./CreateActivityModal";
 import { isDateInRange } from "./helperFunc";
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
+import timezone from "dayjs/plugin/timezone";
+
+// Extend dayjs with plugins
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 const headCells = [
   {
@@ -158,35 +165,34 @@ const CustomTableCell = ({
 };
 
 function createData(event, type) {
-  const startDateTime = event.Start_DateTime
-    ? new Date(event.Start_DateTime)
-    : new Date();
-  const endDateTime = event.End_DateTime
-    ? new Date(event.End_DateTime)
-    : new Date();
-  const time = startDateTime.toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-  const duration = event.Duration_Min ? `${event.Duration_Min} minutes` : " - ";
-  // startDateTime && endDateTime
-  //   ? `${Math.round((endDateTime - startDateTime) / 60000)} minutes`
-  //   : "Unknown duration";
+  const rawStart = event.Start_DateTime;
+  const rawEnd = event.End_DateTime;
 
-  // ScheduledFor field handling
+  // Defensive: ensure these are strings
+  const parsedStart =
+    rawStart && typeof rawStart === "string" ? dayjs(rawStart) : null;
+  const parsedEnd = rawEnd && typeof rawEnd === "string" ? dayjs(rawEnd) : null;
+
+  const formattedDate = parsedStart?.isValid()
+    ? parsedStart.format("DD/MM/YYYY")
+    : "Invalid Date";
+
+  const formattedTime = parsedStart?.isValid()
+    ? parsedStart.format("HH:mm")
+    : "--:--";
+
+  const duration = event.Duration_Min
+    ? `${event.Duration_Min} minutes`
+    : parsedStart?.isValid() && parsedEnd?.isValid()
+    ? `${parsedEnd.diff(parsedStart, "minute")} minutes`
+    : "-";
+
   const scheduledFor =
     event.Owner?.name || event.scheduleFor?.full_name || "Unknown";
 
-  // AssociateWith field handling
-  // let associateWith = "";
   const associateWith =
     event.What_Id?.name || event.associateWith?.Account_Name || "None";
 
-  // if(event.associateWith !== null){
-  //   associateWith = event.associateWith?.Account_Name;
-  // }
-
-  // Participants field handling
   const participants = event.Participants || event.scheduledWith || [];
 
   const title = event.Event_Title || "Untitled Event";
@@ -196,8 +202,8 @@ function createData(event, type) {
   return {
     title,
     type,
-    date: startDateTime.toLocaleDateString(),
-    time,
+    date: formattedDate,
+    time: formattedTime,
     priority: event.priority || event.Event_Priority || "",
     scheduledFor,
     participants,
@@ -338,7 +344,10 @@ export default function ScheduleTable({
 
   const priorityOptions = ["Low", "Medium", "High"];
 
-  console.log({ mahadi: events });
+  React.useEffect(() => {
+    console.log({events})
+    events.forEach((event) => console.log(event.Owner));
+  }, []);
 
   const handleTypeChange = (event) => {
     const value = event.target.value;
@@ -400,7 +409,7 @@ export default function ScheduleTable({
       // Enhanced date filter using Day.js
       let dateMatch = true;
       if (customDateRange) {
-        const rowDate = dayjs(row.date, "M/D/YYYY").utc().startOf("day");
+        const rowDate = dayjs(row.date, "DD/MM/YYYY").utc().startOf("day");
         const startDate = dayjs(customDateRange.startDate).utc().startOf("day");
         const endDate = dayjs(customDateRange.endDate).utc().endOf("day");
 
@@ -408,12 +417,11 @@ export default function ScheduleTable({
         console.log(`Date range check: ${row.date} -> ${dateMatch}`);
       } else if (filterDate && filterDate !== "Default") {
         // Use your existing isDateInRange but with Day.js parsing
-        const date = dayjs(row.date, "M/D/YYYY").utc();
+        const date = dayjs(row.date, "DD/MM/YYYY").utc();
         const today = dayjs().utc().startOf("day");
 
         // Add your existing date range logic here with Day.js
         dateMatch = isDateInRange(row.date, filterDate);
-        console.log(`Date filter "${filterDate}": ${row.date} -> ${dateMatch}`);
       } else {
         // Always use isDateInRange as a fallback (includes "Default")
         dateMatch = isDateInRange(row.date, filterDate || "Default");
@@ -889,7 +897,7 @@ export default function ScheduleTable({
                     row={row}
                     highlightedRow={highlightedRow}
                   >
-                    {formatDate(row.date)}
+                    {row.date}
                   </CustomTableCell>
                   <CustomTableCell
                     selectedRowIndex={selectedRowIndex}
