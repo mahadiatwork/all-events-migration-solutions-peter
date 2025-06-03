@@ -120,6 +120,9 @@ function getComparator(order, orderBy) {
 // Function to format dates
 function formatDate(dateString) {
   const date = new Date(dateString);
+  if (isNaN(date.getTime())) {
+    return "Invalid Date";
+  }
   const day = String(date.getDate()).padStart(2, "0");
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const year = date.getFullYear();
@@ -436,7 +439,6 @@ export default function ScheduleTable({
     orderBy,
   ]);
 
-
   // Checkbox handler
   const handleClearedCheckboxChange = (event) => {
     setShowCleared(event.target.checked);
@@ -537,7 +539,6 @@ export default function ScheduleTable({
   };
 
   // console.log({ events, filteredRows });
-
 
   return (
     <>
