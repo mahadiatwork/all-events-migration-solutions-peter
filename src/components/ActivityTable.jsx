@@ -801,7 +801,7 @@ export default function ScheduleTable({
                 </TableCell>
               </TableRow>
             ) : (
-              filteredRows.map((row, index) => (
+              [...filteredRows].sort(getComparator(order, orderBy)).map((row, index) => (
                 <TableRow
                   key={index}
                   sx={{
