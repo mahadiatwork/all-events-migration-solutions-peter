@@ -84,14 +84,20 @@ const headCells = [
 
 const noSort = ["duration", "time"];
 
+const convertDate = (date)=>{
+  const [day, month, year] = date.split("/");
+  return `${year}-${month}-${day}`;
+}
+
 function descendingComparator(a, b, orderBy) {
   // console.log(orderBy, b, a);
   if (noSort.includes(orderBy)) {
     return;
   }
   if (orderBy === "date") {
-    const newB = new Date(b[orderBy]);
-    const newA = new Date(a[orderBy]);
+    const newB = new Date(convertDate(b[orderBy]));
+    const newA = new Date(convertDate(a[orderBy]));
+    
     if (newB < newA) {
       return -1;
     }
@@ -344,10 +350,10 @@ export default function ScheduleTable({
 
   const priorityOptions = ["Low", "Medium", "High"];
 
-  React.useEffect(() => {
-    console.log({events})
-    events.forEach((event) => console.log(event.Owner));
-  }, []);
+  // React.useEffect(() => {
+  //   console.log({ events });
+  //   events.forEach((event) => console.log(event.Owner));
+  // }, []);
 
   const handleTypeChange = (event) => {
     const value = event.target.value;
@@ -358,10 +364,26 @@ export default function ScheduleTable({
     const value = event.target.value;
     setFilterPriority(typeof value === "string" ? value.split(",") : value);
   };
-
   const handleUserChange = (event) => {
     const value = event.target.value;
-    setFilterUser(typeof value === "string" ? value.split(",") : value);
+
+    if (value.includes("select_all")) {
+      const allUserNames = users.map((u) => u.full_name);
+      setFilterUser(allUserNames);
+      return;
+    }
+
+    if (value.includes("deselect_all")) {
+      const fallback = loggedInUser?.full_name ? [loggedInUser.full_name] : [];
+      setFilterUser(fallback);
+      return;
+    }
+
+    // Regular selection: strip out command values
+    const cleaned = value.filter(
+      (v) => v !== "select_all" && v !== "deselect_all"
+    );
+    setFilterUser(cleaned);
   };
 
   const handleClearFilters = () => {
@@ -446,6 +468,7 @@ export default function ScheduleTable({
     order,
     orderBy,
   ]);
+  console.log({date:rows?.map(el=>el?.date),date2:filteredRows?.map(el=>el?.date)})
 
   // Checkbox handler
   const handleClearedCheckboxChange = (event) => {
@@ -696,11 +719,11 @@ export default function ScheduleTable({
             multiple
             value={filterUser}
             onChange={handleUserChange}
-            label="User"
+            // label="User"
             size="small"
             renderValue={(selected) => {
               if (selected.length === 0) return "Select User";
-              const displayedValues = selected.slice(0, 3).join(", "); // Show up to 2 items
+              const displayedValues = selected.slice(0, 3).join(", ");
               return selected.length > 3
                 ? `${displayedValues}, ...`
                 : displayedValues;
@@ -721,13 +744,36 @@ export default function ScheduleTable({
               },
             }}
           >
+            <MenuItem value="select_all">
+              <Checkbox
+                checked={filterUser.length === users.length && users.length > 0} // ✅ only true when all users are selected
+                indeterminate={
+                  filterUser.length > 0 && filterUser.length < users.length
+                }
+                size="small"
+              />
+              <ListItemText primary="Select All" />
+            </MenuItem>
+
+            <MenuItem value="deselect_all">
+              <Checkbox
+                checked={
+                  filterUser.length === 1 &&
+                  filterUser[0] === loggedInUser?.full_name
+                } // ✅ only true when only logged-in user is selected
+                size="small"
+              />
+              <ListItemText primary="Deselect All" />
+            </MenuItem>
+
+            {/* Users */}
             {users.map((user) => (
               <MenuItem key={user.id} value={user.full_name}>
                 <Checkbox
-                  checked={filterUser.indexOf(user.full_name) > -1}
+                  checked={filterUser.includes(user.full_name)}
                   size="small"
                 />
-                {user.full_name}
+                <ListItemText primary={user.full_name} />
               </MenuItem>
             ))}
           </Select>
@@ -833,146 +879,150 @@ export default function ScheduleTable({
                 </TableCell>
               </TableRow>
             ) : (
-              [...filteredRows].sort(getComparator(order, orderBy)).map((row, index) => (
-                <TableRow
-                  key={index}
-                  sx={{
-                    backgroundColor:
-                      highlightedRow === row.id ||
-                      (selectedRowIndex === row.id && openClearModal)
-                        ? "#0072DC"
-                        : index % 2 === 0
-                        ? "white"
-                        : "#efefef",
-                    color:
-                      highlightedRow === row.id ||
-                      (selectedRowIndex === row.id && openClearModal)
-                        ? "#FFFFFF"
-                        : "black",
-                    position: "relative",
-                    textDecoration:
-                      row.Event_Status === "Closed" ? "line-through" : "none",
-                    cursor: "pointer",
-                    py: 0,
-                  }}
-                  onClick={() => handleRowClick(row)}
-                  onDoubleClick={() => handleRowDoubleClick(row)}
-                >
-                  <TableCell
-                    padding="checkbox"
-                    onClick={(e) => e.stopPropagation()}
-                    sx={{ paddingY: 0 }}
+              filteredRows?.sort(getComparator(order, orderBy))
+                .map((row, index) => (
+                  <TableRow
+                    key={index}
+                    sx={{
+                      backgroundColor:
+                        highlightedRow === row.id ||
+                        (selectedRowIndex === row.id && openClearModal)
+                          ? "#0072DC"
+                          : index % 2 === 0
+                          ? "white"
+                          : "#efefef",
+                      color:
+                        highlightedRow === row.id ||
+                        (selectedRowIndex === row.id && openClearModal)
+                          ? "#FFFFFF"
+                          : "black",
+                      position: "relative",
+                      textDecoration:
+                        row.Event_Status === "Closed" ? "line-through" : "none",
+                      cursor: "pointer",
+                      py: 0,
+                    }}
+                    onClick={() => handleRowClick(row)}
+                    onDoubleClick={() => handleRowDoubleClick(row)}
                   >
-                    <Checkbox
-                      checked={selectedRowIndex === index && openClearModal}
-                      onChange={() => handleCheckboxChange(index, row)}
-                      sx={{
-                        color: selectedRowIndex === index ? "#fff" : "inherit",
-                        transform: "scale(0.9)", // Scale down the checkbox size
-                        "& .MuiSvgIcon-root": {
-                          fontSize: "1.2rem", // Adjust the icon size inside the checkbox
-                        },
-                      }}
-                    />
-                  </TableCell>
-                  <CustomTableCell
-                    selectedRowIndex={selectedRowIndex}
-                    index={index}
-                    row={row}
-                    highlightedRow={highlightedRow}
-                  >
-                    {row.title}
-                  </CustomTableCell>
-                  <CustomTableCell
-                    selectedRowIndex={selectedRowIndex}
-                    index={index}
-                    row={row}
-                    highlightedRow={highlightedRow}
-                  >
-                    {row.type}
-                  </CustomTableCell>
-                  <CustomTableCell
-                    selectedRowIndex={selectedRowIndex}
-                    index={index}
-                    row={row}
-                    highlightedRow={highlightedRow}
-                  >
-                    {row.date}
-                  </CustomTableCell>
-                  <CustomTableCell
-                    selectedRowIndex={selectedRowIndex}
-                    index={index}
-                    row={row}
-                    highlightedRow={highlightedRow}
-                  >
-                    {row.time}
-                  </CustomTableCell>
-                  <CustomTableCell
-                    selectedRowIndex={selectedRowIndex}
-                    index={index}
-                    row={row}
-                    highlightedRow={highlightedRow}
-                  >
-                    {row.priority}
-                  </CustomTableCell>
-                  <CustomTableCell
-                    selectedRowIndex={selectedRowIndex}
-                    index={index}
-                    row={row}
-                    highlightedRow={highlightedRow}
-                  >
-                    {row.scheduledFor}
-                  </CustomTableCell>
-                  <TableCell sx={{ fontSize: "9pt", py: 0 }}>
-                    {row.participants.length > 0
-                      ? row.participants.map((participant, i) => (
-                          <React.Fragment key={i}>
-                            <a
-                              href={`https://crm.zoho.com.au/crm/org7004396182/tab/Contacts/${participant.participant}/canvas/76775000000287551`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              style={{
-                                color:
-                                  selectedRowIndex === row.id
-                                    ? "#fff"
-                                    : "#0072DC",
-                                textDecoration: "underline",
-                                fontSize: "9pt",
-                              }}
-                            >
-                              {participant.name || participant.Full_Name}
-                            </a>
-                            {i < row.participants.length - 1 && ", "}
-                          </React.Fragment>
-                        ))
-                      : "No Participants"}
-                  </TableCell>
-                  <CustomTableCell
-                    selectedRowIndex={selectedRowIndex}
-                    index={index}
-                    row={row}
-                    highlightedRow={highlightedRow}
-                  >
-                    {row.regarding}
-                  </CustomTableCell>
-                  <CustomTableCell
-                    selectedRowIndex={selectedRowIndex}
-                    index={index}
-                    row={row}
-                    highlightedRow={highlightedRow}
-                  >
-                    {row.duration}
-                  </CustomTableCell>
-                  <CustomTableCell
-                    selectedRowIndex={selectedRowIndex}
-                    index={index}
-                    row={row}
-                    highlightedRow={highlightedRow}
-                  >
-                    {row.associateWith}
-                  </CustomTableCell>
-                </TableRow>
-              ))
+                    <TableCell
+                      padding="checkbox"
+                      onClick={(e) => e.stopPropagation()}
+                      sx={{ paddingY: 0 }}
+                    >
+                      <Checkbox
+                        checked={selectedRowIndex === index && openClearModal}
+                        onChange={() => handleCheckboxChange(index, row)}
+                        sx={{
+                          color:
+                            selectedRowIndex === index ? "#fff" : "inherit",
+                          transform: "scale(0.9)", // Scale down the checkbox size
+                          "& .MuiSvgIcon-root": {
+                            fontSize: "1.2rem", // Adjust the icon size inside the checkbox
+                          },
+                        }}
+                      />
+                    </TableCell>
+                    <CustomTableCell
+                      selectedRowIndex={selectedRowIndex}
+                      index={index}
+                      row={row}
+                      highlightedRow={highlightedRow}
+                    >
+                      {row.title}
+                    </CustomTableCell>
+                    <CustomTableCell
+                      selectedRowIndex={selectedRowIndex}
+                      index={index}
+                      row={row}
+                      highlightedRow={highlightedRow}
+                    >
+                      {row.type}
+                    </CustomTableCell>
+                    {/* {console.log({redwan: row.date})} */}
+                    <CustomTableCell
+                      selectedRowIndex={selectedRowIndex}
+                      index={index}
+                      row={row}
+                      highlightedRow={highlightedRow}
+                    >
+                      
+                      {row.date}
+                    </CustomTableCell>
+                    <CustomTableCell
+                      selectedRowIndex={selectedRowIndex}
+                      index={index}
+                      row={row}
+                      highlightedRow={highlightedRow}
+                    >
+                      {row.time}
+                    </CustomTableCell>
+                    <CustomTableCell
+                      selectedRowIndex={selectedRowIndex}
+                      index={index}
+                      row={row}
+                      highlightedRow={highlightedRow}
+                    >
+                      {row.priority}
+                    </CustomTableCell>
+                    <CustomTableCell
+                      selectedRowIndex={selectedRowIndex}
+                      index={index}
+                      row={row}
+                      highlightedRow={highlightedRow}
+                    >
+                      {row.scheduledFor}
+                    </CustomTableCell>
+                    <TableCell sx={{ fontSize: "9pt", py: 0 }}>
+                      {row.participants.length > 0
+                        ? row.participants.map((participant, i) => (
+                            <React.Fragment key={i}>
+                              <a
+                                href={`https://crm.zoho.com.au/crm/org7004396182/tab/Contacts/${participant.participant}/canvas/76775000000287551`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{
+                                  color:
+                                    selectedRowIndex === row.id
+                                      ? "#fff"
+                                      : "#0072DC",
+                                  textDecoration: "underline",
+                                  fontSize: "9pt",
+                                }}
+                              >
+                                {participant.name || participant.Full_Name}
+                              </a>
+                              {i < row.participants.length - 1 && ", "}
+                            </React.Fragment>
+                          ))
+                        : "No Participants"}
+                    </TableCell>
+                    <CustomTableCell
+                      selectedRowIndex={selectedRowIndex}
+                      index={index}
+                      row={row}
+                      highlightedRow={highlightedRow}
+                    >
+                      {row.regarding}
+                    </CustomTableCell>
+                    <CustomTableCell
+                      selectedRowIndex={selectedRowIndex}
+                      index={index}
+                      row={row}
+                      highlightedRow={highlightedRow}
+                    >
+                      {row.duration}
+                    </CustomTableCell>
+                    <CustomTableCell
+                      selectedRowIndex={selectedRowIndex}
+                      index={index}
+                      row={row}
+                      highlightedRow={highlightedRow}
+                    >
+                      {row.associateWith}
+                    </CustomTableCell>
+                  </TableRow>
+                ))
             )}
           </TableBody>
         </Table>
