@@ -78,14 +78,19 @@ const headCells = [
 
 const noSort = ["duration", "time"];
 
+const convertDate = (date)=>{
+  const [day, month, year] = date.split("/");
+  return `${year}-${month}-${day}`;
+}
+
 function descendingComparator(a, b, orderBy) {
   // console.log(orderBy, b, a);
   if (noSort.includes(orderBy)) {
     return;
   }
   if (orderBy === "date") {
-    const newB = new Date(b[orderBy]);
-    const newA = new Date(a[orderBy]);
+    const newB = new Date(convertDate(b[orderBy]));
+    const newA = new Date(convertDate(a[orderBy]));
     if (newB < newA) {
       return -1;
     }
