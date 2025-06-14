@@ -161,11 +161,16 @@ function transformFormSubmission(data) {
     let modifiedReminderDate = null;
 
     if (data.Reminder_Text === "At time of meeting") {
-      modifiedReminderDate = startTime.tz("Australia/Adelaide")
+      modifiedReminderDate = startTime
+        .tz("Australia/Adelaide")
         .format("YYYY-MM-DDTHH:mm:ssZ");
     } else {
-      const reminderTime = startTime.subtract(parseInt(data?.Reminder_Text.split(" ")[0]), 'minute');
-      modifiedReminderDate = reminderTime.tz("Australia/Adelaide")
+      const reminderTime = startTime.subtract(
+        parseInt(data?.Reminder_Text.split(" ")[0]),
+        "minute"
+      );
+      modifiedReminderDate = reminderTime
+        .tz("Australia/Adelaide")
         .format("YYYY-MM-DDTHH:mm:ssZ");
       transformedData.Remind_At = modifiedReminderDate;
       // transformedData.Participant_Reminder = modifiedReminderDate;
@@ -174,17 +179,22 @@ function transformFormSubmission(data) {
     transformedData.Send_Reminders = true;
   }
 
-  if(data.Send_Invites){
+  if (data.Send_Invites) {
     const startTime = dayjs(data.start);
 
     let modifiedReminderDate = null;
 
     if (data.Reminder_Text === "At time of meeting") {
-      modifiedReminderDate = startTime.tz("Australia/Adelaide")
+      modifiedReminderDate = startTime
+        .tz("Australia/Adelaide")
         .format("YYYY-MM-DDTHH:mm:ssZ");
     } else {
-      const reminderTime = startTime.subtract(parseInt(data?.Reminder_Text.split(" ")[0]), 'minute');
-      modifiedReminderDate = reminderTime.tz("Australia/Adelaide")
+      const reminderTime = startTime.subtract(
+        parseInt(data?.Reminder_Text.split(" ")[0]),
+        "minute"
+      );
+      modifiedReminderDate = reminderTime
+        .tz("Australia/Adelaide")
         .format("YYYY-MM-DDTHH:mm:ssZ");
       transformedData.Remind_At = modifiedReminderDate;
       transformedData.User_Reminder = modifiedReminderDate;
@@ -296,7 +306,7 @@ const EditActivityModal = ({
   const handleSubmit = async () => {
     const transformedData = transformFormSubmission(formData);
 
-    const timeFormatted = dayjs(formData.start).format('hh:mm A');
+    const timeFormatted = dayjs(formData.start).format("hh:mm A");
     formData.time = timeFormatted;
     formData.Participants = formData.scheduledWith;
     formData.Owner = formData.scheduleFor;
@@ -394,10 +404,26 @@ const EditActivityModal = ({
           onChange={handleChange}
           textColor="inherit"
           aria-label="simple tabs example"
+          TabIndicatorProps={{ style: { display: "none" } }} // hide default underline
         >
           <Tab label="General" />
           <Tab label="Details" />
-          <Tab label="Reccurence" />
+          <Tab
+            label="Recurrence"
+            sx={
+              selectedRowData?.Recurring_Activity && value !== 2
+                ? {
+                    backgroundColor: "#1976d2", // MUI blue
+                    color: "#fff",
+                    borderRadius: 1,
+                    fontWeight: "bold",
+                    "&:hover": {
+                      backgroundColor: "#1565c0",
+                    },
+                  }
+                : {}
+            }
+          />
         </Tabs>
       </Box>
       {value === 0 && (
@@ -478,6 +504,7 @@ const EditActivityModal = ({
           <ThirdComponent
             formData={formData}
             handleInputChange={handleInputChange}
+            selectedRowData={selectedRowData}
           />
           <Box display="flex" justifyContent="space-between" mt={2}>
             <Button size="small" onClick={handleBack}>

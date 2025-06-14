@@ -569,7 +569,7 @@ export default function ScheduleTable({
     });
   };
 
-  // console.log({ events, filteredRows });
+  console.log({ events, filteredRows });
 
   return (
     <>

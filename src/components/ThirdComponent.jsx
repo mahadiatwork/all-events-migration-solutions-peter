@@ -19,7 +19,7 @@ import timezone from "dayjs/plugin/timezone";
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
-const ThirdComponent = ({ formData, handleInputChange }) => {
+const ThirdComponent = ({ formData, handleInputChange,selectedRowData }) => {
   const [openStartDatepicker, setOpenStartDatepicker] = useState(false);
   const [openEndDatepicker, setOpenEndDatepicker] = useState(false);
 
@@ -50,6 +50,8 @@ const ThirdComponent = ({ formData, handleInputChange }) => {
         ? dayjs(dateValue).format("DD/MM/YYYY hh:mm A")
         : "";
 
+
+        console.log("mahadi occurance", selectedRowData)
     return (
       <CustomTextField
         fullWidth
