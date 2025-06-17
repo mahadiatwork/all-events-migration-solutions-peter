@@ -19,29 +19,62 @@ import timezone from "dayjs/plugin/timezone";
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
-const ThirdComponent = ({ formData, handleInputChange }) => {
+const ThirdComponent = ({ formData, handleInputChange, selectedRowData }) => {
   const [openStartDatepicker, setOpenStartDatepicker] = useState(false);
   const [openEndDatepicker, setOpenEndDatepicker] = useState(false);
 
   useEffect(() => {
-    if (!formData.startTime) {
-      const currentTime = dayjs().toISOString();
-      handleInputChange("startTime", currentTime);
-      handleInputChange(
-        "endTime",
-        dayjs(currentTime).add(1, "year").toISOString()
-      );
-    }
+    const rrule = selectedRowData?.Recurring_Activity?.RRULE;
 
-    if (!formData.occurrence) {
-      handleInputChange("occurrence", "once"); // Set default occurrence to 'once'
+    if (rrule) {
+      const rruleParts = rrule.split(";");
+      const rruleMap = {};
+      rruleParts.forEach((part) => {
+        const [key, value] = part.split("=");
+        rruleMap[key] = value;
+      });
+
+      const freq = rruleMap["FREQ"]?.toLowerCase();
+      const dtStartDate = rruleMap["DTSTART"];
+      const untilDate = rruleMap["UNTIL"];
+      const startTimeOnly = selectedRowData?.Start_DateTime
+        ? dayjs(selectedRowData.Start_DateTime).format("HH:mm:ss")
+        : "09:00:00";
+      const endTimeOnly = selectedRowData?.End_DateTime
+        ? dayjs(selectedRowData.End_DateTime).format("HH:mm:ss")
+        : "17:00:00";
+
+      if (freq) handleInputChange("occurrence", freq);
+
+      if (dtStartDate) {
+        const fullStart = dayjs(
+          `${dtStartDate}T${startTimeOnly}`
+        ).toISOString();
+        handleInputChange("startTime", fullStart);
+      }
+
+      if (untilDate) {
+        const fullEnd = dayjs(`${untilDate}T${endTimeOnly}`).toISOString();
+        handleInputChange("endTime", fullEnd);
+      }
+
+      handleInputChange("noEndDate", false); // Ensure checkbox logic is skipped
+    } else {
+      // Fallback when Recurring_Activity is missing
+      if (!formData.startTime) {
+        const currentTime = dayjs().toISOString();
+        handleInputChange("startTime", currentTime);
+        handleInputChange(
+          "endTime",
+          dayjs(currentTime).add(1, "hour").toISOString()
+        );
+      }
+
+      if (!formData.occurrence) {
+        handleInputChange("occurrence", "once");
+      }
     }
-  }, [
-    formData.startTime,
-    formData.endTime,
-    formData.occurrence,
-    handleInputChange,
-  ]);
+  }, []);
 
   const CustomInputComponent = ({ field }) => {
     const dateValue = formData?.[field];
@@ -65,6 +98,8 @@ const ThirdComponent = ({ formData, handleInputChange }) => {
       />
     );
   };
+
+  const isRecurring = !!selectedRowData?.Recurring_Activity?.RRULE;
 
   return (
     <Box>
@@ -125,6 +160,7 @@ const ThirdComponent = ({ formData, handleInputChange }) => {
               calendarType="month"
               display="center"
               calendarScroll={"vertical"}
+              disabled={isRecurring}
               inputComponent={() => (
                 <CustomInputComponent
                   field="startTime"
@@ -155,7 +191,7 @@ const ThirdComponent = ({ formData, handleInputChange }) => {
               controls={["calendar", "time"]}
               calendarType="month"
               display="center"
-              disabled={formData.noEndDate}
+              disabled={isRecurring}
               calendarScroll={"vertical"}
               inputComponent={() => (
                 <CustomInputComponent
@@ -174,29 +210,6 @@ const ThirdComponent = ({ formData, handleInputChange }) => {
               isOpen={openEndDatepicker}
             />
           </Box>
-          <FormControlLabel
-            control={
-              <Checkbox
-                size="small"
-                checked={formData.noEndDate}
-                onChange={(e) => {
-                  const isChecked = e.target.checked;
-                  if (isChecked) {
-                    handleInputChange("endTime", ""); // Clear endTime if noEndDate is selected
-                    handleInputChange("noEndDate", true);
-                  } else if (formData.startTime) {
-                    const oneHourFromStart = dayjs(formData.startTime)
-                      .add(1, "hour")
-                      .toISOString();
-                    handleInputChange("endTime", oneHourFromStart); // Recalculate endTime
-                    handleInputChange("noEndDate", false);
-                  }
-                }}
-              />
-            }
-            label="No end date"
-            sx={{ "& .MuiTypography-root": { fontSize: "9pt" } }}
-          />
         </Grid>
       </Grid>
     </Box>

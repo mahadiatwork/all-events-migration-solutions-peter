@@ -155,10 +155,9 @@ function transformFormSubmission(data) {
     // transformedData["$send_notification"] = true;
   }
 
-
-  if(data?.Send_Invites === true) {
+  if (data?.Send_Invites === true) {
     transformedData["$send_notification"] = true;
-  }else {
+  } else {
     transformedData["$send_notification"] = false;
   }
   // Explicitly remove the scheduleWith, scheduleFor, and description keys
@@ -201,7 +200,7 @@ const EditActivityModal = ({
   users,
   setEvents,
   events,
-  currentContact
+  currentContact,
 }) => {
   const theme = useTheme();
   const [value, setValue] = useState(0);
@@ -228,7 +227,7 @@ const EditActivityModal = ({
     Reminder_Text: selectedRowData?.Reminder_Text || null,
     reminder: selectedRowData.$send_notification || false,
     Send_Reminders: selectedRowData.Send_Reminders || false,
-    Send_Invites: selectedRowData.Send_Invites || false
+    Send_Invites: selectedRowData.Send_Invites || false,
   });
 
   const [isSnackbarOpen, setSnackbarOpen] = useState(false);
@@ -265,96 +264,106 @@ const EditActivityModal = ({
     }));
   };
 
-const logResponse = async ({ name, payload, response, result, trigger, meetingType, Widget_Source }) => {
+  const logResponse = async ({
+    name,
+    payload,
+    response,
+    result,
+    trigger,
+    meetingType,
+    Widget_Source,
+  }) => {
+    const timeOccurred = dayjs()
+      .tz("Australia/Adelaide")
+      .format("YYYY-MM-DDTHH:mm:ssZ");
 
-const timeOccurred = dayjs().tz("Australia/Adelaide").format("YYYY-MM-DDTHH:mm:ssZ");
-
-
-  await ZOHO.CRM.API.insertRecord({
-    Entity: "Log_Module",
-    APIData: {
-      Name: name,
-      Payload: JSON.stringify(payload),
-      Response: JSON.stringify(response),
-      Result: result,
-      Trigger: trigger,
-      Time_Occured: timeOccurred,
-      Meeting_Type: meetingType,
-      Widget_Source: Widget_Source
-    },
-  });
-};
-
-const handleSubmit = async () => {
-  const transformedData = transformFormSubmission(formData);
-  const dateFormatted = dayjs(formData.start).format('DD/MM/YYYY');
-  const timeFormatted = dayjs(formData.start).format('hh:mm A');
-  formData.time = timeFormatted;
-  formData.Participants = formData.scheduledWith;
-  formData.Owner = formData.scheduleFor;
-  formData.date = dateFormatted;
-  formData.Start_DateTime = formData.start;
-  
-  try {
-    const data = await ZOHO.CRM.API.updateRecord({
-      Entity: "Events",
-      APIData: transformedData,
-      Trigger: ["workflow"],
+    await ZOHO.CRM.API.insertRecord({
+      Entity: "Log_Module",
+      APIData: {
+        Name: name,
+        Payload: JSON.stringify(payload),
+        Response: JSON.stringify(response),
+        Result: result,
+        Trigger: trigger,
+        Time_Occured: timeOccurred,
+        Meeting_Type: meetingType,
+        Widget_Source: Widget_Source,
+      },
     });
+  };
 
-    const wasSuccessful = data.data && data.data.length > 0 && data.data[0].code === "SUCCESS";
+  const handleSubmit = async () => {
+    const transformedData = transformFormSubmission(formData);
+    const dateFormatted = dayjs(formData.start).format("DD/MM/YYYY");
+    const timeFormatted = dayjs(formData.start).format("hh:mm A");
+    formData.time = timeFormatted;
+    formData.Participants = formData.scheduledWith;
+    formData.Owner = formData.scheduleFor;
+    formData.date = dateFormatted;
+    formData.Start_DateTime = formData.start;
 
-    await logResponse({
-      name: `Event Update for ${currentContact?.Full_Name || "Unknown"}`,
-      payload: transformedData,
-      response: data,
-      result: wasSuccessful ? "Success" : "Error",
-      trigger: "Record Update",
-      meetingType: formData.Meeting_Type || "",
-      Widget_Source: "Contact Activities",
-      Time_Occured: formatDateWithOffset(new Date().toISOString())
-    });
+    try {
+      const data = await ZOHO.CRM.API.updateRecord({
+        Entity: "Events",
+        APIData: transformedData,
+        Trigger: ["workflow"],
+      });
 
-    if (wasSuccessful) {
-      setSnackbarSeverity("success");
-      setSnackbarMessage("Event updated successfully.");
+      const wasSuccessful =
+        data.data && data.data.length > 0 && data.data[0].code === "SUCCESS";
+
+      await logResponse({
+        name: `Event Update for ${currentContact?.Full_Name || "Unknown"}`,
+        payload: transformedData,
+        response: data,
+        result: wasSuccessful ? "Success" : "Error",
+        trigger: "Record Update",
+        meetingType: formData.Meeting_Type || "",
+        Widget_Source: "Contact Activities",
+        Time_Occured: formatDateWithOffset(new Date().toISOString()),
+      });
+
+      if (wasSuccessful) {
+        setSnackbarSeverity("success");
+        setSnackbarMessage("Event updated successfully.");
+        setSnackbarOpen(true);
+
+        // Ensure updateEvent always receives the latest associateWith value
+        setEvents((prevEvents) =>
+          prevEvents.map((event) =>
+            event.id === formData.id ? { ...event, ...formData } : event
+          )
+        );
+
+        setTimeout(() => {
+          handleClose();
+        }, 1000);
+      } else {
+        throw new Error("Failed to update event");
+      }
+    } catch (error) {
+      await logResponse({
+        name: `Event Update for ${currentContact?.Full_Name || "Unknown"}`,
+        payload: transformedData,
+        response: { error: error },
+        result: "Error",
+        trigger: "Record Update",
+        meetingType: formData.Meeting_Type || "",
+        Widget_Source: "Contact Activities",
+        Time_Occured: formatDateWithOffset(new Date().toISOString()),
+      });
+      console.log(error);
+      setSnackbarSeverity("error");
+      setSnackbarMessage("Error updating event.");
       setSnackbarOpen(true);
-
-      // Ensure updateEvent always receives the latest associateWith value
-      setEvents((prevEvents) =>
-        prevEvents.map((event) =>
-          event.id === formData.id ? { ...event, ...formData } : event
-        )
-      );
-
-      setTimeout(() => {
-        handleClose();
-      }, 1000);
-    } else {
-      throw new Error("Failed to update event");
     }
-  } catch (error) {
-    await logResponse({
-      name: `Event Update for ${currentContact?.Full_Name || "Unknown"}`,
-      payload: transformedData,
-      response: { error: error },
-      result: "Error",
-      trigger: "Record Update",
-      meetingType: formData.Meeting_Type || "",
-      Widget_Source: "Contact Activities",
-      Time_Occured: formatDateWithOffset(new Date().toISOString())
-    });
-    console.log(error);
-    setSnackbarSeverity("error");
-    setSnackbarMessage("Error updating event.");
-    setSnackbarOpen(true);
-  }
-};
+  };
 
   const handleSnackbarClose = () => {
     setSnackbarOpen(false);
   };
 
+  console.log("mahadi", selectedRowData);
 
   return (
     <Box
@@ -403,7 +412,22 @@ const handleSubmit = async () => {
         >
           <Tab label="General" />
           <Tab label="Details" />
-          <Tab label="Reccurence" />
+          <Tab
+            label="Recurrence"
+            sx={
+              selectedRowData?.Recurring_Activity && value !== 2
+                ? {
+                    backgroundColor: "#1976d2", // MUI blue
+                    color: "#fff",
+                    borderRadius: 1,
+                    fontWeight: "bold",
+                    "&:hover": {
+                      backgroundColor: "#1565c0",
+                    },
+                  }
+                : {}
+            }
+          />
         </Tabs>
       </Box>
       {value === 0 && (
@@ -484,6 +508,7 @@ const handleSubmit = async () => {
           <ThirdComponent
             formData={formData}
             handleInputChange={handleInputChange}
+            selectedRowData={selectedRowData}
           />
           <Box display="flex" justifyContent="space-between" mt={2}>
             <Button size="small" onClick={handleBack}>
