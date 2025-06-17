@@ -23,7 +23,43 @@ const ThirdComponent = ({ formData, handleInputChange,selectedRowData }) => {
   const [openStartDatepicker, setOpenStartDatepicker] = useState(false);
   const [openEndDatepicker, setOpenEndDatepicker] = useState(false);
 
-  useEffect(() => {
+useEffect(() => {
+  const rruleString = selectedRowData?.Recurring_Activity?.RRULE;
+
+  if (rruleString) {
+    const rruleParts = rruleString.split(";");
+    const rruleMap = {};
+
+    rruleParts.forEach((part) => {
+      const [key, value] = part.split("=");
+      rruleMap[key] = value;
+    });
+
+    const freq = rruleMap["FREQ"]?.toLowerCase();
+    if (freq) {
+      handleInputChange("occurrence", freq);
+    }
+
+    const dtStartDate = rruleMap["DTSTART"]; // e.g. "2025-06-13"
+    const dtEndDate = rruleMap["UNTIL"];     // e.g. "2025-08-28"
+    const startTimeRaw = selectedRowData?.Start_DateTime;
+    const endTimeRaw = selectedRowData?.End_DateTime;
+
+    if (dtStartDate && startTimeRaw) {
+      const startTime = dayjs(startTimeRaw).format("HH:mm:ss");
+      const fullStart = dayjs(`${dtStartDate}T${startTime}`).toISOString();
+      handleInputChange("startTime", fullStart);
+    }
+
+    if (dtEndDate && endTimeRaw) {
+      const endTime = dayjs(endTimeRaw).format("HH:mm:ss");
+      const fullEnd = dayjs(`${dtEndDate}T${endTime}`).toISOString();
+      handleInputChange("endTime", fullEnd);
+    }
+
+    handleInputChange("noEndDate", false); // force off
+  } else {
+    // fallback defaults
     if (!formData.startTime) {
       const currentTime = dayjs().toISOString();
       handleInputChange("startTime", currentTime);
@@ -32,16 +68,14 @@ const ThirdComponent = ({ formData, handleInputChange,selectedRowData }) => {
         dayjs(currentTime).add(1, "year").toISOString()
       );
     }
-
     if (!formData.occurrence) {
-      handleInputChange("occurrence", "once"); // Set default occurrence to 'once'
+      handleInputChange("occurrence", "once");
     }
-  }, [
-    formData.startTime,
-    formData.endTime,
-    formData.occurrence,
-    handleInputChange,
-  ]);
+  }
+}, [selectedRowData]);
+
+
+
 
   const CustomInputComponent = ({ field }) => {
     const dateValue = formData?.[field];
@@ -176,7 +210,7 @@ const ThirdComponent = ({ formData, handleInputChange,selectedRowData }) => {
               isOpen={openEndDatepicker}
             />
           </Box>
-          <FormControlLabel
+          {/* <FormControlLabel
             control={
               <Checkbox
                 size="small"
@@ -198,7 +232,7 @@ const ThirdComponent = ({ formData, handleInputChange,selectedRowData }) => {
             }
             label="No end date"
             sx={{ "& .MuiTypography-root": { fontSize: "9pt" } }}
-          />
+          /> */}
         </Grid>
       </Grid>
     </Box>
