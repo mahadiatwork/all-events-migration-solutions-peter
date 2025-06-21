@@ -37,30 +37,37 @@ const ThirdComponent = ({ formData, handleInputChange, selectedRowData }) => {
       const freq = rruleMap["FREQ"]?.toLowerCase();
       const dtStartDate = rruleMap["DTSTART"];
       const untilDate = rruleMap["UNTIL"];
-      const startTimeOnly = selectedRowData?.Start_DateTime
-        ? dayjs(selectedRowData.Start_DateTime).format("HH:mm:ss")
-        : "09:00:00";
-      const endTimeOnly = selectedRowData?.End_DateTime
-        ? dayjs(selectedRowData.End_DateTime).format("HH:mm:ss")
-        : "17:00:00";
+
+      const startTime = selectedRowData?.Start_DateTime
+        ? dayjs(selectedRowData.Start_DateTime)
+        : dayjs().hour(9).minute(0).second(0);
+
+      const endTime = selectedRowData?.End_DateTime
+        ? dayjs(selectedRowData.End_DateTime)
+        : dayjs().hour(17).minute(0).second(0);
 
       if (freq) handleInputChange("occurrence", freq);
 
       if (dtStartDate) {
-        const fullStart = dayjs(
-          `${dtStartDate}T${startTimeOnly}`
-        ).toISOString();
-        handleInputChange("startTime", fullStart);
+        const datePart = dayjs(dtStartDate);
+        const mergedStart = datePart
+          .hour(startTime.hour())
+          .minute(startTime.minute())
+          .second(0);
+        handleInputChange("startTime", mergedStart.toISOString());
       }
 
       if (untilDate) {
-        const fullEnd = dayjs(`${untilDate}T${endTimeOnly}`).toISOString();
-        handleInputChange("endTime", fullEnd);
+        const datePart = dayjs(untilDate);
+        const mergedEnd = datePart
+          .hour(endTime.hour())
+          .minute(endTime.minute())
+          .second(0);
+        handleInputChange("endTime", mergedEnd.toISOString());
       }
 
       handleInputChange("noEndDate", false); // Ensure checkbox logic is skipped
     } else {
-      // Fallback when Recurring_Activity is missing
       if (!formData.startTime) {
         const currentTime = dayjs().toISOString();
         handleInputChange("startTime", currentTime);
@@ -105,7 +112,7 @@ const ThirdComponent = ({ formData, handleInputChange, selectedRowData }) => {
     <Box>
       <FormControl>
         <FormLabel id="demo-radio-buttons-group-label" sx={{ fontSize: "9pt" }}>
-          Gender
+          Frequency
         </FormLabel>
         <RadioGroup
           aria-labelledby="demo-radio-buttons-group-label"
@@ -113,36 +120,15 @@ const ThirdComponent = ({ formData, handleInputChange, selectedRowData }) => {
           value={formData.occurrence || "once"}
           onChange={(e) => handleInputChange("occurrence", e.target.value)}
         >
-          <FormControlLabel
-            value="once"
-            control={<Radio size="small" />}
-            label="Once (This activity occurs only once)"
-            sx={{ "& .MuiTypography-root": { fontSize: "9pt" } }}
-          />
-          <FormControlLabel
-            value="daily"
-            control={<Radio size="small" />}
-            label="Daily (This activity occurs daily)"
-            sx={{ "& .MuiTypography-root": { fontSize: "9pt" } }}
-          />
-          <FormControlLabel
-            value="weekly"
-            control={<Radio size="small" />}
-            label="Weekly (This activity occurs weekly)"
-            sx={{ "& .MuiTypography-root": { fontSize: "9pt" } }}
-          />
-          <FormControlLabel
-            value="monthly"
-            control={<Radio size="small" />}
-            label="Monthly (This activity occurs monthly)"
-            sx={{ "& .MuiTypography-root": { fontSize: "9pt" } }}
-          />
-          <FormControlLabel
-            value="yearly"
-            control={<Radio size="small" />}
-            label="Yearly (This activity occurs yearly)"
-            sx={{ "& .MuiTypography-root": { fontSize: "9pt" } }}
-          />
+          {["once", "daily", "weekly", "monthly", "yearly"].map((option) => (
+            <FormControlLabel
+              key={option}
+              value={option}
+              control={<Radio size="small" />}
+              label={`${option.charAt(0).toUpperCase() + option.slice(1)} (This activity occurs ${option})`}
+              sx={{ "& .MuiTypography-root": { fontSize: "9pt" } }}
+            />
+          ))}
         </RadioGroup>
       </FormControl>
 
@@ -162,16 +148,7 @@ const ThirdComponent = ({ formData, handleInputChange, selectedRowData }) => {
               calendarScroll={"vertical"}
               disabled={isRecurring}
               inputComponent={() => (
-                <CustomInputComponent
-                  field="startTime"
-                  sx={{
-                    "& .MuiInputBase-input": {
-                      fontSize: "9pt",
-                      padding: "4px",
-                    },
-                    "& .MuiOutlinedInput-root": { height: "30px" }, // Smaller height
-                  }}
-                />
+                <CustomInputComponent field="startTime" />
               )}
               onClose={() => setOpenStartDatepicker(false)}
               onChange={(e) => handleInputChange("startTime", e.value)}
@@ -194,16 +171,7 @@ const ThirdComponent = ({ formData, handleInputChange, selectedRowData }) => {
               disabled={isRecurring}
               calendarScroll={"vertical"}
               inputComponent={() => (
-                <CustomInputComponent
-                  field="endTime"
-                  sx={{
-                    "& .MuiInputBase-input": {
-                      fontSize: "9pt",
-                      padding: "4px",
-                    },
-                    "& .MuiOutlinedInput-root": { height: "30px" }, // Smaller height
-                  }}
-                />
+                <CustomInputComponent field="endTime" />
               )}
               onClose={() => setOpenEndDatepicker(false)}
               onChange={(e) => handleInputChange("endTime", e.value)}
