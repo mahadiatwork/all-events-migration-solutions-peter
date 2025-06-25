@@ -19,63 +19,76 @@ import timezone from "dayjs/plugin/timezone";
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
-const ThirdComponent = ({ formData, handleInputChange,selectedRowData }) => {
+const ThirdComponent = ({ formData, handleInputChange, selectedRowData }) => {
   const [openStartDatepicker, setOpenStartDatepicker] = useState(false);
   const [openEndDatepicker, setOpenEndDatepicker] = useState(false);
 
-useEffect(() => {
-  const rruleString = selectedRowData?.Recurring_Activity?.RRULE;
+  useEffect(() => {
 
-  if (rruleString) {
-    const rruleParts = rruleString.split(";");
-    const rruleMap = {};
+    console.log({formData})
+    const rrule = selectedRowData?.Recurring_Activity?.RRULE;
 
-    rruleParts.forEach((part) => {
-      const [key, value] = part.split("=");
-      rruleMap[key] = value;
-    });
+    if (rrule) {
+      const rruleParts = rrule.split(";");
+      const rruleMap = {};
+      rruleParts.forEach((part) => {
+        const [key, value] = part.split("=");
+        rruleMap[key] = value;
+      });
 
-    const freq = rruleMap["FREQ"]?.toLowerCase();
-    if (freq) {
-      handleInputChange("occurrence", freq);
+      const freq = rruleMap["FREQ"]?.toLowerCase();
+      const dtStartDate = rruleMap["DTSTART"];
+      const untilDate = rruleMap["UNTIL"];
+
+      const startTime = selectedRowData?.Start_DateTime
+        ? dayjs(selectedRowData.Start_DateTime)
+        : dayjs().hour(9).minute(0).second(0);
+
+      const endTime = selectedRowData?.End_DateTime
+        ? dayjs(selectedRowData.End_DateTime)
+        : dayjs().hour(17).minute(0).second(0);
+
+      if (freq) handleInputChange("occurrence", freq);
+
+      if (dtStartDate) {
+        const datePart = dayjs(dtStartDate);
+        const mergedStart = datePart
+          .hour(startTime.hour())
+          .minute(startTime.minute())
+          .second(0);
+        handleInputChange("startTime", mergedStart.toISOString());
+      }
+
+      if (untilDate) {
+        const datePart = dayjs(untilDate);
+        const mergedEnd = datePart
+          .hour(endTime.hour())
+          .minute(endTime.minute())
+          .second(0);
+        handleInputChange("endTime", mergedEnd.toISOString());
+      }
+
+      handleInputChange("noEndDate", false); // Ensure checkbox logic is skipped
+    } else {
+      const timeStart = dayjs(formData.start);
+      const timeEnd = dayjs(formData.end);
+      handleInputChange("startTime", timeStart);
+      handleInputChange("endTime", timeEnd);
+
+      if (!formData.startTime) {
+        const currentTime = dayjs().toISOString();
+        handleInputChange("startTime", currentTime);
+        handleInputChange(
+          "endTime",
+          dayjs(currentTime).add(1, "hour").toISOString()
+        );
+      }
+
+      if (!formData.occurrence) {
+        handleInputChange("occurrence", "once");
+      }
     }
-
-    const dtStartDate = rruleMap["DTSTART"]; // e.g. "2025-06-13"
-    const dtEndDate = rruleMap["UNTIL"];     // e.g. "2025-08-28"
-    const startTimeRaw = selectedRowData?.Start_DateTime;
-    const endTimeRaw = selectedRowData?.End_DateTime;
-
-    if (dtStartDate && startTimeRaw) {
-      const startTime = dayjs(startTimeRaw).format("HH:mm:ss");
-      const fullStart = dayjs(`${dtStartDate}T${startTime}`).toISOString();
-      handleInputChange("startTime", fullStart);
-    }
-
-    if (dtEndDate && endTimeRaw) {
-      const endTime = dayjs(endTimeRaw).format("HH:mm:ss");
-      const fullEnd = dayjs(`${dtEndDate}T${endTime}`).toISOString();
-      handleInputChange("endTime", fullEnd);
-    }
-
-    handleInputChange("noEndDate", false); // force off
-  } else {
-    // fallback defaults
-    if (!formData.startTime) {
-      const currentTime = dayjs().toISOString();
-      handleInputChange("startTime", currentTime);
-      handleInputChange(
-        "endTime",
-        dayjs(currentTime).add(1, "year").toISOString()
-      );
-    }
-    if (!formData.occurrence) {
-      handleInputChange("occurrence", "once");
-    }
-  }
-}, [selectedRowData]);
-
-
-
+  }, []);
 
   const CustomInputComponent = ({ field }) => {
     const dateValue = formData?.[field];
@@ -84,8 +97,6 @@ useEffect(() => {
         ? dayjs(dateValue).format("DD/MM/YYYY hh:mm A")
         : "";
 
-
-        console.log("mahadi occurance", selectedRowData)
     return (
       <CustomTextField
         fullWidth
@@ -102,11 +113,13 @@ useEffect(() => {
     );
   };
 
+  const isRecurring = !!selectedRowData?.Recurring_Activity?.RRULE;
+
   return (
     <Box>
       <FormControl>
         <FormLabel id="demo-radio-buttons-group-label" sx={{ fontSize: "9pt" }}>
-          Gender
+          Frequency
         </FormLabel>
         <RadioGroup
           aria-labelledby="demo-radio-buttons-group-label"
@@ -114,36 +127,15 @@ useEffect(() => {
           value={formData.occurrence || "once"}
           onChange={(e) => handleInputChange("occurrence", e.target.value)}
         >
-          <FormControlLabel
-            value="once"
-            control={<Radio size="small" />}
-            label="Once (This activity occurs only once)"
-            sx={{ "& .MuiTypography-root": { fontSize: "9pt" } }}
-          />
-          <FormControlLabel
-            value="daily"
-            control={<Radio size="small" />}
-            label="Daily (This activity occurs daily)"
-            sx={{ "& .MuiTypography-root": { fontSize: "9pt" } }}
-          />
-          <FormControlLabel
-            value="weekly"
-            control={<Radio size="small" />}
-            label="Weekly (This activity occurs weekly)"
-            sx={{ "& .MuiTypography-root": { fontSize: "9pt" } }}
-          />
-          <FormControlLabel
-            value="monthly"
-            control={<Radio size="small" />}
-            label="Monthly (This activity occurs monthly)"
-            sx={{ "& .MuiTypography-root": { fontSize: "9pt" } }}
-          />
-          <FormControlLabel
-            value="yearly"
-            control={<Radio size="small" />}
-            label="Yearly (This activity occurs yearly)"
-            sx={{ "& .MuiTypography-root": { fontSize: "9pt" } }}
-          />
+          {["once", "daily", "weekly", "monthly", "yearly"].map((option) => (
+            <FormControlLabel
+              key={option}
+              value={option}
+              control={<Radio size="small" />}
+              label={`${option.charAt(0).toUpperCase() + option.slice(1)} (This activity occurs ${option})`}
+              sx={{ "& .MuiTypography-root": { fontSize: "9pt" } }}
+            />
+          ))}
         </RadioGroup>
       </FormControl>
 
@@ -161,17 +153,9 @@ useEffect(() => {
               calendarType="month"
               display="center"
               calendarScroll={"vertical"}
+              disabled={isRecurring}
               inputComponent={() => (
-                <CustomInputComponent
-                  field="startTime"
-                  sx={{
-                    "& .MuiInputBase-input": {
-                      fontSize: "9pt",
-                      padding: "4px",
-                    },
-                    "& .MuiOutlinedInput-root": { height: "30px" }, // Smaller height
-                  }}
-                />
+                <CustomInputComponent field="startTime" />
               )}
               onClose={() => setOpenStartDatepicker(false)}
               onChange={(e) => handleInputChange("startTime", e.value)}
@@ -191,48 +175,27 @@ useEffect(() => {
               controls={["calendar", "time"]}
               calendarType="month"
               display="center"
-              disabled={formData.noEndDate}
+              disabled={isRecurring}
               calendarScroll={"vertical"}
               inputComponent={() => (
-                <CustomInputComponent
-                  field="endTime"
-                  sx={{
-                    "& .MuiInputBase-input": {
-                      fontSize: "9pt",
-                      padding: "4px",
-                    },
-                    "& .MuiOutlinedInput-root": { height: "30px" }, // Smaller height
-                  }}
-                />
+                <CustomInputComponent field="endTime" />
               )}
               onClose={() => setOpenEndDatepicker(false)}
-              onChange={(e) => handleInputChange("endTime", e.value)}
+              onChange={(e) => {
+                const selectedDate = dayjs(e.value); // Only take the date part
+                const currentTime = dayjs(formData?.endTime); // Only take the time part
+
+                // Merge: use the date from selectedDate, and time from currentTime
+                const mergedDateTime = selectedDate
+                  .hour(currentTime.hour())
+                  .minute(currentTime.minute())
+                  .second(currentTime.second());
+
+                handleInputChange("endTime", mergedDateTime);
+              }}
               isOpen={openEndDatepicker}
             />
           </Box>
-          {/* <FormControlLabel
-            control={
-              <Checkbox
-                size="small"
-                checked={formData.noEndDate}
-                onChange={(e) => {
-                  const isChecked = e.target.checked;
-                  if (isChecked) {
-                    handleInputChange("endTime", ""); // Clear endTime if noEndDate is selected
-                    handleInputChange("noEndDate", true);
-                  } else if (formData.startTime) {
-                    const oneHourFromStart = dayjs(formData.startTime)
-                      .add(1, "hour")
-                      .toISOString();
-                    handleInputChange("endTime", oneHourFromStart); // Recalculate endTime
-                    handleInputChange("noEndDate", false);
-                  }
-                }}
-              />
-            }
-            label="No end date"
-            sx={{ "& .MuiTypography-root": { fontSize: "9pt" } }}
-          /> */}
         </Grid>
       </Grid>
     </Box>
