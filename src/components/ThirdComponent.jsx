@@ -24,6 +24,8 @@ const ThirdComponent = ({ formData, handleInputChange, selectedRowData }) => {
   const [openEndDatepicker, setOpenEndDatepicker] = useState(false);
 
   useEffect(() => {
+
+    console.log({formData})
     const rrule = selectedRowData?.Recurring_Activity?.RRULE;
 
     if (rrule) {
@@ -68,6 +70,11 @@ const ThirdComponent = ({ formData, handleInputChange, selectedRowData }) => {
 
       handleInputChange("noEndDate", false); // Ensure checkbox logic is skipped
     } else {
+      const timeStart = dayjs(formData.start);
+      const timeEnd = dayjs(formData.end);
+      handleInputChange("startTime", timeStart);
+      handleInputChange("endTime", timeEnd);
+
       if (!formData.startTime) {
         const currentTime = dayjs().toISOString();
         handleInputChange("startTime", currentTime);
@@ -174,7 +181,18 @@ const ThirdComponent = ({ formData, handleInputChange, selectedRowData }) => {
                 <CustomInputComponent field="endTime" />
               )}
               onClose={() => setOpenEndDatepicker(false)}
-              onChange={(e) => handleInputChange("endTime", e.value)}
+              onChange={(e) => {
+                const selectedDate = dayjs(e.value); // Only take the date part
+                const currentTime = dayjs(formData?.endTime); // Only take the time part
+
+                // Merge: use the date from selectedDate, and time from currentTime
+                const mergedDateTime = selectedDate
+                  .hour(currentTime.hour())
+                  .minute(currentTime.minute())
+                  .second(currentTime.second());
+
+                handleInputChange("endTime", mergedDateTime);
+              }}
               isOpen={openEndDatepicker}
             />
           </Box>

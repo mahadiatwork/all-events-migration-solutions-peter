@@ -126,8 +126,6 @@ function transformFormSubmission(data, individualParticipant = null) {
     }));
   };
 
-  
-
   const participants = individualParticipant
     ? [
         {
@@ -161,10 +159,9 @@ function transformFormSubmission(data, individualParticipant = null) {
     Description: data.Description || "",
     Event_Priority: data.priority || "",
 
-    // Update Event_Title to include participant's name if creating separate events
     Event_Title: individualParticipant
       ? `${data.Event_Title} - ${individualParticipant?.Full_Name}`
-      : data.Event_Title, // If no individual participant, use the default title
+      : data.Event_Title,
 
     What_Id: data.What_Id,
     se_module: "Accounts",
@@ -173,18 +170,33 @@ function transformFormSubmission(data, individualParticipant = null) {
     Owner: {
       id: data?.scheduleFor?.id,
     },
-    // Recurring_Activity: {
-    //   RRULE: `FREQ=${data?.occurrence?.toUpperCase()};INTERVAL=1;UNTIL=${customEndTime}${
-    //     data.occurrence === "weekly"
-    //       ? `;BYDAY=${dayName.toUpperCase()}`
-    //       : data.occurrence === "monthly"
-    //       ? `;BYMONTHDAY=${dayOfMonth}`
-    //       : data.occurrence === "yearly"
-    //       ? `;BYMONTH=${monthNumber};BYMONTHDAY=${dayOfMonth}`
-    //       : ""
-    //   };DTSTART=${dayjs(data.startTime).format("YYYY-MM-DD")}`,
-    // },
   };
+
+  // ✅ Recurring_Activity logic from original version
+  const validOccurrences = ["daily", "weekly", "monthly", "yearly"];
+  if (
+    typeof data?.occurrence === "string" &&
+    validOccurrences.includes(data.occurrence.toLowerCase())
+  ) {
+    const freq = data.occurrence.toUpperCase();
+    const interval = 1;
+    const until = customEndTime;
+    const dtstart = dayjs(data?.startTime).format("YYYY-MM-DD");
+
+    let rrule = `FREQ=${freq};INTERVAL=${interval};UNTIL=${until}`;
+
+    if (freq === "WEEKLY") {
+      const byDay = dayjs(data?.startTime).format("dd").toUpperCase(); // e.g. "MO"
+      rrule += `;BYDAY=${byDay}`;
+    } else if (freq === "MONTHLY") {
+      rrule += `;BYMONTHDAY=${dayOfMonth}`;
+    } else if (freq === "YEARLY") {
+      rrule += `;BYMONTH=${parseInt(monthNumber, 10)};BYMONTHDAY=${dayOfMonth}`;
+    }
+
+    rrule += `;DTSTART=${dtstart}`;
+    transformedData.Recurring_Activity = { RRULE: rrule };
+  }
 
   if (
     data?.Reminder_Text !== null &&
@@ -196,46 +208,53 @@ function transformFormSubmission(data, individualParticipant = null) {
       formatDateWithOffset(data.start)
     );
     transformedData["Remind_At"] = remindAt;
-    // transformedData["$send_notification"] = true;
-  } 
-  
+  }
+
   if (data.Send_Reminders) {
     const startTime = dayjs(data.start);
-
     let modifiedReminderDate = null;
 
     if (data.Reminder_Text === "At time of meeting") {
-      modifiedReminderDate = startTime.tz("Australia/Adelaide")
+      modifiedReminderDate = startTime
+        .tz("Australia/Adelaide")
         .format("YYYY-MM-DDTHH:mm:ssZ");
     } else {
-      const reminderTime = startTime.subtract(parseInt(data?.Reminder_Text.split(" ")[0]), 'minute');
-      modifiedReminderDate = reminderTime.tz("Australia/Adelaide")
+      const reminderTime = startTime.subtract(
+        parseInt(data?.Reminder_Text.split(" ")[0]),
+        "minute"
+      );
+      modifiedReminderDate = reminderTime
+        .tz("Australia/Adelaide")
         .format("YYYY-MM-DDTHH:mm:ssZ");
       transformedData.Remind_At = modifiedReminderDate;
-      // transformedData.Participant_Reminder = modifiedReminderDate;
       transformedData.User_Reminder = modifiedReminderDate;
     }
+
     transformedData.Send_Reminders = true;
   }
 
-  if(data.Send_Invites){
+  if (data.Send_Invites) {
     const startTime = dayjs(data.start);
-
     let modifiedReminderDate = null;
 
     if (data.Reminder_Text === "At time of meeting") {
-      modifiedReminderDate = startTime.tz("Australia/Adelaide")
+      modifiedReminderDate = startTime
+        .tz("Australia/Adelaide")
         .format("YYYY-MM-DDTHH:mm:ssZ");
     } else {
-      const reminderTime = startTime.subtract(parseInt(data?.Reminder_Text.split(" ")[0]), 'minute');
-      modifiedReminderDate = reminderTime.tz("Australia/Adelaide")
+      const reminderTime = startTime.subtract(
+        parseInt(data?.Reminder_Text.split(" ")[0]),
+        "minute"
+      );
+      modifiedReminderDate = reminderTime
+        .tz("Australia/Adelaide")
         .format("YYYY-MM-DDTHH:mm:ssZ");
       transformedData.Remind_At = modifiedReminderDate;
       transformedData.User_Reminder = modifiedReminderDate;
     }
+
     transformedData.send_notification = true;
   }
-
 
   if (
     transformedData.Remind_At == null ||
@@ -272,6 +291,7 @@ function transformFormSubmission(data, individualParticipant = null) {
 
   return transformedData;
 }
+
 
 function TabPanel(props) {
   const { children, value, index, ...other } = props;
