@@ -24,8 +24,7 @@ const ThirdComponent = ({ formData, handleInputChange, selectedRowData }) => {
   const [openEndDatepicker, setOpenEndDatepicker] = useState(false);
 
   useEffect(() => {
-
-    console.log({formData})
+    console.log({ formData });
     const rrule = selectedRowData?.Recurring_Activity?.RRULE;
 
     if (rrule) {
@@ -132,7 +131,9 @@ const ThirdComponent = ({ formData, handleInputChange, selectedRowData }) => {
               key={option}
               value={option}
               control={<Radio size="small" />}
-              label={`${option.charAt(0).toUpperCase() + option.slice(1)} (This activity occurs ${option})`}
+              label={`${
+                option.charAt(0).toUpperCase() + option.slice(1)
+              } (This activity occurs ${option})`}
               sx={{ "& .MuiTypography-root": { fontSize: "9pt" } }}
             />
           ))}
@@ -154,9 +155,7 @@ const ThirdComponent = ({ formData, handleInputChange, selectedRowData }) => {
               display="center"
               calendarScroll={"vertical"}
               disabled={isRecurring}
-              inputComponent={() => (
-                <CustomInputComponent field="startTime" />
-              )}
+              inputComponent={() => <CustomInputComponent field="startTime" />}
               onClose={() => setOpenStartDatepicker(false)}
               onChange={(e) => handleInputChange("startTime", e.value)}
               isOpen={openStartDatepicker}
@@ -177,9 +176,11 @@ const ThirdComponent = ({ formData, handleInputChange, selectedRowData }) => {
               display="center"
               disabled={isRecurring}
               calendarScroll={"vertical"}
-              inputComponent={() => (
-                <CustomInputComponent field="endTime" />
-              )}
+              min={dayjs(formData.startTime).format("YYYY-MM-DD")}
+              max={dayjs(formData.startTime)
+                .add(1, "year")
+                .format("YYYY-MM-DD")}
+              inputComponent={() => <CustomInputComponent field="endTime" />}
               onClose={() => setOpenEndDatepicker(false)}
               onChange={(e) => {
                 const selectedDate = dayjs(e.value); // Only take the date part
