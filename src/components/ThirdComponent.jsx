@@ -24,7 +24,6 @@ const ThirdComponent = ({ formData, handleInputChange, selectedRowData }) => {
   const [openEndDatepicker, setOpenEndDatepicker] = useState(false);
 
   useEffect(() => {
-    console.log({ formData });
     const rrule = selectedRowData?.Recurring_Activity?.RRULE;
 
     if (rrule) {
@@ -71,8 +70,10 @@ const ThirdComponent = ({ formData, handleInputChange, selectedRowData }) => {
     } else {
       const timeStart = dayjs(formData.start);
       const timeEnd = dayjs(formData.end);
-      handleInputChange("startTime", timeStart);
-      handleInputChange("endTime", timeEnd);
+      handleInputChange("startTime");
+      handleInputChange("endTime");
+
+      console.log({ startTime:timeStart.toISOString(), endTIME:  timeEnd.toISOString()});
 
       if (!formData.startTime) {
         const currentTime = dayjs().toISOString();
@@ -87,7 +88,7 @@ const ThirdComponent = ({ formData, handleInputChange, selectedRowData }) => {
         handleInputChange("occurrence", "once");
       }
     }
-  }, []);
+  }, [formData.start, formData.end]);
 
   const CustomInputComponent = ({ field }) => {
     const dateValue = formData?.[field];
@@ -155,7 +156,19 @@ const ThirdComponent = ({ formData, handleInputChange, selectedRowData }) => {
               display="center"
               calendarScroll={"vertical"}
               disabled={isRecurring}
-              inputComponent={() => <CustomInputComponent field="startTime" />}
+              inputComponent={() => {
+                const dateValue = formData?.startTime;
+                const formattedDate =
+                  dateValue && dayjs(dateValue).isValid()
+                    ? dayjs(dateValue).format("DD/MM/YYYY hh:mm A")
+                    : "";
+                return (
+                  <CustomInputComponent
+                    field="startTime"
+                    formattedDate={formattedDate}
+                  />
+                );
+              }}
               onClose={() => setOpenStartDatepicker(false)}
               onChange={(e) => handleInputChange("startTime", e.value)}
               isOpen={openStartDatepicker}
@@ -180,7 +193,19 @@ const ThirdComponent = ({ formData, handleInputChange, selectedRowData }) => {
               max={dayjs(formData.startTime)
                 .add(1, "year")
                 .format("YYYY-MM-DD")}
-              inputComponent={() => <CustomInputComponent field="endTime" />}
+              inputComponent={() => {
+                const dateValue = formData?.endTime;
+                const formattedDate =
+                  dateValue && dayjs(dateValue).isValid()
+                    ? dayjs(dateValue).format("DD/MM/YYYY hh:mm A")
+                    : "";
+                return (
+                  <CustomInputComponent
+                    field="endTime"
+                    formattedDate={formattedDate}
+                  />
+                );
+              }}
               onClose={() => setOpenEndDatepicker(false)}
               onChange={(e) => {
                 const selectedDate = dayjs(e.value); // Only take the date part
