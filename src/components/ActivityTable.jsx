@@ -78,10 +78,13 @@ const headCells = [
 
 const noSort = ["duration", "time"];
 
-const convertDate = (date)=>{
-  const [day, month, year] = date.split("/");
-  return `${year}-${month}-${day}`;
-}
+
+
+const convertDate = (date) => {
+  const [month, day, year] = date.split("/");
+  if (!month || !day || !year) return null;
+  return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+};
 
 function descendingComparator(a, b, orderBy) {
   // console.log(orderBy, b, a);
@@ -91,6 +94,7 @@ function descendingComparator(a, b, orderBy) {
   if (orderBy === "date") {
     const newB = new Date(convertDate(b[orderBy]));
     const newA = new Date(convertDate(a[orderBy]));
+    console.log({a,b,newB, newA})
     if (newB < newA) {
       return -1;
     }
