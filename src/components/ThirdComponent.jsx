@@ -70,10 +70,10 @@ const ThirdComponent = ({ formData, handleInputChange, selectedRowData }) => {
     } else {
       const timeStart = dayjs(formData.start);
       const timeEnd = dayjs(formData.end);
-      handleInputChange("startTime");
-      handleInputChange("endTime");
+      handleInputChange("startTime",timeStart);
+      handleInputChange("endTime",timeEnd);
 
-      console.log({ startTime:timeStart.toISOString(), endTIME:  timeEnd.toISOString()});
+      console.log({ startTime:timeStart, endTIME:  timeEnd.toISOString()});
 
       if (!formData.startTime) {
         const currentTime = dayjs().toISOString();

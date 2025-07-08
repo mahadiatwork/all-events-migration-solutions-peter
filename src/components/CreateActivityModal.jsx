@@ -196,46 +196,37 @@ function transformFormSubmission(data, individualParticipant = null) {
   }
 
   if (data.Send_Reminders) {
-    const startTime = dayjs(data.start);
+    const startTime = dayjs(data.start); // local time
 
     let modifiedReminderDate = null;
 
     if (data.Reminder_Text === "At time of meeting") {
-      modifiedReminderDate = startTime
-        .tz("Australia/Adelaide")
-        .format("YYYY-MM-DDTHH:mm:ssZ");
+      modifiedReminderDate = startTime.format("YYYY-MM-DDTHH:mm:ssZ");
     } else {
       const reminderTime = startTime.subtract(
         parseInt(data?.Reminder_Text.split(" ")[0]),
         "minute"
       );
-      modifiedReminderDate = reminderTime
-        .tz("Australia/Adelaide")
-        .format("YYYY-MM-DDTHH:mm:ssZ");
+      modifiedReminderDate = reminderTime.format("YYYY-MM-DDTHH:mm:ssZ");
       transformedData.Remind_At = modifiedReminderDate;
-      // transformedData.Participant_Reminder = modifiedReminderDate;
       transformedData.User_Reminder = modifiedReminderDate;
     }
     transformedData.Send_Reminders = true;
   }
 
   if (data.Send_Invites) {
-    const startTime = dayjs(data.start);
+    const startTime = dayjs(data.start); // local time
 
     let modifiedReminderDate = null;
 
     if (data.Reminder_Text === "At time of meeting") {
-      modifiedReminderDate = startTime
-        .tz("Australia/Adelaide")
-        .format("YYYY-MM-DDTHH:mm:ssZ");
+      modifiedReminderDate = startTime.format("YYYY-MM-DDTHH:mm:ssZ");
     } else {
       const reminderTime = startTime.subtract(
         parseInt(data?.Reminder_Text.split(" ")[0]),
         "minute"
       );
-      modifiedReminderDate = reminderTime
-        .tz("Australia/Adelaide")
-        .format("YYYY-MM-DDTHH:mm:ssZ");
+      modifiedReminderDate = reminderTime.format("YYYY-MM-DDTHH:mm:ssZ");
       transformedData.Remind_At = modifiedReminderDate;
       transformedData.User_Reminder = modifiedReminderDate;
     }
@@ -306,12 +297,9 @@ const CreateActivityModal = ({
   const theme = useTheme();
   const [value, setValue] = useState(0);
 
-  const currentTimeInAdelaide = dayjs()
-    .tz("Australia/Adelaide")
-    .format("YYYY-MM-DDTHH:mm:ssZ");
+  const currentTimeInAdelaide = dayjs().format("YYYY-MM-DDTHH:mm:ssZ");
 
   const oneHourFromNowInAdelaide = dayjs()
-    .tz("Australia/Adelaide")
     .add(1, "hour")
     .format("YYYY-MM-DDTHH:mm:ssZ");
 
@@ -411,9 +399,7 @@ const CreateActivityModal = ({
     meetingType,
     Widget_Source,
   }) => {
-    const timeOccurred = dayjs()
-      .tz("Australia/Adelaide")
-      .format("YYYY-MM-DDTHH:mm:ssZ");
+    const timeOccurred = dayjs().format("YYYY-MM-DDTHH:mm:ssZ");
 
     await ZOHO.CRM.API.insertRecord({
       Entity: "Log_Module",
@@ -497,6 +483,9 @@ const CreateActivityModal = ({
     } else {
       const transformedData = transformFormSubmission(formData);
 
+      console.log({ transformedData });
+
+      return;
       try {
         const data = await ZOHO.CRM.API.insertRecord({
           Entity: "Events",

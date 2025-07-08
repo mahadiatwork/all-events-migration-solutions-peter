@@ -161,17 +161,13 @@ function transformFormSubmission(data) {
     let modifiedReminderDate = null;
 
     if (data.Reminder_Text === "At time of meeting") {
-      modifiedReminderDate = startTime
-        .tz("Australia/Adelaide")
-        .format("YYYY-MM-DDTHH:mm:ssZ");
+      modifiedReminderDate = startTime.format("YYYY-MM-DDTHH:mm:ssZ");
     } else {
       const reminderTime = startTime.subtract(
         parseInt(data?.Reminder_Text.split(" ")[0]),
         "minute"
       );
-      modifiedReminderDate = reminderTime
-        .tz("Australia/Adelaide")
-        .format("YYYY-MM-DDTHH:mm:ssZ");
+      modifiedReminderDate = reminderTime.format("YYYY-MM-DDTHH:mm:ssZ");
       transformedData.Remind_At = modifiedReminderDate;
       // transformedData.Participant_Reminder = modifiedReminderDate;
       transformedData.User_Reminder = modifiedReminderDate;
@@ -185,17 +181,13 @@ function transformFormSubmission(data) {
     let modifiedReminderDate = null;
 
     if (data.Reminder_Text === "At time of meeting") {
-      modifiedReminderDate = startTime
-        .tz("Australia/Adelaide")
-        .format("YYYY-MM-DDTHH:mm:ssZ");
+      modifiedReminderDate = startTime.format("YYYY-MM-DDTHH:mm:ssZ");
     } else {
       const reminderTime = startTime.subtract(
         parseInt(data?.Reminder_Text.split(" ")[0]),
         "minute"
       );
-      modifiedReminderDate = reminderTime
-        .tz("Australia/Adelaide")
-        .format("YYYY-MM-DDTHH:mm:ssZ");
+      modifiedReminderDate = reminderTime.format("YYYY-MM-DDTHH:mm:ssZ");
       transformedData.Remind_At = modifiedReminderDate;
       transformedData.User_Reminder = modifiedReminderDate;
     }
