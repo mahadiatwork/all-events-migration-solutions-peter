@@ -216,7 +216,6 @@ function transformFormSubmission(data, individualParticipant = null) {
 
     if (data.Reminder_Text === "At time of meeting") {
       modifiedReminderDate = startTime
-        .tz("Australia/Adelaide")
         .format("YYYY-MM-DDTHH:mm:ssZ");
     } else {
       const reminderTime = startTime.subtract(
@@ -224,7 +223,6 @@ function transformFormSubmission(data, individualParticipant = null) {
         "minute"
       );
       modifiedReminderDate = reminderTime
-        .tz("Australia/Adelaide")
         .format("YYYY-MM-DDTHH:mm:ssZ");
       transformedData.Remind_At = modifiedReminderDate;
       transformedData.User_Reminder = modifiedReminderDate;
@@ -239,7 +237,6 @@ function transformFormSubmission(data, individualParticipant = null) {
 
     if (data.Reminder_Text === "At time of meeting") {
       modifiedReminderDate = startTime
-        .tz("Australia/Adelaide")
         .format("YYYY-MM-DDTHH:mm:ssZ");
     } else {
       const reminderTime = startTime.subtract(
@@ -247,7 +244,6 @@ function transformFormSubmission(data, individualParticipant = null) {
         "minute"
       );
       modifiedReminderDate = reminderTime
-        .tz("Australia/Adelaide")
         .format("YYYY-MM-DDTHH:mm:ssZ");
       transformedData.Remind_At = modifiedReminderDate;
       transformedData.User_Reminder = modifiedReminderDate;
@@ -324,11 +320,9 @@ const CreateActivityModal = ({
 
 
   const currentTimeInAdelaide = dayjs()
-  .tz("Australia/Adelaide")
   .format("YYYY-MM-DDTHH:mm:ssZ");
 
 const oneHourFromNowInAdelaide = dayjs()
-  .tz("Australia/Adelaide")
   .add(1, 'hour')
   .format("YYYY-MM-DDTHH:mm:ssZ");
 
@@ -424,7 +418,7 @@ const oneHourFromNowInAdelaide = dayjs()
 
 const logResponse = async ({ name, payload, response, result, trigger, meetingType, Widget_Source }) => {
 
-const timeOccurred = dayjs().tz("Australia/Adelaide").format("YYYY-MM-DDTHH:mm:ssZ");
+const timeOccurred = dayjs().format("YYYY-MM-DDTHH:mm:ssZ");
 
 
   await ZOHO.CRM.API.insertRecord({
@@ -514,7 +508,6 @@ const handleSubmit = async () => {
     }
 
     const transformedData = transformFormSubmission(formData);
-
     try {
       const data = await ZOHO.CRM.API.insertRecord({
         Entity: "Events",

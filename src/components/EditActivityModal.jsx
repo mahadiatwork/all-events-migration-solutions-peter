@@ -274,7 +274,6 @@ const EditActivityModal = ({
     Widget_Source,
   }) => {
     const timeOccurred = dayjs()
-      .tz("Australia/Adelaide")
       .format("YYYY-MM-DDTHH:mm:ssZ");
 
     await ZOHO.CRM.API.insertRecord({
