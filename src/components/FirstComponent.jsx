@@ -22,6 +22,7 @@ import RegardingField from "./atom/RegardingField";
 import { ZohoContext } from "../App";
 import CustomColorPicker from "./atom/CustomColorPicker";
 import { DateTimePicker, LocalizationProvider } from "@mui/x-date-pickers";
+import { DesktopDateTimePicker } from '@mui/x-date-pickers/DesktopDateTimePicker';
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import dayjs from "dayjs";
 import { reminderMapping } from "./helperFunc";
@@ -519,7 +520,7 @@ const FirstComponent = ({
 
         <Grid size={4}>
           <LocalizationProvider dateAdapter={AdapterDayjs}>
-            <DateTimePicker
+            <DesktopDateTimePicker
               label="Start Time"
               value={startValue}
               disabled={formData.Banner ? true : false}
@@ -541,7 +542,7 @@ const FirstComponent = ({
         </Grid>
         <Grid size={4}>
           <LocalizationProvider dateAdapter={AdapterDayjs}>
-            <DateTimePicker
+            <DesktopDateTimePicker
               label="End Time"
               value={endValue}
               disabled={formData.Banner ? true : false}
