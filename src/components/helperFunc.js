@@ -55,16 +55,21 @@ export const isDateInRange = (date, rangeType) => {
       endDate = today.endOf("month").valueOf();
       break;
     case "Last 7 Days":
-      startDate = today.subtract(7, "day").valueOf();
+      startDate = today.subtract(6, "day").valueOf();
       endDate = today.valueOf();
       break;
     case "Last 30 Days":
-      startDate = today.subtract(30, "day").valueOf();
+      startDate = today.subtract(29, "day").valueOf();
       endDate = today.valueOf();
       break;
     case "Last 90 Days":
-      startDate = today.subtract(90, "day").valueOf();
+      startDate = today.subtract(89, "day").valueOf();
       endDate = today.valueOf();
+      break;
+    case "Last Month":
+      // First day of previous month to last day of previous month
+      startDate = today.subtract(1, "month").startOf("month").valueOf();
+      endDate = today.subtract(1, "month").endOf("month").valueOf();
       break;
     case "Next Week":
       startDate = today.add(7 - today.day(), "day").startOf("day").valueOf();
@@ -72,7 +77,8 @@ export const isDateInRange = (date, rangeType) => {
       break;
     case "Default":
     default:
-      startDate = today.subtract(14, "day").valueOf();
+      // Start from the beginning of the previous month to match API logic
+      startDate = today.subtract(1, "month").startOf("month").valueOf();
       endDate = null;
       break;
   }

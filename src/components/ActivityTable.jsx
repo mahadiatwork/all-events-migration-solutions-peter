@@ -322,6 +322,7 @@ export default function ScheduleTable({
     { label: "Last 7 Days", value: "Last 7 Days" },
     { label: "Last 30 Days", value: "Last 30 Days" },
     { label: "Last 90 Days", value: "Last 90 Days" },
+    { label: "Last Month", value: "Last Month" },
     { label: "Current Week", value: "Current Week" },
     { label: "Current Month", value: "Current Month" },
     { label: "Next Week", value: "Next Week" },

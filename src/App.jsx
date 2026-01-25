@@ -51,9 +51,14 @@ function App() {
           const currentDate = new Date();
 
           // Default: Last 30 days + future items
+          // Using start of previous month to be more inclusive and ensure we capture all relevant events
           if (!filterDate || filterDate === "Default") {
-            beginDate1 = new Date(currentDate);
-            beginDate1.setDate(currentDate.getDate() - 29); // Last 30 days
+            // Start from the beginning of the previous month to be inclusive
+            beginDate1 = new Date(
+              currentDate.getFullYear(),
+              currentDate.getMonth() - 1,
+              1
+            );
             closeDate1 = new Date(currentDate);
             closeDate1.setFullYear(currentDate.getFullYear() + 1); // Future items (1 year ahead)
           } else if (filterDate === "Custom Range" && customDateRange) {
@@ -85,6 +90,18 @@ function App() {
             closeDate1 = new Date(currentDate);
             beginDate1 = new Date(currentDate);
             beginDate1.setDate(currentDate.getDate() - 89);
+          } else if (filterDate === "Last Month") {
+            // First day of the previous month to the last day of the previous month
+            beginDate1 = new Date(
+              currentDate.getFullYear(),
+              currentDate.getMonth() - 1,
+              1
+            );
+            closeDate1 = new Date(
+              currentDate.getFullYear(),
+              currentDate.getMonth(),
+              0
+            );
           } else if (filterDate === "Current Month") {
             // First day of the current month to the last day of the current month
             beginDate1 = new Date(
@@ -159,7 +176,27 @@ function App() {
             }
           }
 
-          console.log(`Total events fetched: ${allEventsData.length}`);
+          console.log(`Total events fetched from API: ${allEventsData.length}`);
+          console.log(`Date range for API query: ${formattedBeginDate} to ${formattedCloseDate}`);
+          console.log(`Filter type: ${filterDate}`);
+          
+          // Check for December 2025 events specifically
+          const dec2025Events = allEventsData.filter(e => {
+            const eventDate = new Date(e.Start_DateTime);
+            return eventDate.getFullYear() === 2025 && eventDate.getMonth() === 11; // December is month 11
+          });
+          console.log(`December 2025 events found: ${dec2025Events.length}`, dec2025Events.map(e => ({
+            id: e.id,
+            title: e.Event_Title || e.Subject || 'No title',
+            date: e.Start_DateTime
+          })));
+          
+          console.log(`Sample of fetched events:`, allEventsData.slice(0, 5).map(e => ({
+            id: e.id,
+            title: e.Event_Title || e.Subject || 'No title',
+            start: e.Start_DateTime,
+            end: e.End_DateTime
+          })));
 
           // Replace: const eventsData = data1?.details?.statusMessage?.data || [];
           // With:
@@ -187,23 +224,18 @@ function App() {
 
           // const eventsData = data1?.details?.statusMessage?.data || [];
           
-          let combinedEvents = [];
+          // The API query already fetches events in the correct date range, so we don't need additional filtering
+          // Just use the eventsData directly for non-Custom Range filters
           if (filterDate === "Custom Range") {
             setEvents(eventsData);
           } else {
-            const allMeetings = await ZOHO.CRM.API.getAllRecords({
-              Entity: "Events",
-              sort_order: "asc",
-              per_page: 100,
-              page: 1,
-            });
-            const allMeetingsData = allMeetings?.data || [];
-            combinedEvents = [...eventsData, ...allMeetingsData];
-            // Filter events by date range
-            const filteredEvents = combinedEvents.filter((event) => {
-              const eventStart = new Date(event.Start_DateTime);
-              const eventEnd = new Date(event.End_DateTime);
-              return eventStart >= beginDate1 && eventEnd <= closeDate1;
+            // For Default and other filters, the API query already returns the correct events
+            // No need for additional getAllRecords call or filtering - the API handles it
+            console.log(`Using ${eventsData.length} events from API query for filter: ${filterDate}`);
+            
+            // Sort events by `Start_DateTime`
+            const sortedEvents = eventsData.sort((a, b) => {
+              return new Date(a.Start_DateTime) - new Date(b.Start_DateTime);
             });
 
             // Deduplicate events based on `id`
@@ -215,18 +247,13 @@ function App() {
             });
             const uniqueEvents = Array.from(uniqueEventsMap.values());
 
-            // Sort events by `Start_DateTime`
-            const sortedUniqueEvents = uniqueEvents.sort((a, b) => {
-              return new Date(a.Start_DateTime) - new Date(b.Start_DateTime);
-            });
-
             // Cache and update state
             setCache((prevCache) => ({
               ...prevCache,
-              [filterDate]: sortedUniqueEvents,
+              [filterDate]: sortedEvents,
             }));
 
-            setEvents(sortedUniqueEvents);
+            setEvents(sortedEvents);
           }
 
           // Fetch org variable and users
