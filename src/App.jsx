@@ -233,19 +233,19 @@ function App() {
             // No need for additional getAllRecords call or filtering - the API handles it
             console.log(`Using ${eventsData.length} events from API query for filter: ${filterDate}`);
             
-            // Sort events by `Start_DateTime`
-            const sortedEvents = eventsData.sort((a, b) => {
-              return new Date(a.Start_DateTime) - new Date(b.Start_DateTime);
-            });
-
-            // Deduplicate events based on `id`
+            // Deduplicate events based on `id` first
             const uniqueEventsMap = new Map();
-            filteredEvents.forEach((event) => {
+            eventsData.forEach((event) => {
               if (!uniqueEventsMap.has(event.id)) {
                 uniqueEventsMap.set(event.id, event);
               }
             });
             const uniqueEvents = Array.from(uniqueEventsMap.values());
+            
+            // Sort events by `Start_DateTime`
+            const sortedEvents = uniqueEvents.sort((a, b) => {
+              return new Date(a.Start_DateTime) - new Date(b.Start_DateTime);
+            });
 
             // Cache and update state
             setCache((prevCache) => ({
