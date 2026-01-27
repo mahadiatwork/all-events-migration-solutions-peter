@@ -1,28 +1,37 @@
-import React, { useEffect, useState, createContext, useCallback } from "react";
+import React, { useEffect, useState, createContext } from "react";
 import "./App.css";
 import ActivityTable from "./components/ActivityTable";
 import { CircularProgress, Box } from "@mui/material";
 import DateRangeModal from "./components/atom/DateRangeModal";
+import useEventsStore from "./store/eventsStore";
 
 const ZOHO = window.ZOHO;
 
 export const ZohoContext = createContext();
 
 function App() {
-  // --- State Management ---
-  const [zohoLoaded, setZohoLoaded] = useState(false);
-  const [loading, setLoading] = useState(true);
+  // --- Global State Management (Zustand) ---
+  const { 
+    events, 
+    setEvents, 
+    addEvents,
+    loading, 
+    setLoading,
+    cache,
+    setCache,
+    getCache,
+    updateCacheEntry
+  } = useEventsStore();
   
-  // Data States
-  const [events, setEvents] = useState([]);
+  // --- Local State Management ---
+  const [zohoLoaded, setZohoLoaded] = useState(false);
   const [users, setUsers] = useState([]);
   const [recentColors, setRecentColor] = useState("");
   const [loggedInUser, setLoggedInUser] = useState(null);
   
-  // Filter & Cache States
+  // Filter States
   const [filterDate, setFilterDate] = useState("Default");
   const [customDateRange, setCustomDateRange] = useState(null);
-  const [cache, setCache] = useState({}); 
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   // --- 1. Initialization ---
@@ -36,7 +45,6 @@ function App() {
   }, []);
 
   // --- 2. Initial Metadata Fetch (Users & Colors) ---
-  // We only fetch this ONCE when Zoho loads, not on every filter change.
   useEffect(() => {
     if (zohoLoaded) {
       fetchInitialMetadata();
@@ -45,12 +53,10 @@ function App() {
 
   const fetchInitialMetadata = async () => {
     try {
-      // Fetch Colors
       const orgVar = await ZOHO.CRM.API.getOrgVariable("recent_colors");
       const colorsArray = JSON.parse(orgVar?.Success?.Content || "[]");
       setRecentColor(colorsArray);
 
-      // Fetch Users
       const usersResponse = await ZOHO.CRM.API.getAllRecords({
         Entity: "users",
         sort_order: "asc",
@@ -64,8 +70,12 @@ function App() {
   };
 
   // --- 3. Date Utility Helper ---
+  // Returns standard JS Date objects
   const calculateDateRange = (filterType, customRange) => {
     const currentDate = new Date();
+    // Normalize current date to end of day for inclusive comparisons
+    currentDate.setHours(23, 59, 59, 999);
+
     let beginDate, closeDate;
 
     switch (filterType) {
@@ -82,37 +92,47 @@ function App() {
       case "Current Week":
         beginDate = new Date(currentDate);
         beginDate.setDate(currentDate.getDate() - currentDate.getDay());
+        beginDate.setHours(0,0,0,0);
+        
         closeDate = new Date(beginDate);
         closeDate.setDate(beginDate.getDate() + 6);
+        closeDate.setHours(23,59,59,999);
         break;
       case "Last 7 Days":
-        closeDate = new Date(currentDate);
-        beginDate = new Date(currentDate);
-        beginDate.setDate(currentDate.getDate() - 6);
+        closeDate = new Date();
+        beginDate = new Date();
+        beginDate.setDate(closeDate.getDate() - 6); // inclusive of today
+        beginDate.setHours(0,0,0,0);
         break;
       case "Last 30 Days":
-        closeDate = new Date(currentDate);
-        beginDate = new Date(currentDate);
-        beginDate.setDate(currentDate.getDate() - 29);
+        closeDate = new Date();
+        beginDate = new Date();
+        beginDate.setDate(closeDate.getDate() - 29);
+        beginDate.setHours(0,0,0,0);
         break;
       case "Last 90 Days":
-        closeDate = new Date(currentDate);
-        beginDate = new Date(currentDate);
-        beginDate.setDate(currentDate.getDate() - 89);
+        closeDate = new Date();
+        beginDate = new Date();
+        beginDate.setDate(closeDate.getDate() - 89);
+        beginDate.setHours(0,0,0,0);
         break;
       case "Last Month":
         beginDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
         closeDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), 0);
+        closeDate.setHours(23,59,59,999);
         break;
       case "Current Month":
         beginDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
         closeDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+        closeDate.setHours(23,59,59,999);
         break;
       case "Next Week":
-        beginDate = new Date(currentDate);
-        beginDate.setDate(currentDate.getDate() - currentDate.getDay() + 7);
+        beginDate = new Date();
+        beginDate.setDate(beginDate.getDate() - beginDate.getDay() + 7);
+        beginDate.setHours(0,0,0,0);
         closeDate = new Date(beginDate);
         closeDate.setDate(beginDate.getDate() + 6);
+        closeDate.setHours(23,59,59,999);
         break;
       case "Custom Range":
         if (customRange) {
@@ -126,7 +146,6 @@ function App() {
     return { beginDate, closeDate };
   };
 
-  // --- 4. Zoho Date Formatter ---
   const formatDateForZoho = (date, hours = 0, minutes = 0, seconds = 0) => {
     if (!date || isNaN(date.getTime())) return null;
     const pad = (num) => String(num).padStart(2, "0");
@@ -144,6 +163,83 @@ function App() {
     return `${year}-${month}-${day}T${formattedTime}${offsetSign}${offsetHours}:${offsetMinutes}`;
   };
 
+  // --- 4. Robust Event Update Logic with Re-Validation ---
+  /**
+   * Handles event updates with smart caching and filter re-validation
+   * 
+   * Workflow:
+   * 1. Updates global store (events master list) - ALWAYS
+   * 2. Updates all cache entries - ALWAYS
+   * 3. Re-validates if event still matches current filter's date range
+   * 4. If matches: keeps in current view (already in store, reactive filtering will show it)
+   * 5. If doesn't match: removes from current view but keeps updated in cache
+   * 
+   * @param {Object} updatedEvent - The updated event object with all fields
+   */
+  const updateEventState = (updatedEvent) => {
+    const store = useEventsStore.getState();
+    
+    // Step 1: Update global store master list (ALWAYS - this is the source of truth)
+    store.updateEvent(updatedEvent);
+    
+    // Step 2: Update all cache entries (ALWAYS - ensures cache stays fresh)
+    store.updateCacheEntry(updatedEvent);
+    
+    // Step 3: Re-validate if the event still matches the current filter's date range
+    const eventDate = new Date(updatedEvent.Start_DateTime);
+    if (isNaN(eventDate.getTime())) {
+      console.warn('⚠️ Invalid event date, cannot re-validate filter match:', updatedEvent.Start_DateTime);
+      // Still update the store and cache, just skip re-validation
+      return;
+    }
+    
+    // Calculate the current filter's date range
+    let currentRange = null;
+    if (filterDate === "Custom Range" && customDateRange) {
+      currentRange = calculateDateRange("Custom Range", customDateRange);
+    } else if (filterDate && filterDate !== "Default") {
+      currentRange = calculateDateRange(filterDate);
+    } else {
+      // Default filter - check against its range (last month to 1 year future)
+      currentRange = calculateDateRange("Default");
+    }
+    
+    if (!currentRange || !currentRange.beginDate || !currentRange.closeDate) {
+      console.warn('⚠️ Could not calculate current filter range, keeping event in view');
+      // If we can't determine the range, keep the event visible
+      return;
+    }
+    
+    // Step 4: Check if event's date falls within current filter range
+    const eventFitsInRange = 
+      eventDate >= currentRange.beginDate && 
+      eventDate <= currentRange.closeDate;
+    
+    // Step 5: Handle visibility based on filter match
+    const currentEvents = store.events;
+    const eventExists = currentEvents.some(e => e.id === updatedEvent.id);
+    
+    if (eventFitsInRange) {
+      // Event still matches filter - ensure it's in the master list
+      // (It's already updated via updateEvent, but we ensure it exists)
+      if (!eventExists) {
+        // Event was somehow removed but should be visible - add it back
+        store.addEvent(updatedEvent);
+        console.log('✅ Event updated and still matches filter - kept in view');
+      } else {
+        console.log('✅ Event updated and still matches filter - visible with new data');
+      }
+    } else {
+      // Event no longer matches current filter - remove from current view
+      // But it's already updated in cache, so switching filters will show the updated data
+      if (eventExists) {
+        const filteredEvents = currentEvents.filter(e => e.id !== updatedEvent.id);
+        store.setEvents(filteredEvents);
+        console.log('⚠️ Event updated but no longer matches current filter - removed from view (still in cache)');
+      }
+    }
+  };
+
   // --- 5. Core API Fetch Logic ---
   const fetchEventsFromZoho = async (beginDate, closeDate) => {
     const formattedBegin = formatDateForZoho(beginDate, 0, 0, 0);
@@ -154,7 +250,6 @@ function App() {
     let hasMoreRecords = true;
     const recordsPerPage = 100;
 
-    // Pagination Loop
     while (hasMoreRecords && currentPage < 11) {
       const searchUrl = `((Start_DateTime:greater_equal:${encodeURIComponent(formattedBegin)})and(End_DateTime:less_equal:${encodeURIComponent(formattedClose)}))`;
       
@@ -177,11 +272,9 @@ function App() {
         hasMoreRecords = false;
       }
     }
-
     return allEventsData;
   };
 
-  // --- 6. Event Processing (Sort/Dedupe) ---
   const processEvents = (rawEvents) => {
     const uniqueEventsMap = new Map();
     rawEvents.forEach((event) => {
@@ -189,37 +282,76 @@ function App() {
         uniqueEventsMap.set(event.id, event);
       }
     });
-    
     return Array.from(uniqueEventsMap.values()).sort((a, b) => {
       return new Date(a.Start_DateTime) - new Date(b.Start_DateTime);
     });
   };
 
-  // --- 7. Specific Fetch Handlers ---
+  // --- 6. Intelligent Caching Logic ---
+  
+  // This checks if we already have a "superset" of data that covers the needed range
+  const findCachedSubset = (neededStart, neededEnd) => {
+    // Get current cache from store
+    const currentCache = useEventsStore.getState().cache;
+    const cacheKeys = Object.keys(currentCache);
+    
+    for (const key of cacheKeys) {
+      const cachedItem = currentCache[key];
+      if (!cachedItem || !cachedItem.range) continue;
+      
+      const cachedStart = cachedItem.range.start;
+      const cachedEnd = cachedItem.range.end;
+
+      // Check if the needed range is INSIDE the cached range
+      // We use a small buffer (1000ms) to handle slight time diffs
+      if (cachedStart <= neededStart && cachedEnd >= neededEnd) {
+        console.log(`Optimization: Found data in cache [${key}] for requested range.`);
+        
+        // Filter the cached data to return ONLY what fits the needed range
+        return cachedItem.data.filter(event => {
+          const eDate = new Date(event.Start_DateTime);
+          return eDate >= neededStart && eDate <= neededEnd;
+        });
+      }
+    }
+    return null; // No suitable cache found
+  };
 
   const handleStandardFilter = async (filterType) => {
-    // 1. Check Cache
-    if (cache[filterType]) {
-      setEvents(cache[filterType]);
+    // 1. Calculate needed dates
+    const dates = calculateDateRange(filterType);
+    if (!dates) return;
+
+    // 2. Check Cache (Exact Match)
+    const cachedData = getCache(filterType);
+    if (cachedData) {
+      // Add cached events to global store (they may already be there, but this ensures they are)
+      addEvents(cachedData.data);
       setLoading(false);
       return;
     }
 
-    // 2. Calculate Dates
-    const dates = calculateDateRange(filterType);
-    if (!dates) return;
+    // 3. Check Cache (Superset Match - The Optimization)
+    // "If I have Last 30 Days, Last 7 Days shouldn't fetch."
+    const subsetData = findCachedSubset(dates.beginDate, dates.closeDate);
+    if (subsetData) {
+      // Add subset to global store
+      addEvents(subsetData);
+      setLoading(false);
+      return;
+    }
 
+    // 4. Fetch from API (If we really need it)
     setLoading(true);
     try {
-      // 3. Fetch
       const rawData = await fetchEventsFromZoho(dates.beginDate, dates.closeDate);
-      
-      // 4. Process
       const processedData = processEvents(rawData);
 
-      // 5. Update Cache and State
-      setCache((prev) => ({ ...prev, [filterType]: processedData }));
-      setEvents(processedData);
+      // Add to global store (merges with existing, deduplicates)
+      addEvents(processedData);
+      
+      // Save to cache with metadata about the Date Range
+      setCache(filterType, processedData, { start: dates.beginDate, end: dates.closeDate });
     } catch (error) {
       console.error(`Error loading ${filterType}:`, error);
     } finally {
@@ -228,16 +360,15 @@ function App() {
   };
 
   const handleCustomRange = async (range) => {
-    // Custom range never uses cache
     if (!range) return;
-
     setLoading(true);
     try {
       const dates = calculateDateRange("Custom Range", range);
       const rawData = await fetchEventsFromZoho(dates.beginDate, dates.closeDate);
-      // We process but do NOT cache custom ranges
       const processedData = processEvents(rawData);
-      setEvents(processedData);
+      // Add to global store (merges with existing events)
+      addEvents(processedData);
+      // We do NOT cache custom ranges as they are too specific
     } catch (error) {
       console.error("Error loading custom range:", error);
     } finally {
@@ -245,21 +376,17 @@ function App() {
     }
   };
 
-  // --- 8. Main Effect Controller ---
+  // --- 7. Main Effect ---
   useEffect(() => {
     if (!zohoLoaded) return;
 
     if (filterDate === "Custom Range") {
-      // Only fetch if we actually have a range selected
-      if (customDateRange) {
-        handleCustomRange(customDateRange);
-      }
+      if (customDateRange) handleCustomRange(customDateRange);
     } else {
       handleStandardFilter(filterDate);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [zohoLoaded, filterDate, customDateRange]);
-
 
   const handleCustomRangeSave = (range) => {
     setCustomDateRange(range);
@@ -278,17 +405,12 @@ function App() {
         setCustomDateRange,
         recentColors,
         setRecentColor,
+        // Expose the updater so child components can fix state without refetching
+        updateEventState, 
       }}
     >
       {loading ? (
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            height: "100vh",
-          }}
-        >
+        <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh" }}>
           <CircularProgress />
         </Box>
       ) : (
@@ -304,6 +426,7 @@ function App() {
           setEvents={setEvents}
           customDateRange={customDateRange}
           setCustomDateRange={setCustomDateRange}
+          updateEventState={updateEventState} // Pass this down
         />
       )}
       <DateRangeModal

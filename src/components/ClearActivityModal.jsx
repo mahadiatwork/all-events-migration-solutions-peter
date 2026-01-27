@@ -23,14 +23,54 @@ import {
 import "react-quill/dist/quill.snow.css";
 import { useEffect } from "react";
 import { getResultBasedOnActivityType, getResultBasedOnActivityType2, typeOptions } from "./helperFunc";
+import useEventsStore from "../store/eventsStore";
 
 export default function ClearActivityModal({
   open,
   handleClose,
   selectedRowData,
   ZOHO,
-  setEvents,
+  setEvents, // Keep for backward compatibility
+  filterDate, // Add filterDate prop to know current filter
 }) {
+  // --- Global State Management (Zustand) ---
+  const { updateEvent, removeEvent, updateCacheEntry, removeEventFromCache, getCache, setEvents: setStoreEvents } = useEventsStore();
+  
+  /**
+   * Restore events from cache for the current filter if needed
+   * This ensures the table doesn't go empty after clearing/erasing
+   * Only restores if the current events array is empty or very small
+   */
+  const restoreEventsFromCache = () => {
+    const store = useEventsStore.getState();
+    const currentEvents = store.events;
+    
+    // Only restore if events array is empty or suspiciously small (might have been cleared)
+    if (currentEvents && currentEvents.length > 0) {
+      // Events exist, no need to restore
+      return;
+    }
+    
+    if (!filterDate) return;
+    
+    // Try to restore from current filter's cache
+    const currentCache = store.getCache(filterDate);
+    if (currentCache && currentCache.data && currentCache.data.length > 0) {
+      // Restore events from cache for current filter
+      console.log(`✅ Restoring events from cache["${filterDate}"]:`, currentCache.data.length, 'events');
+      store.setEvents(currentCache.data);
+      return;
+    }
+    
+    // Fallback to Default cache if current filter cache is empty
+    if (filterDate !== "Default") {
+      const defaultCache = store.getCache("Default");
+      if (defaultCache && defaultCache.data && defaultCache.data.length > 0) {
+        console.log('✅ Restoring events from cache["Default"]:', defaultCache.data.length, 'events');
+        store.setEvents(defaultCache.data);
+      }
+    }
+  };
   const calculateDuration = (durationInMinutes) => {
     if (!durationInMinutes) return "5 minutes";
     const minutes = parseInt(durationInMinutes, 10);
@@ -225,13 +265,30 @@ export default function ClearActivityModal({
           setSnackbarSeverity("success");
           setSnackbarOpen(true);
 
-          setEvents((prevEvents) =>
-            prevEvents.map((event) =>
-              event.id === selectedRowData?.id
-                ? { ...event, Event_Status: "Closed", result: result }
-                : event
-            )
-          );
+          // Update global store - only update the specific record
+          const updatedEvent = { 
+            ...selectedRowData, 
+            Event_Status: "Closed", 
+            result: result 
+          };
+          
+          // Update master list
+          updateEvent(updatedEvent);
+          
+          // Update all cache entries (so switching filters shows updated status)
+          updateCacheEntry(updatedEvent);
+          
+          // Restore events from cache to ensure table doesn't go empty
+          // This is critical - after updating, ensure events are restored from cache
+          restoreEventsFromCache();
+          
+          // Also update via prop if provided (backward compatibility)
+          // Do this AFTER cache restoration to avoid conflicts
+          if (setEvents) {
+            const store = useEventsStore.getState();
+            setEvents(store.events);
+          }
+          
           await createOrUpdateHistory();
         } else {
           throw new Error("Failed to update the event.");
@@ -264,16 +321,24 @@ export default function ClearActivityModal({
             setSnackbarSeverity("success");
             setSnackbarOpen(true);
 
-            setEvents((prevEvents) =>
-              prevEvents.map((event) =>
-                event.id === selectedRowData?.id
-                  ? {
-                      ...event,
-                      Event_Status: "Open",
-                    }
-                  : event
-              )
-            );
+            // Update global store - only update the specific record
+            const updatedEvent = { ...selectedRowData, Event_Status: "Open" };
+            
+            // Update master list
+            updateEvent(updatedEvent);
+            
+            // Update all cache entries (so switching filters shows updated status)
+            updateCacheEntry(updatedEvent);
+            
+            // Restore events from cache to ensure table doesn't go empty
+            restoreEventsFromCache();
+            
+            // Also update via prop if provided (backward compatibility)
+            // Do this AFTER cache restoration to avoid conflicts
+            if (setEvents) {
+              const store = useEventsStore.getState();
+              setEvents(store.events);
+            }
           } else {
             throw new Error("Failed to update the event with history.");
           }
@@ -296,9 +361,22 @@ export default function ClearActivityModal({
           setSnackbarSeverity("success");
           setSnackbarOpen(true);
 
-          setEvents((prevEvents) =>
-            prevEvents.filter((event) => event.id !== selectedRowData?.id)
-          );
+          // Remove from global store - only remove the specific record
+          removeEvent(selectedRowData?.id);
+          
+          // Also remove from all cache entries - only remove the specific record
+          removeEventFromCache(selectedRowData?.id);
+          
+          // Restore events from cache to ensure table doesn't go empty
+          // This is critical - after removing, ensure remaining events are restored from cache
+          restoreEventsFromCache();
+          
+          // Also update via prop if provided (backward compatibility)
+          // Do this AFTER cache restoration to avoid conflicts
+          if (setEvents) {
+            const store = useEventsStore.getState();
+            setEvents(store.events);
+          }
 
           if (addActivityToHistory) {
             await createOrUpdateHistory();

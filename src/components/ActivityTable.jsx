@@ -33,6 +33,7 @@ import timezone from "dayjs/plugin/timezone";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import useEventsStore from "../store/eventsStore";
 
 // Extend dayjs with plugins
 dayjs.extend(utc);
@@ -316,16 +317,33 @@ const CustomRangeModal = ({ open, handleClose, setCustomDateRange }) => {
 
 // Main ScheduleTable component
 export default function ScheduleTable({
-  events = [],
+  events: eventsProp, // Keep for backward compatibility, but will use store
   ZOHO,
   users = [],
   filterDate,
   setFilterDate,
   loggedInUser,
-  setEvents,
+  setEvents, // Keep for backward compatibility
   customDateRange,
   setCustomDateRange,
+  updateEventState, // Keep for backward compatibility, but will use store
 }) {
+  // --- Global State Management (Zustand) ---
+  // Read events from global store - this is the single source of truth
+  const events = useEventsStore((state) => state.events);
+  const loading = useEventsStore((state) => state.loading);
+  const cache = useEventsStore((state) => state.cache);
+  const { updateEvent, addEvent, removeEvent } = useEventsStore();
+  
+  // Wrapper for updateEventState that uses the store
+  const handleUpdateEventState = React.useCallback((updatedEvent) => {
+    // Update global store
+    updateEvent(updatedEvent);
+    // Also call the prop function if provided (for backward compatibility)
+    if (updateEventState) {
+      updateEventState(updatedEvent);
+    }
+  }, [updateEvent, updateEventState]);
   const [selectedRowIndex, setSelectedRowIndex] = React.useState(null);
   const [highlightedRow, setHighlightedRow] = React.useState(null);
   const [openClearModal, setOpenClearModal] = React.useState(false);
@@ -416,22 +434,45 @@ export default function ScheduleTable({
   };
 
   const handleClearFilters = () => {
-    setFilterDate("Default");
+    // Step 1: Reset all filter states
     setFilterType([]);
     setFilterPriority([]);
     // Reset user filter to logged-in user only (default state)
     setFilterUser(loggedInUser?.full_name ? [loggedInUser.full_name] : []);
     setCustomDateRange(null);
     setShowCleared(false); // Reset "Show Cleared" checkbox
+    
+    // Step 2: Check cache for "Default" key and restore data immediately
+    const store = useEventsStore.getState();
+    const defaultCache = store.getCache("Default");
+    
+    if (defaultCache && defaultCache.data && defaultCache.data.length > 0) {
+      // Cache exists - immediately restore events from cache
+      console.log('✅ Restoring events from cache["Default"]:', defaultCache.data.length, 'events');
+      store.setEvents(defaultCache.data);
+    } else {
+      // Cache is empty - will trigger network fetch via useEffect when filterDate changes
+      console.log('⚠️ No cache found for "Default", will trigger network fetch');
+    }
+    
+    // Step 3: Reset filterDate to "Default" (this triggers useEffect in App.jsx if cache was empty)
+    setFilterDate("Default");
   };
 
-  const rows = Array.isArray(events)
-    ? events.map((event) =>
-        createData(event, event.Type_of_Activity || "Other")
-      )
-    : [];
+  // Transform events to rows format
+  // This is reactive - when events in the store change, rows will update
+  const rows = React.useMemo(() => {
+    return Array.isArray(events)
+      ? events.map((event) =>
+          createData(event, event.Type_of_Activity || "Other")
+        )
+      : [];
+  }, [events]);
 
-  // Replace your existing filteredRows useMemo with this:
+  // Reactive filtering - automatically re-calculates when:
+  // - events in store change (via rows dependency)
+  // - filter criteria change (filterType, filterPriority, etc.)
+  // - This ensures that when an event's date is updated, the filtered list immediately reflects the change
   const filteredRows = React.useMemo(() => {
     // Debug: Log custom date range if it exists
     if (customDateRange) {
@@ -663,25 +704,6 @@ export default function ScheduleTable({
     setOpenClearModal(true);
   };
 
-  const updateEvent = (updatedEvent) => {
-    setEvents((prevEvents) => {
-      const updatedEvents = prevEvents.map((event) =>
-        event.id === updatedEvent.id
-          ? {
-              ...event,
-              ...updatedEvent,
-              Start_DateTime: updatedEvent.Start_DateTime,
-              End_DateTime: updatedEvent.End_DateTime,
-              Event_Priority: updatedEvent.Event_Priority,
-              Description: updatedEvent.Description,
-              Duration_Min: updatedEvent.Duration_Min,
-              // Add other fields as needed
-            }
-          : event
-      );
-      return [...updatedEvents]; // Return a new array reference to ensure re-rendering
-    });
-  };
 
   console.log({ events, filteredRows });
 
@@ -1197,6 +1219,7 @@ export default function ScheduleTable({
           ZOHO={ZOHO}
           users={users}
           setEvents={setEvents}
+          filterDate={filterDate}
         />
       )}
 
@@ -1207,8 +1230,7 @@ export default function ScheduleTable({
           selectedRowData={selectedRowData}
           ZOHO={ZOHO}
           users={users}
-          updateEvent={updateEvent}
-          setEvents={setEvents}
+          updateEventState={handleUpdateEventState}
         />
       )}
 

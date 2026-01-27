@@ -20,6 +20,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
+import useEventsStore from "../store/eventsStore";
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
@@ -290,10 +291,12 @@ const CreateActivityModal = ({
   ZOHO,
   users,
   loggedInUser,
-  setEvents,
+  setEvents, // Keep for backward compatibility
   setSelectedRowIndex,
   setHighlightedRow,
 }) => {
+  // --- Global State Management (Zustand) ---
+  const { addEvent } = useEventsStore();
   const theme = useTheme();
   const [value, setValue] = useState(0);
 
@@ -446,10 +449,16 @@ const CreateActivityModal = ({
 
           if (wasSuccessful) {
             const createdEvent = data.data[0].details;
-            setEvents((prev) => [
-              { ...transformedData, id: createdEvent.id },
-              ...prev,
-            ]);
+            const newEvent = { ...transformedData, ...createdEvent, id: createdEvent.id };
+            
+            // Add to global store (optimistic update)
+            addEvent(newEvent);
+            
+            // Also update via prop if provided (backward compatibility)
+            if (setEvents) {
+              setEvents((prev) => [newEvent, ...prev]);
+            }
+            
             setSelectedRowIndex(createdEvent.id);
             setHighlightedRow(createdEvent.id);
             setSnackbarSeverity("success");
@@ -510,10 +519,16 @@ const CreateActivityModal = ({
 
         if (wasSuccessful) {
           const createdEvent = data.data[0].details;
-          setEvents((prev) => [
-            { ...transformedData, id: createdEvent.id },
-            ...prev,
-          ]);
+          const newEvent = { ...transformedData, ...createdEvent, id: createdEvent.id };
+          
+          // Add to global store (optimistic update)
+          addEvent(newEvent);
+          
+          // Also update via prop if provided (backward compatibility)
+          if (setEvents) {
+            setEvents((prev) => [newEvent, ...prev]);
+          }
+          
           setSelectedRowIndex(createdEvent.id);
           setHighlightedRow(createdEvent.id);
           setSnackbarSeverity("success");

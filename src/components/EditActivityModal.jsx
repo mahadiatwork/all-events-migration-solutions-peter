@@ -19,6 +19,7 @@ import SecondComponent from "./SecondComponent";
 import ThirdComponent from "./ThirdComponent";
 import CloseIcon from "@mui/icons-material/Close";
 import dayjs from "dayjs";
+import useEventsStore from "../store/eventsStore";
 
 // Helper function to format date with timezone offset
 function formatDateForRemindAt(date) {
@@ -232,8 +233,11 @@ const EditActivityModal = ({
   selectedRowData,
   ZOHO,
   users,
-  setEvents,
+  updateEventState, // provided by parent/context; updates events + cache immutably (backward compatibility)
 }) => {
+  // --- Global State Management (Zustand) ---
+  // Use store directly for optimistic updates
+  const { updateEvent, updateCacheEntry } = useEventsStore();
   const theme = useTheme();
   const [value, setValue] = useState(0);
   const [textvalue, setTextValue] = useState("");
@@ -304,42 +308,89 @@ const EditActivityModal = ({
     formData.Owner = formData.scheduleFor;
 
     try {
+      // STEP 1: API First - Call ZOHO.CRM.API.updateRecord to save to database
       const data = await ZOHO.CRM.API.updateRecord({
         Entity: "Events",
         APIData: transformedData,
         Trigger: ["workflow"],
       });
 
-      if (
-        data.data &&
-        data.data.length > 0 &&
-        data.data[0].code === "SUCCESS"
-      ) {
+      if (data?.data?.[0]?.code === "SUCCESS") {
         setSnackbarSeverity("success");
         setSnackbarMessage("Event updated successfully.");
         setSnackbarOpen(true);
+        
+        // STEP 2: Build the complete updated record object
+        // Prefer server-returned fields, fall back to what we just sent
+        const updatedEventData = data.data[0].details || {};
 
-        // Ensure updateEvent always receives the latest associateWith value
-        setEvents((prevEvents) =>
-          prevEvents.map((event) =>
-            event.id === formData.id ? { ...event, ...formData } : event
-          )
-        );
+        const updatedRecord = {
+          ...selectedRowData,
+          ...transformedData,
+          ...updatedEventData,
+          id: selectedRowData?.id,
+          Start_DateTime:
+            updatedEventData.Start_DateTime ||
+            transformedData.Start_DateTime ||
+            formData.start,
+          End_DateTime:
+            updatedEventData.End_DateTime ||
+            transformedData.End_DateTime ||
+            formData.end,
+          Event_Priority:
+            updatedEventData.Event_Priority ||
+            transformedData.Event_Priority ||
+            formData.priority,
+          Type_of_Activity:
+            updatedEventData.Type_of_Activity ||
+            transformedData.Type_of_Activity ||
+            formData.Type_of_Activity,
+          Description:
+            updatedEventData.Description ||
+            transformedData.Description ||
+            formData.Description,
+          Duration_Min:
+            updatedEventData.Duration_Min ||
+            transformedData.Duration_Min ||
+            formData.Duration_Min,
+          Participants:
+            updatedEventData.Participants ||
+            transformedData.Participants ||
+            formData.scheduledWith ||
+            [],
+          Owner:
+            updatedEventData.Owner ||
+            transformedData.Owner ||
+            formData.scheduleFor ||
+            selectedRowData?.Owner,
+          What_Id:
+            updatedEventData.What_Id ||
+            transformedData.What_Id ||
+            selectedRowData?.What_Id,
+        };
 
-        // setEvents((prev) => [
-        //   { ...transformedData, id: data?.data[0].details?.id },
-        //   ...prev,
-        // ]);
+        // STEP 3: Update Global State (No Refetch)
+        // The updateEventState function will:
+        // - Update the master events list in store
+        // - Update all cache entries
+        // - Re-validate if event still matches current filter
+        // - Keep visible if it matches, remove from view if it doesn't (but keep in cache)
+        if (updateEventState) {
+          updateEventState(updatedRecord);
+        } else {
+          // Fallback: Direct store update if updateEventState not provided
+          updateEvent(updatedRecord);
+          updateCacheEntry(updatedRecord);
+        }
 
         setTimeout(() => {
-          // window.location.reload();
           handleClose();
         }, 1000);
       } else {
         throw new Error("Failed to update event");
       }
     } catch (error) {
-      console.log(error);
+      console.error("Error updating event:", error);
       setSnackbarSeverity("error");
       setSnackbarMessage("Error updating event.");
       setSnackbarOpen(true);
