@@ -1,284 +1,270 @@
-import React, { useEffect, useState, createContext } from "react";
+import React, { useEffect, useState, createContext, useCallback } from "react";
 import "./App.css";
 import ActivityTable from "./components/ActivityTable";
-import { CircularProgress, Box } from "@mui/material"; // Add MUI CircularProgress for the loader
+import { CircularProgress, Box } from "@mui/material";
 import DateRangeModal from "./components/atom/DateRangeModal";
 
 const ZOHO = window.ZOHO;
 
-// Create a ZohoContext to hold the ZOHO data
 export const ZohoContext = createContext();
 
 function App() {
+  // --- State Management ---
   const [zohoLoaded, setZohoLoaded] = useState(false);
+  const [loading, setLoading] = useState(true);
+  
+  // Data States
   const [events, setEvents] = useState([]);
   const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true); // Add loading state
-  const [filterDate, setFilterDate] = useState("Default");
-  const [cache, setCache] = useState({}); // Cache to store fetched results
-  const [recentColors, setRecentColor] = useState(""); // Move this to context
+  const [recentColors, setRecentColor] = useState("");
   const [loggedInUser, setLoggedInUser] = useState(null);
-  const [customDateRange, setCustomDateRange] = useState(null); // State for custom date range
-  const [isModalOpen, setIsModalOpen] = useState(false); // Modal state
+  
+  // Filter & Cache States
+  const [filterDate, setFilterDate] = useState("Default");
+  const [customDateRange, setCustomDateRange] = useState(null);
+  const [cache, setCache] = useState({}); 
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // --- 1. Initialization ---
   useEffect(() => {
-    // Initialize Zoho Embedded App once
     ZOHO.embeddedApp.init().then(() => {
       setZohoLoaded(true);
-      // Fetch the logged-in user
-      ZOHO.CRM.CONFIG.getCurrentUser().then(function (data) {
+      ZOHO.CRM.CONFIG.getCurrentUser().then((data) => {
         setLoggedInUser(data?.users[0]);
       });
     });
   }, []);
 
+  // --- 2. Initial Metadata Fetch (Users & Colors) ---
+  // We only fetch this ONCE when Zoho loads, not on every filter change.
+  useEffect(() => {
+    if (zohoLoaded) {
+      fetchInitialMetadata();
+    }
+  }, [zohoLoaded]);
+
+  const fetchInitialMetadata = async () => {
+    try {
+      // Fetch Colors
+      const orgVar = await ZOHO.CRM.API.getOrgVariable("recent_colors");
+      const colorsArray = JSON.parse(orgVar?.Success?.Content || "[]");
+      setRecentColor(colorsArray);
+
+      // Fetch Users
+      const usersResponse = await ZOHO.CRM.API.getAllRecords({
+        Entity: "users",
+        sort_order: "asc",
+        per_page: 100,
+        page: 1,
+      });
+      setUsers(usersResponse.users || []);
+    } catch (error) {
+      console.error("Error fetching metadata:", error);
+    }
+  };
+
+  // --- 3. Date Utility Helper ---
+  const calculateDateRange = (filterType, customRange) => {
+    const currentDate = new Date();
+    let beginDate, closeDate;
+
+    switch (filterType) {
+      case "Default":
+        // Last month start to 1 year future
+        beginDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
+        closeDate = new Date(currentDate);
+        closeDate.setFullYear(currentDate.getFullYear() + 1);
+        break;
+      case "All":
+        beginDate = new Date("2023-01-01");
+        closeDate = new Date();
+        break;
+      case "Current Week":
+        beginDate = new Date(currentDate);
+        beginDate.setDate(currentDate.getDate() - currentDate.getDay());
+        closeDate = new Date(beginDate);
+        closeDate.setDate(beginDate.getDate() + 6);
+        break;
+      case "Last 7 Days":
+        closeDate = new Date(currentDate);
+        beginDate = new Date(currentDate);
+        beginDate.setDate(currentDate.getDate() - 6);
+        break;
+      case "Last 30 Days":
+        closeDate = new Date(currentDate);
+        beginDate = new Date(currentDate);
+        beginDate.setDate(currentDate.getDate() - 29);
+        break;
+      case "Last 90 Days":
+        closeDate = new Date(currentDate);
+        beginDate = new Date(currentDate);
+        beginDate.setDate(currentDate.getDate() - 89);
+        break;
+      case "Last Month":
+        beginDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
+        closeDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), 0);
+        break;
+      case "Current Month":
+        beginDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+        closeDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+        break;
+      case "Next Week":
+        beginDate = new Date(currentDate);
+        beginDate.setDate(currentDate.getDate() - currentDate.getDay() + 7);
+        closeDate = new Date(beginDate);
+        closeDate.setDate(beginDate.getDate() + 6);
+        break;
+      case "Custom Range":
+        if (customRange) {
+          beginDate = new Date(customRange.startDate + "T00:00:00");
+          closeDate = new Date(customRange.endDate + "T23:59:59");
+        }
+        break;
+      default:
+        return null;
+    }
+    return { beginDate, closeDate };
+  };
+
+  // --- 4. Zoho Date Formatter ---
+  const formatDateForZoho = (date, hours = 0, minutes = 0, seconds = 0) => {
+    if (!date || isNaN(date.getTime())) return null;
+    const pad = (num) => String(num).padStart(2, "0");
+    
+    const year = date.getFullYear();
+    const month = pad(date.getMonth() + 1);
+    const day = pad(date.getDate());
+    const formattedTime = `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+    
+    const timezoneOffset = -date.getTimezoneOffset();
+    const offsetSign = timezoneOffset >= 0 ? "+" : "-";
+    const offsetHours = pad(Math.floor(Math.abs(timezoneOffset) / 60));
+    const offsetMinutes = pad(Math.abs(timezoneOffset) % 60);
+    
+    return `${year}-${month}-${day}T${formattedTime}${offsetSign}${offsetHours}:${offsetMinutes}`;
+  };
+
+  // --- 5. Core API Fetch Logic ---
+  const fetchEventsFromZoho = async (beginDate, closeDate) => {
+    const formattedBegin = formatDateForZoho(beginDate, 0, 0, 0);
+    const formattedClose = formatDateForZoho(closeDate, 23, 59, 59);
+
+    let allEventsData = [];
+    let currentPage = 1;
+    let hasMoreRecords = true;
+    const recordsPerPage = 100;
+
+    // Pagination Loop
+    while (hasMoreRecords && currentPage < 11) {
+      const searchUrl = `((Start_DateTime:greater_equal:${encodeURIComponent(formattedBegin)})and(End_DateTime:less_equal:${encodeURIComponent(formattedClose)}))`;
+      
+      const req_data = {
+        url: `https://www.zohoapis.com.au/crm/v3/Events/search?criteria=${searchUrl}&per_page=${recordsPerPage}&page=${currentPage}`,
+        method: "GET",
+        param_type: 1,
+      };
+
+      try {
+        const data = await ZOHO.CRM.CONNECTION.invoke("zoho_crm_conn", req_data);
+        const pageEvents = data?.details?.statusMessage?.data || [];
+        const moreRecords = data?.details?.statusMessage?.info?.more_records || false;
+
+        allEventsData = [...allEventsData, ...pageEvents];
+        hasMoreRecords = moreRecords;
+        currentPage++;
+      } catch (error) {
+        console.error("Pagination error:", error);
+        hasMoreRecords = false;
+      }
+    }
+
+    return allEventsData;
+  };
+
+  // --- 6. Event Processing (Sort/Dedupe) ---
+  const processEvents = (rawEvents) => {
+    const uniqueEventsMap = new Map();
+    rawEvents.forEach((event) => {
+      if (!uniqueEventsMap.has(event.id)) {
+        uniqueEventsMap.set(event.id, event);
+      }
+    });
+    
+    return Array.from(uniqueEventsMap.values()).sort((a, b) => {
+      return new Date(a.Start_DateTime) - new Date(b.Start_DateTime);
+    });
+  };
+
+  // --- 7. Specific Fetch Handlers ---
+
+  const handleStandardFilter = async (filterType) => {
+    // 1. Check Cache
+    if (cache[filterType]) {
+      setEvents(cache[filterType]);
+      setLoading(false);
+      return;
+    }
+
+    // 2. Calculate Dates
+    const dates = calculateDateRange(filterType);
+    if (!dates) return;
+
+    setLoading(true);
+    try {
+      // 3. Fetch
+      const rawData = await fetchEventsFromZoho(dates.beginDate, dates.closeDate);
+      
+      // 4. Process
+      const processedData = processEvents(rawData);
+
+      // 5. Update Cache and State
+      setCache((prev) => ({ ...prev, [filterType]: processedData }));
+      setEvents(processedData);
+    } catch (error) {
+      console.error(`Error loading ${filterType}:`, error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCustomRange = async (range) => {
+    // Custom range never uses cache
+    if (!range) return;
+
+    setLoading(true);
+    try {
+      const dates = calculateDateRange("Custom Range", range);
+      const rawData = await fetchEventsFromZoho(dates.beginDate, dates.closeDate);
+      // We process but do NOT cache custom ranges
+      const processedData = processEvents(rawData);
+      setEvents(processedData);
+    } catch (error) {
+      console.error("Error loading custom range:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // --- 8. Main Effect Controller ---
+  useEffect(() => {
+    if (!zohoLoaded) return;
+
+    if (filterDate === "Custom Range") {
+      // Only fetch if we actually have a range selected
+      if (customDateRange) {
+        handleCustomRange(customDateRange);
+      }
+    } else {
+      handleStandardFilter(filterDate);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [zohoLoaded, filterDate, customDateRange]);
+
+
   const handleCustomRangeSave = (range) => {
     setCustomDateRange(range);
     setFilterDate("Custom Range");
   };
-
-  useEffect(() => {
-    async function getData() {
-      if (cache[filterDate]) {
-        setEvents(cache[filterDate]);
-        setLoading(false);
-        return;
-      }
-
-      if (zohoLoaded) {
-        setLoading(true);
-        try {
-          let beginDate1, closeDate1;
-          const currentDate = new Date();
-
-          // Default: Last 30 days + future items
-          // Using start of previous month to be more inclusive and ensure we capture all relevant events
-          if (!filterDate || filterDate === "Default") {
-            // Start from the beginning of the previous month to be inclusive
-            beginDate1 = new Date(
-              currentDate.getFullYear(),
-              currentDate.getMonth() - 1,
-              1
-            );
-            closeDate1 = new Date(currentDate);
-            closeDate1.setFullYear(currentDate.getFullYear() + 1); // Future items (1 year ahead)
-          } else if (filterDate === "Custom Range" && customDateRange) {
-            // Custom date range set by user
-            beginDate1 = new Date(customDateRange.startDate);
-            closeDate1 = new Date(customDateRange.endDate);
-          } else if (filterDate === "All") {
-            // Show all records from the beginning of the year to now
-            beginDate1 = new Date("2023-01-01");
-            closeDate1 = new Date();
-          } else if (filterDate === "Current Week") {
-            // Start of current week (Sunday to Saturday)
-            beginDate1 = new Date(currentDate);
-            beginDate1.setDate(currentDate.getDate() - currentDate.getDay());
-            closeDate1 = new Date(beginDate1);
-            closeDate1.setDate(beginDate1.getDate() + 6);
-          } else if (filterDate === "Last 7 Days") {
-            // Last 7 days up to the current date
-            closeDate1 = new Date(currentDate);
-            beginDate1 = new Date(currentDate);
-            beginDate1.setDate(currentDate.getDate() - 6);
-          } else if (filterDate === "Last 30 Days") {
-            // Last 30 days up to the current date
-            closeDate1 = new Date(currentDate);
-            beginDate1 = new Date(currentDate);
-            beginDate1.setDate(currentDate.getDate() - 29);
-          } else if (filterDate === "Last 90 Days") {
-            // Last 90 days up to the current date
-            closeDate1 = new Date(currentDate);
-            beginDate1 = new Date(currentDate);
-            beginDate1.setDate(currentDate.getDate() - 89);
-          } else if (filterDate === "Last Month") {
-            // First day of the previous month to the last day of the previous month
-            beginDate1 = new Date(
-              currentDate.getFullYear(),
-              currentDate.getMonth() - 1,
-              1
-            );
-            closeDate1 = new Date(
-              currentDate.getFullYear(),
-              currentDate.getMonth(),
-              0
-            );
-          } else if (filterDate === "Current Month") {
-            // First day of the current month to the last day of the current month
-            beginDate1 = new Date(
-              currentDate.getFullYear(),
-              currentDate.getMonth(),
-              1
-            );
-            closeDate1 = new Date(
-              currentDate.getFullYear(),
-              currentDate.getMonth() + 1,
-              0
-            );
-          } else if (filterDate === "Next Week") {
-            // Next week (from the next Sunday to the following Saturday)
-            beginDate1 = new Date(currentDate);
-            beginDate1.setDate(
-              currentDate.getDate() - currentDate.getDay() + 7
-            ); // Next Sunday
-            closeDate1 = new Date(beginDate1);
-            closeDate1.setDate(beginDate1.getDate() + 6); // Following Saturday
-          }
-
-          // Format dates for API request
-          const formattedBeginDate = `${
-            beginDate1.toISOString().split("T")[0]
-          }T00:00:00+11:00`;
-          const formattedCloseDate = `${
-            closeDate1.toISOString().split("T")[0]
-          }T23:59:59+11:00`;
-
-          // Replace the single API call with pagination loop
-          let allEventsData = [];
-          let currentPage = 1;
-          let hasMoreRecords = true;
-          let recordsPerPage = 100;
-
-          while (hasMoreRecords && currentPage < 11) {
-            const req_data_meetings = {
-              url: `https://www.zohoapis.com.au/crm/v3/Events/search?criteria=((Start_DateTime:greater_equal:${encodeURIComponent(
-                formattedBeginDate
-              )})and(End_DateTime:less_equal:${encodeURIComponent(
-                formattedCloseDate
-              )}))&per_page=${recordsPerPage}&page=${currentPage}`,
-              method: "GET",
-              param_type: 1,
-            };
-
-            try {
-              // Fetch data for current page
-              const data = await ZOHO.CRM.CONNECTION.invoke(
-                "zoho_crm_conn",
-                req_data_meetings
-              );
-
-              console.log(`Page ${currentPage} data:`, data);
-
-              const pageEventsData = data?.details?.statusMessage?.data || [];
-              const moreRecords = data?.details?.statusMessage?.info?.more_records || false;
-
-              // Add current page data to all events
-              allEventsData = [...allEventsData, ...pageEventsData];
-
-              // Check if there are more records to fetch
-              hasMoreRecords = moreRecords;
-              currentPage++;
-
-              console.log(`Fetched page ${currentPage - 1}, more records: ${moreRecords}, total events so far: ${allEventsData.length}`);
-
-            } catch (error) {
-              console.error(`Error fetching page ${currentPage}:`, error);
-              hasMoreRecords = false; // Stop pagination on error
-            }
-          }
-
-          console.log(`Total events fetched from API: ${allEventsData.length}`);
-          console.log(`Date range for API query: ${formattedBeginDate} to ${formattedCloseDate}`);
-          console.log(`Filter type: ${filterDate}`);
-          
-          // Check for December 2025 events specifically
-          const dec2025Events = allEventsData.filter(e => {
-            const eventDate = new Date(e.Start_DateTime);
-            return eventDate.getFullYear() === 2025 && eventDate.getMonth() === 11; // December is month 11
-          });
-          console.log(`December 2025 events found: ${dec2025Events.length}`, dec2025Events.map(e => ({
-            id: e.id,
-            title: e.Event_Title || e.Subject || 'No title',
-            date: e.Start_DateTime
-          })));
-          
-          console.log(`Sample of fetched events:`, allEventsData.slice(0, 5).map(e => ({
-            id: e.id,
-            title: e.Event_Title || e.Subject || 'No title',
-            start: e.Start_DateTime,
-            end: e.End_DateTime
-          })));
-
-          // Replace: const eventsData = data1?.details?.statusMessage?.data || [];
-          // With:
-          const eventsData = allEventsData;
-
-          // const req_data_meetings1 = {
-          //   url: `https://www.zohoapis.com.au/crm/v3/Events/search?criteria=((Start_DateTime:greater_equal:${encodeURIComponent(
-          //     formattedBeginDate
-          //   )})and(End_DateTime:less_equal:${encodeURIComponent(
-          //     formattedCloseDate
-          //   )}))&per_page=10&page=1`,
-          //   method: "GET",
-          //   param_type: 1,
-          // };
-
-          // // Fetch data
-          // const data1 = await ZOHO.CRM.CONNECTION.invoke(
-          //   "zoho_crm_conn",
-          //   req_data_meetings1
-          // );
-
-          // console.log({data1})
-
-          // // console.log("mahadi data fetch", data1?.details?.statusMessage?.info?.more_records)
-
-          // const eventsData = data1?.details?.statusMessage?.data || [];
-          
-          // The API query already fetches events in the correct date range, so we don't need additional filtering
-          // Just use the eventsData directly for non-Custom Range filters
-          if (filterDate === "Custom Range") {
-            setEvents(eventsData);
-          } else {
-            // For Default and other filters, the API query already returns the correct events
-            // No need for additional getAllRecords call or filtering - the API handles it
-            console.log(`Using ${eventsData.length} events from API query for filter: ${filterDate}`);
-            
-            // Deduplicate events based on `id` first
-            const uniqueEventsMap = new Map();
-            eventsData.forEach((event) => {
-              if (!uniqueEventsMap.has(event.id)) {
-                uniqueEventsMap.set(event.id, event);
-              }
-            });
-            const uniqueEvents = Array.from(uniqueEventsMap.values());
-            
-            // Sort events by `Start_DateTime`
-            const sortedEvents = uniqueEvents.sort((a, b) => {
-              return new Date(a.Start_DateTime) - new Date(b.Start_DateTime);
-            });
-
-            // Cache and update state
-            setCache((prevCache) => ({
-              ...prevCache,
-              [filterDate]: sortedEvents,
-            }));
-
-            setEvents(sortedEvents);
-          }
-
-          // Fetch org variable and users
-          const orgVar = await ZOHO.CRM.API.getOrgVariable("recent_colors");
-          const colorsArray = JSON.parse(orgVar?.Success?.Content || "[]");
-          setRecentColor(colorsArray);
-
-          const usersResponse = await ZOHO.CRM.API.getAllRecords({
-            Entity: "users",
-            sort_order: "asc",
-            per_page: 100,
-            page: 1,
-          });
-          setUsers(usersResponse.users);
-
-          setLoading(false);
-        } catch (error) {
-          console.error("Error fetching data", error);
-          setLoading(false);
-        }
-      }
-    }
-
-    getData();
-  }, [zohoLoaded, filterDate, customDateRange, cache]);
 
   return (
     <ZohoContext.Provider
@@ -288,13 +274,12 @@ function App() {
         ZOHO,
         filterDate,
         setFilterDate,
-        customDateRange, // Provide customDateRange for context
-        setCustomDateRange, // Provide setCustomDateRange for context
+        customDateRange,
+        setCustomDateRange,
         recentColors,
         setRecentColor,
       }}
     >
-      {/* Conditionally render the loader or the main content */}
       {loading ? (
         <Box
           sx={{
@@ -304,7 +289,7 @@ function App() {
             height: "100vh",
           }}
         >
-          <CircularProgress /> {/* MUI loader */}
+          <CircularProgress />
         </Box>
       ) : (
         <ActivityTable
@@ -317,8 +302,8 @@ function App() {
           setRecentColor={setRecentColor}
           loggedInUser={loggedInUser}
           setEvents={setEvents}
-          customDateRange={customDateRange} // Pass customDateRange to ActivityTable
-          setCustomDateRange={setCustomDateRange} // Pass setCustomDateRange to ActivityTable
+          customDateRange={customDateRange}
+          setCustomDateRange={setCustomDateRange}
         />
       )}
       <DateRangeModal

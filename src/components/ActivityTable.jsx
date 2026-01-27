@@ -19,6 +19,7 @@ import {
   Box,
   TextField,
   FormControlLabel,
+  Typography,
 } from "@mui/material";
 import TableSortLabel from "@mui/material/TableSortLabel";
 import { visuallyHidden } from "@mui/utils";
@@ -29,6 +30,9 @@ import { isDateInRange } from "./helperFunc";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 
 // Extend dayjs with plugins
 dayjs.extend(utc);
@@ -224,16 +228,28 @@ function createData(event, type) {
 
 // Custom Range Modal Component
 const CustomRangeModal = ({ open, handleClose, setCustomDateRange }) => {
-  const [startDate, setStartDate] = React.useState("");
-  const [endDate, setEndDate] = React.useState("");
+  const [startDate, setStartDate] = React.useState(null);
+  const [endDate, setEndDate] = React.useState(null);
 
   const handleSearch = () => {
-    setCustomDateRange({ startDate, endDate });
+    if (startDate && endDate) {
+      // Convert dayjs objects to YYYY-MM-DD format for API compatibility
+      const startDateStr = startDate.format("YYYY-MM-DD");
+      const endDateStr = endDate.format("YYYY-MM-DD");
+      setCustomDateRange({ startDate: startDateStr, endDate: endDateStr });
+      handleClose();
+    }
+  };
+
+  const handleModalClose = () => {
+    // Reset dates when closing
+    setStartDate(null);
+    setEndDate(null);
     handleClose();
   };
 
   return (
-    <Modal open={open} onClose={handleClose}>
+    <Modal open={open} onClose={handleModalClose}>
       <Box
         sx={{
           position: "absolute",
@@ -248,35 +264,47 @@ const CustomRangeModal = ({ open, handleClose, setCustomDateRange }) => {
         }}
       >
         <h2>Select Date Range</h2>
-        <TextField
-          label="Start Date"
-          type="date"
-          fullWidth
-          value={startDate}
-          onChange={(e) => setStartDate(e.target.value)}
-          InputLabelProps={{
-            shrink: true,
-          }}
-          sx={{ marginBottom: 2 }}
-        />
-        <TextField
-          label="End Date"
-          type="date"
-          fullWidth
-          value={endDate}
-          onChange={(e) => setEndDate(e.target.value)}
-          InputLabelProps={{
-            shrink: true,
-          }}
-        />
+        <LocalizationProvider dateAdapter={AdapterDayjs}>
+          <DatePicker
+            label="Start Date"
+            value={startDate}
+            onChange={(newValue) => setStartDate(newValue)}
+            format="DD-MM-YYYY"
+            slotProps={{
+              textField: {
+                fullWidth: true,
+                sx: { marginBottom: 2 },
+                InputLabelProps: {
+                  shrink: true,
+                },
+              },
+            }}
+          />
+          <DatePicker
+            label="End Date"
+            value={endDate}
+            onChange={(newValue) => setEndDate(newValue)}
+            format="DD-MM-YYYY"
+            minDate={startDate || undefined} // Prevent selecting end date before start date
+            slotProps={{
+              textField: {
+                fullWidth: true,
+                sx: { marginBottom: 2 },
+                InputLabelProps: {
+                  shrink: true,
+                },
+              },
+            }}
+          />
+        </LocalizationProvider>
         <Grid container spacing={2} sx={{ marginTop: 2 }}>
           <Grid item xs={6}>
-            <Button variant="outlined" fullWidth onClick={handleClose}>
+            <Button variant="outlined" fullWidth onClick={handleModalClose}>
               Cancel
             </Button>
           </Grid>
           <Grid item xs={6}>
-            <Button variant="contained" fullWidth onClick={handleSearch}>
+            <Button variant="contained" fullWidth onClick={handleSearch} disabled={!startDate || !endDate}>
               Search
             </Button>
           </Grid>
@@ -391,8 +419,10 @@ export default function ScheduleTable({
     setFilterDate("Default");
     setFilterType([]);
     setFilterPriority([]);
-    // setFilterUser([]);
+    // Reset user filter to logged-in user only (default state)
+    setFilterUser(loggedInUser?.full_name ? [loggedInUser.full_name] : []);
     setCustomDateRange(null);
+    setShowCleared(false); // Reset "Show Cleared" checkbox
   };
 
   const rows = Array.isArray(events)
@@ -403,7 +433,13 @@ export default function ScheduleTable({
 
   // Replace your existing filteredRows useMemo with this:
   const filteredRows = React.useMemo(() => {
-    return rows.filter((row) => {
+    // Debug: Log custom date range if it exists
+    if (customDateRange) {
+      console.log("🔍 Custom date range filter active:", customDateRange);
+      console.log("📊 Total rows to filter:", rows.length);
+    }
+    
+    const filtered = rows.filter((row) => {
       // Type filter
       const typeMatch =
         filterType.length === 0 || filterType.includes(row.type);
@@ -432,12 +468,41 @@ export default function ScheduleTable({
       // Enhanced date filter using Day.js
       let dateMatch = true;
       if (customDateRange) {
-        const rowDate = dayjs(row.date, "DD/MM/YYYY").utc().startOf("day");
-        const startDate = dayjs(customDateRange.startDate).utc().startOf("day");
-        const endDate = dayjs(customDateRange.endDate).utc().endOf("day");
+        // Parse row date explicitly as DD/MM/YYYY format (display format used in table)
+        // e.g., "06/01/2026" = January 6, 2026 (not June 1st)
+        // Use startOf("day") to normalize to midnight for accurate date-only comparison
+        let rowDate = dayjs(row.date, "DD/MM/YYYY").startOf("day");
+        
+        // Fallback: if DD/MM/YYYY parsing fails, try other formats
+        if (!rowDate.isValid()) {
+          // Try ISO format as fallback
+          rowDate = dayjs(row.date, "YYYY-MM-DD").startOf("day");
+        }
+        
+        // HTML5 date input (type="date") always returns ISO format (YYYY-MM-DD)
+        // Parse explicitly to avoid any locale-dependent parsing issues
+        // Use startOf("day") to normalize to midnight for accurate date-only comparison
+        const startDate = dayjs(customDateRange.startDate, "YYYY-MM-DD").startOf("day");
+        const endDate = dayjs(customDateRange.endDate, "YYYY-MM-DD").endOf("day");
 
-        dateMatch = rowDate.isBetween(startDate, endDate, null, "[]");
-        console.log(`Date range check: ${row.date} -> ${dateMatch}`);
+        // Validate parsed dates
+        if (!rowDate.isValid()) {
+          console.warn(`⚠️ Invalid row date: "${row.date}" - cannot parse as DD/MM/YYYY or YYYY-MM-DD`);
+          dateMatch = false;
+        } else if (!startDate.isValid() || !endDate.isValid()) {
+          console.warn(`⚠️ Invalid date range: "${customDateRange.startDate}" - "${customDateRange.endDate}"`);
+          console.warn(`   Start date valid: ${startDate.isValid()}, End date valid: ${endDate.isValid()}`);
+          dateMatch = false;
+        } else {
+          // Use isBetween with inclusive boundaries ("[]") to include start and end dates
+          dateMatch = rowDate.isBetween(startDate, endDate, null, "[]");
+          // Debug logging - can be removed in production
+          if (!dateMatch) {
+            console.log(`❌ Date excluded: "${row.date}" (parsed as ${rowDate.format("YYYY-MM-DD")}) not between ${startDate.format("YYYY-MM-DD")} and ${endDate.format("YYYY-MM-DD")}`);
+          } else {
+            console.log(`✅ Date included: "${row.date}" (parsed as ${rowDate.format("YYYY-MM-DD")}) between ${startDate.format("YYYY-MM-DD")} and ${endDate.format("YYYY-MM-DD")}`);
+          }
+        }
       } else if (filterDate && filterDate !== "Default") {
         // Use your existing isDateInRange but with Day.js parsing
         const date = dayjs(row.date, "DD/MM/YYYY").utc();
@@ -458,6 +523,13 @@ export default function ScheduleTable({
 
       return result;
     });
+    
+    // Debug: Log filtering results
+    if (customDateRange) {
+      console.log(`📈 Filter results: ${filtered.length} rows passed filter out of ${rows.length} total rows`);
+    }
+    
+    return filtered;
   }, [
     rows,
     filterType,
@@ -471,6 +543,44 @@ export default function ScheduleTable({
   ]);
   console.log({date:rows?.map(el=>el?.date),date2:filteredRows?.map(el=>el?.date)})
 
+  // Generate active filter names for summary display
+  const getActiveFilterNames = () => {
+    const activeFilters = [];
+    
+    // Date filter - show if Custom Range is set or if filterDate is not Default
+    if (customDateRange) {
+      activeFilters.push("Date");
+    } else if (filterDate && filterDate !== "Default") {
+      activeFilters.push("Date");
+    }
+    
+    // Type filter - show if any types are selected
+    if (filterType.length > 0) {
+      activeFilters.push("Type");
+    }
+    
+    // Priority filter - show if any priorities are selected
+    if (filterPriority.length > 0) {
+      activeFilters.push("Priority");
+    }
+    
+    // User filter - show if filtering to a subset of users (not all users)
+    // This means if filterUser.length < users.length, it's an active filter
+    if (filterUser.length > 0 && filterUser.length < users.length) {
+      activeFilters.push("User");
+    }
+    
+    // Cleared filter - show if "Show Cleared" checkbox is checked
+    if (showCleared) {
+      activeFilters.push("Cleared");
+    }
+    
+    return activeFilters;
+  };
+
+  const activeFilterNames = getActiveFilterNames();
+  const hasActiveFilters = activeFilterNames.length > 0;
+
   // Checkbox handler
   const handleClearedCheckboxChange = (event) => {
     setShowCleared(event.target.checked);
@@ -481,6 +591,9 @@ export default function ScheduleTable({
     setFilterDate(value);
     if (value === "Custom Range") {
       setOpenCustomRangeModal(true);
+    } else {
+      // Clear custom date range when switching to any other filter
+      setCustomDateRange(null);
     }
   };
 
@@ -819,6 +932,52 @@ export default function ScheduleTable({
         >
           Create New Activity
         </Button>
+      </Box>
+
+      {/* Summary Header */}
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 1,
+          px: 2,
+          py: 1,
+          borderBottom: "1px solid #e0e0e0",
+          backgroundColor: "#fafafa",
+        }}
+      >
+        <Typography
+          variant="body2"
+          sx={{
+            color: "#666",
+            fontSize: "0.875rem",
+          }}
+        >
+          Total Records {filteredRows.length}
+        </Typography>
+        {hasActiveFilters && (
+          <>
+            <Typography
+              variant="body2"
+              sx={{
+                color: "#666",
+                fontSize: "0.875rem",
+              }}
+            >
+              •
+            </Typography>
+            <Typography
+              variant="body2"
+              sx={{
+                color: "#666",
+                fontSize: "0.875rem",
+              }}
+            >
+              Filter By {activeFilterNames.join(", ")}
+            </Typography>
+          </>
+        )}
       </Box>
 
       {/* Table */}
