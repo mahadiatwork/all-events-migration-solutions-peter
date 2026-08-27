@@ -14,6 +14,7 @@ export default function AccountField({
   const [notFoundMessage, setNotFoundMessage] = useState(""); // Message if nothing is found
   const [loading, setLoading] = useState(false); // Loading state for search
   const debounceTimer = useRef(null); // Ref to store debounce timer
+  const latestSearchId = useRef(0);
 
   // Sync selectedAccount with formData.What_Id for the default value
   useEffect(() => {
@@ -32,12 +33,21 @@ export default function AccountField({
     }
   }, [formData.What_Id]); // Rerun effect only when formData.What_Id changes
 
+  useEffect(
+    () => () => {
+      clearTimeout(debounceTimer.current);
+      latestSearchId.current += 1;
+    },
+    []
+  );
+
   // Perform search with a query
-  const performSearch = async (query) => {
+  const performSearch = async (query, searchId) => {
     setNotFoundMessage(""); // Reset message before search
-    setLoading(true); // Start loading
 
     if (ZOHO && query.trim()) {
+      setLoading(true); // Start loading
+
       try {
         const searchResults = await ZOHO.CRM.API.searchRecord({
           Entity: "Accounts",
@@ -45,7 +55,9 @@ export default function AccountField({
           Query: query.trim(),
         });
 
-        if (searchResults.data && searchResults.data.length > 0) {
+        if (searchId !== latestSearchId.current) return;
+
+        if (searchResults?.data?.length > 0) {
           const formattedAccounts = searchResults.data.map((account) => ({
             Account_Name: account.Account_Name,
             id: account.id,
@@ -53,33 +65,44 @@ export default function AccountField({
           setAccounts(formattedAccounts);
           setNotFoundMessage(""); // Clear the not-found message
         } else {
+          setAccounts([]);
           setNotFoundMessage(`"${query.trim()}" not found in the database`);
         }
       } catch (error) {
+        if (searchId !== latestSearchId.current) return;
+
         console.error("Error during search:", error);
+        setAccounts([]);
         setNotFoundMessage(
           "An error occurred while searching. Please try again."
         );
       } finally {
-        setLoading(false); // End loading
+        if (searchId === latestSearchId.current) {
+          setLoading(false); // End loading
+        }
       }
     } else {
+      if (searchId === latestSearchId.current) setAccounts([]);
       setLoading(false);
     }
   };
 
   // Debounced input handler
-  const handleInputChangeWithDebounce = (event, newInputValue) => {
+  const handleInputChangeWithDebounce = (event, newInputValue, reason) => {
     setInputValue(newInputValue); // Update input value
     setNotFoundMessage(""); // Clear not-found message
+    setLoading(false);
+    const searchId = ++latestSearchId.current;
 
     if (debounceTimer.current) {
       clearTimeout(debounceTimer.current); // Clear existing debounce timer
     }
 
+    if (reason !== "input") return;
+
     // Set a new debounce timer
     debounceTimer.current = setTimeout(() => {
-      performSearch(newInputValue); // Perform search after debounce
+      performSearch(newInputValue, searchId); // Perform search after debounce
     }, 500); // 0.5 seconds debounce
   };
 
@@ -108,25 +131,6 @@ export default function AccountField({
         inputValue={inputValue}
         onInputChange={handleInputChangeWithDebounce} // Use the debounced handler
         loading={loading} // Show loading indicator during search
-        noOptionsText={
-          notFoundMessage ? (
-            <Box
-              display="flex"
-              alignItems="center"
-              color="error.main"
-              sx={{ ...commonTextStyles }}
-            >
-              <ErrorOutlineIcon sx={{ mr: 1, fontSize: "9pt" }} />
-              <Typography variant="body2" sx={{ ...commonTextStyles }}>
-                {notFoundMessage}
-              </Typography>
-            </Box>
-          ) : (
-            <Typography variant="body2" sx={{ ...commonTextStyles }}>
-              No options
-            </Typography>
-          )
-        }
         renderInput={(params) => (
           <TextField
             {...params}
@@ -142,6 +146,20 @@ export default function AccountField({
           />
         )}
       />
+      {notFoundMessage && (
+        <Box
+          role="alert"
+          display="flex"
+          alignItems="center"
+          color="error.main"
+          sx={{ ...commonTextStyles, mt: 0.5 }}
+        >
+          <ErrorOutlineIcon sx={{ mr: 1, fontSize: "9pt" }} />
+          <Typography variant="body2" sx={{ ...commonTextStyles }}>
+            {notFoundMessage}
+          </Typography>
+        </Box>
+      )}
     </Box>
   );
 }

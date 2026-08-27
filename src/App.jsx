@@ -39,7 +39,19 @@ function App() {
     ZOHO.embeddedApp.init().then(() => {
       setZohoLoaded(true);
       ZOHO.CRM.CONFIG.getCurrentUser().then((data) => {
-        setLoggedInUser(data?.users[0]);
+        const currentUser = data?.users?.[0];
+        if (currentUser?.id) {
+          // Enrich with full user record so User_Type (Admin / Super Admin / Generic) is available
+          ZOHO.CRM.API.getRecord({
+            Entity: "users",
+            approved: "both",
+            RecordID: currentUser.id,
+          }).then((record) => {
+            setLoggedInUser(record?.users?.[0] || currentUser);
+          });
+        } else if (currentUser) {
+          setLoggedInUser(currentUser);
+        }
       });
     });
   }, []);
@@ -88,6 +100,12 @@ function App() {
       case "All":
         beginDate = new Date("2023-01-01");
         closeDate = new Date();
+        break;
+      case "Today":
+        beginDate = new Date(currentDate);
+        beginDate.setHours(0, 0, 0, 0);
+        closeDate = new Date(currentDate);
+        closeDate.setHours(23, 59, 59, 999);
         break;
       case "Current Week":
         beginDate = new Date(currentDate);

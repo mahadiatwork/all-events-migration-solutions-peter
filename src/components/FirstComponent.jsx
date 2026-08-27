@@ -17,7 +17,6 @@ import CustomTextField from "./atom/CustomTextField";
 import ContactField from "./atom/ContactField";
 import AccountField from "./atom/AccountField";
 import { ChromePicker, SketchPicker } from "react-color";
-import { Datepicker } from "@mobiscroll/react";
 import RegardingField from "./atom/RegardingField";
 import { ZohoContext } from "../App";
 import CustomColorPicker from "./atom/CustomColorPicker";

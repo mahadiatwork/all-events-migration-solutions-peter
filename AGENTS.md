@@ -29,8 +29,11 @@ Use any Node-compatible package manager; commands below assume `npm`:
 
 ### Tests
 
-As of now there is no `test` script in `package.json` and no obvious test runner configuration. Before writing or running tests:
-- Add a test runner (e.g. Vitest or Jest) and scripts in `package.json`, then document the exact commands here.
+- Run the full Vitest suite once:
+  - `npm test`
+- Run Vitest in watch mode while developing:
+  - `npm run test:watch`
+- Tests run in JSDOM and mock the Zoho SDK; they never write to a live CRM.
 
 ## High-level architecture
 

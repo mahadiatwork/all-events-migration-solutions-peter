@@ -114,7 +114,7 @@ function formatDateWithOffset(dateString) {
   return `${formattedYear}-${formattedMonth}-${formattedDay}T${formattedHours}:${formattedMinutes}:${formattedSeconds}${offsetSign}${offsetHours}:${offsetMinutes}`;
 }
 
-function transformFormSubmission(data, individualParticipant = null) {
+export function buildCreateActivityPayload(data, individualParticipant = null) {
   const transformScheduleWithToParticipants = (scheduleWith) => {
     return scheduleWith.map((contact) => ({
       name: contact.Full_Name || null,
@@ -131,7 +131,8 @@ function transformFormSubmission(data, individualParticipant = null) {
           name: individualParticipant.Full_Name || null,
           invited: false,
           type: "contact",
-          participant: individualParticipant.participant || null,
+          participant:
+            individualParticipant.participant || individualParticipant.id || null,
           status: "not_known",
         },
       ]
@@ -170,18 +171,27 @@ function transformFormSubmission(data, individualParticipant = null) {
     Owner: {
       id: data?.scheduleFor?.id,
     },
-    Recurring_Activity: {
-      RRULE: `FREQ=${data?.occurrence?.toUpperCase()};INTERVAL=1;UNTIL=${customEndTime}${
-        data.occurrence === "weekly"
+  };
+
+  const occurrence = data?.occurrence?.toLowerCase();
+  const recurringFrequencies = ["daily", "weekly", "monthly", "yearly"];
+  if (
+    recurringFrequencies.includes(occurrence) &&
+    dayjs(data.startTime).isValid() &&
+    dayjs(customEndTime).isValid()
+  ) {
+    transformedData.Recurring_Activity = {
+      RRULE: `FREQ=${occurrence.toUpperCase()};INTERVAL=1;UNTIL=${customEndTime}${
+        occurrence === "weekly"
           ? `;BYDAY=${dayName.toUpperCase()}`
-          : data.occurrence === "monthly"
+          : occurrence === "monthly"
           ? `;BYMONTHDAY=${dayOfMonth}`
-          : data.occurrence === "yearly"
+          : occurrence === "yearly"
           ? `;BYMONTH=${monthNumber};BYMONTHDAY=${dayOfMonth}`
           : ""
       };DTSTART=${dayjs(data.startTime).format("YYYY-MM-DD")}`,
-    },
-  };
+    };
+  }
 
   if (
     data?.Reminder_Text !== null &&
@@ -258,6 +268,15 @@ function transformFormSubmission(data, individualParticipant = null) {
     "start",
     "end",
     "duration",
+    "scheduleFor",
+    "startTime",
+    "endTime",
+    "noEndDate",
+    "occurrence",
+    "priority",
+    "repeat",
+    "resource",
+    "color",
   ];
   keysToRemove.forEach((key) => delete transformedData[key]);
 
@@ -424,7 +443,7 @@ const CreateActivityModal = ({
 
     if (formData.Create_Separate_Event_For_Each_Contact) {
       for (let participant of formData.scheduledWith) {
-        const transformedData = transformFormSubmission(formData, participant);
+        const transformedData = buildCreateActivityPayload(formData, participant);
         try {
           const data = await ZOHO.CRM.API.insertRecord({
             Entity: "Events",
@@ -438,7 +457,7 @@ const CreateActivityModal = ({
             data.data[0].code === "SUCCESS";
 
           await logResponse({
-            name: `Event for ${participant.name}`,
+            name: `Event for ${participant.name || participant.Full_Name}`,
             payload: transformedData,
             response: data,
             result: wasSuccessful ? "Success" : "Error",
@@ -463,7 +482,7 @@ const CreateActivityModal = ({
             setHighlightedRow(createdEvent.id);
             setSnackbarSeverity("success");
             setSnackbarMessage("Event Created Successfully");
-            if (transformedData?.Recurring_Activity?.RRULE !== null) {
+            if (transformedData?.Recurring_Activity?.RRULE) {
               window.location.reload();
             }
             setSnackbarOpen(true);
@@ -472,7 +491,7 @@ const CreateActivityModal = ({
           }
         } catch (error) {
           await logResponse({
-            name: `Event for ${participant.name}`,
+            name: `Event for ${participant.name || participant.Full_Name}`,
             payload: transformedData,
             response: { error: error.message },
             result: "Error",
@@ -490,11 +509,7 @@ const CreateActivityModal = ({
         }, 1000);
       }
     } else {
-      const transformedData = transformFormSubmission(formData);
-
-      console.log({ transformedData });
-
-      return;
+      const transformedData = buildCreateActivityPayload(formData);
       try {
         const data = await ZOHO.CRM.API.insertRecord({
           Entity: "Events",
@@ -534,7 +549,7 @@ const CreateActivityModal = ({
           setSnackbarSeverity("success");
           setSnackbarMessage("Event Created Successfully");
           setSnackbarOpen(true);
-          if (transformedData?.Recurring_Activity?.RRULE !== null) {
+          if (transformedData?.Recurring_Activity?.RRULE) {
             window.location.reload();
           }
           setTimeout(() => {
@@ -562,9 +577,6 @@ const CreateActivityModal = ({
       }
     }
     setIsSubmitting(false);
-    if (transformedData?.Recurring_Activity?.RRULE !== null) {
-      window.location.reload();
-    }
   };
 
   // Validate form data whenever it changes
@@ -641,7 +653,7 @@ const CreateActivityModal = ({
                 variant="contained"
                 color="secondary"
                 onClick={handleSubmit}
-                disabled={!isFormValid()} // Disable button if form is not valid
+                disabled={!isFormValid() || isSubmitting} // Disable button if form is not valid
               >
                 Ok
               </Button>
@@ -731,7 +743,7 @@ const CreateActivityModal = ({
                 variant="contained"
                 color="secondary"
                 onClick={handleSubmit}
-                disabled={!isFormValid()} // Disable button if form is not valid
+                disabled={!isFormValid() || isSubmitting} // Disable button if form is not valid
               >
                 Ok
               </Button>

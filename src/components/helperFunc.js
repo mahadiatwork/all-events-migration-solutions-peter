@@ -1,10 +1,12 @@
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
+import customParseFormat from "dayjs/plugin/customParseFormat";
 
 dayjs.extend(utc);
+dayjs.extend(customParseFormat);
 
 // --- Helper: Parse date from known formats ---
-const safeParseDateString = (dateString) => {
+export const safeParseDateString = (dateString) => {
   if (!dateString || dateString === "NaN/NaN/NaN" || dateString === "") {
     return null;
   }
@@ -15,13 +17,24 @@ const safeParseDateString = (dateString) => {
 
   if (dmyPattern.test(dateString)) {
     const [, day, month, year] = dateString.match(dmyPattern);
-    const parsed = dayjs.utc(`${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`);
+    const parsed = dayjs.utc(
+      `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`,
+      "YYYY-MM-DD",
+      true
+    );
     if (parsed.isValid()) return parsed.startOf("day");
+    return null;
   }
 
   if (isoPattern.test(dateString)) {
-    const parsed = dayjs.utc(dateString);
+    const [, year, month, day] = dateString.match(isoPattern);
+    const parsed = dayjs.utc(
+      `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`,
+      "YYYY-MM-DD",
+      true
+    );
     if (parsed.isValid()) return parsed.startOf("day");
+    return null;
   }
 
   // Fallback to default Day.js parsing
@@ -46,6 +59,10 @@ export const isDateInRange = (date, rangeType) => {
   let startDate, endDate;
 
   switch (rangeType) {
+    case "Today":
+      startDate = today.valueOf();
+      endDate = today.endOf("day").valueOf();
+      break;
     case "Current Week":
       startDate = today.startOf("week").valueOf();
       endDate = today.startOf("week").add(6, "day").endOf("day").valueOf();
@@ -79,7 +96,7 @@ export const isDateInRange = (date, rangeType) => {
     default:
       // Start from the beginning of the previous month to match API logic
       startDate = today.subtract(1, "month").startOf("month").valueOf();
-      endDate = null;
+      endDate = today.add(1, "year").endOf("day").valueOf();
       break;
   }
 

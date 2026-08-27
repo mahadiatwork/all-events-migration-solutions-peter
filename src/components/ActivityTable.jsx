@@ -30,6 +30,8 @@ import { isDateInRange } from "./helperFunc";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
+import customParseFormat from "dayjs/plugin/customParseFormat";
+import isBetween from "dayjs/plugin/isBetween";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
@@ -38,6 +40,8 @@ import useEventsStore from "../store/eventsStore";
 // Extend dayjs with plugins
 dayjs.extend(utc);
 dayjs.extend(timezone);
+dayjs.extend(customParseFormat);
+dayjs.extend(isBetween);
 
 const headCells = [
   {
@@ -221,11 +225,17 @@ function createData(event, type) {
     regarding: event.Regarding || "No Data",
     duration,
     associateWith,
-    id: event.id || "No ID",
+    id: event.id ?? null,
     color,
     Event_Status,
   };
 }
+
+const getStaffName = (contact) =>
+  contact.Full_Name ||
+  contact.name ||
+  `${contact.First_Name || ""} ${contact.Last_Name || ""}`.trim() ||
+  "Unnamed staff";
 
 // Custom Range Modal Component
 const CustomRangeModal = ({ open, handleClose, setCustomDateRange }) => {
@@ -354,17 +364,38 @@ export default function ScheduleTable({
 
   const [filterType, setFilterType] = React.useState([]);
   const [filterPriority, setFilterPriority] = React.useState([]);
-  const [filterUser, setFilterUser] = React.useState(
-    loggedInUser?.full_name ? [loggedInUser.full_name] : []
-  );
+  // Start empty; set from User_Type once loggedInUser is enriched (see useEffect below)
+  const [filterUser, setFilterUser] = React.useState([]);
+  const [staffContacts, setStaffContacts] = React.useState([]);
+  const [filterStaff, setFilterStaff] = React.useState([]);
+  const [staffLoadStatus, setStaffLoadStatus] = React.useState("idle");
 
   const [showCleared, setShowCleared] = React.useState(false); // State for "Cleared" checkbox
 
   const [order, setOrder] = React.useState("asc");
   const [orderBy, setOrderBy] = React.useState("");
 
+  const isAdmin = React.useMemo(
+    () =>
+      loggedInUser?.User_Type === "Admin" ||
+      loggedInUser?.User_Type === "Super Admin",
+    [loggedInUser]
+  );
+
+  // Generic users default to self; Admin / Super Admin see all users (empty filter)
+  React.useEffect(() => {
+    if (loggedInUser) {
+      if (loggedInUser.User_Type === "Generic") {
+        setFilterUser(loggedInUser.full_name ? [loggedInUser.full_name] : []);
+      } else {
+        setFilterUser([]);
+      }
+    }
+  }, [loggedInUser]);
+
   const filterDateOptions = [
     { label: "Default", value: "Default" },
+    { label: "Today", value: "Today" },
     { label: "Last 7 Days", value: "Last 7 Days" },
     { label: "Last 30 Days", value: "Last 30 Days" },
     { label: "Last 90 Days", value: "Last 90 Days" },
@@ -433,12 +464,62 @@ export default function ScheduleTable({
     setFilterUser(cleaned);
   };
 
+  const handleStaffChange = (event) => {
+    const value = event.target.value;
+    setFilterStaff(typeof value === "string" ? value.split(",") : value);
+  };
+
+  const loadStaffContacts = async () => {
+    if (staffLoadStatus === "loading" || staffLoadStatus === "loaded") return;
+
+    if (!ZOHO?.CRM?.API?.searchRecord) {
+      setStaffLoadStatus("error");
+      return;
+    }
+
+    setStaffLoadStatus("loading");
+
+    try {
+      const contacts = [];
+      let page = 1;
+      let response;
+
+      // ponytail: Zoho Search caps at 2,000; switch to COQL if staff exceeds that.
+      do {
+        response = await ZOHO.CRM.API.searchRecord({
+          Entity: "Contacts",
+          Type: "criteria",
+          Query: "(Staff_Type:equals:Active)",
+          page,
+          per_page: 200,
+        });
+        contacts.push(
+          ...(response?.data || []).filter(
+            (contact) =>
+              contact.Staff_Type === "Active" || contact.Staff_Type === "Staff"
+          )
+        );
+        page += 1;
+      } while (response?.info?.more_records && page <= 10);
+
+      setStaffContacts(contacts);
+      setStaffLoadStatus("loaded");
+    } catch (error) {
+      console.error("Error fetching staff contacts:", error);
+      setStaffContacts([]);
+      setStaffLoadStatus("error");
+    }
+  };
+
   const handleClearFilters = () => {
     // Step 1: Reset all filter states
     setFilterType([]);
     setFilterPriority([]);
-    // Reset user filter to logged-in user only (default state)
-    setFilterUser(loggedInUser?.full_name ? [loggedInUser.full_name] : []);
+    // Admins: show all users; others: default to self (matches deployed app)
+    setFilterUser(
+      isAdmin ? [] : loggedInUser?.full_name ? [loggedInUser.full_name] : []
+    );
+    setFilterStaff([]);
     setCustomDateRange(null);
     setShowCleared(false); // Reset "Show Cleared" checkbox
     
@@ -498,13 +579,16 @@ export default function ScheduleTable({
 
           // console.log(`Comparing user: "${a}" vs "${b}"`);
 
-          // Try both exact and flexible matching
-          const exactMatch = a === b;
-          const flexibleMatch = a.includes(b) || b.includes(a);
-
-          // console.log(`Exact: ${exactMatch}, Flexible: ${flexibleMatch}`);
-          return exactMatch || flexibleMatch;
+          return a === b;
         });
+
+      const staffMatch =
+        filterStaff.length === 0 ||
+        row.participants.some((participant) =>
+          filterStaff.includes(
+            String(participant.participant || participant.id || "")
+          )
+        );
 
       // Enhanced date filter using Day.js
       let dateMatch = true;
@@ -512,19 +596,27 @@ export default function ScheduleTable({
         // Parse row date explicitly as DD/MM/YYYY format (display format used in table)
         // e.g., "06/01/2026" = January 6, 2026 (not June 1st)
         // Use startOf("day") to normalize to midnight for accurate date-only comparison
-        let rowDate = dayjs(row.date, "DD/MM/YYYY").startOf("day");
+        let rowDate = dayjs(row.date, "DD/MM/YYYY", true).startOf("day");
         
         // Fallback: if DD/MM/YYYY parsing fails, try other formats
         if (!rowDate.isValid()) {
           // Try ISO format as fallback
-          rowDate = dayjs(row.date, "YYYY-MM-DD").startOf("day");
+          rowDate = dayjs(row.date, "YYYY-MM-DD", true).startOf("day");
         }
         
         // HTML5 date input (type="date") always returns ISO format (YYYY-MM-DD)
         // Parse explicitly to avoid any locale-dependent parsing issues
         // Use startOf("day") to normalize to midnight for accurate date-only comparison
-        const startDate = dayjs(customDateRange.startDate, "YYYY-MM-DD").startOf("day");
-        const endDate = dayjs(customDateRange.endDate, "YYYY-MM-DD").endOf("day");
+        const startDate = dayjs(
+          customDateRange.startDate,
+          "YYYY-MM-DD",
+          true
+        ).startOf("day");
+        const endDate = dayjs(
+          customDateRange.endDate,
+          "YYYY-MM-DD",
+          true
+        ).endOf("day");
 
         // Validate parsed dates
         if (!rowDate.isValid()) {
@@ -559,7 +651,12 @@ export default function ScheduleTable({
       const clearedMatch = showCleared ? true : row.Event_Status !== "Closed";
 
       const result =
-        typeMatch && priorityMatch && clearedMatch && userMatch && dateMatch;
+        typeMatch &&
+        priorityMatch &&
+        clearedMatch &&
+        userMatch &&
+        staffMatch &&
+        dateMatch;
       // console.log(`Row "${row.title}": type=${typeMatch}, priority=${priorityMatch}, user=${userMatch}, date=${dateMatch}, cleared=${clearedMatch} -> ${result}`);
 
       return result;
@@ -576,6 +673,7 @@ export default function ScheduleTable({
     filterType,
     filterPriority,
     filterUser,
+    filterStaff,
     customDateRange,
     filterDate,
     showCleared,
@@ -609,6 +707,10 @@ export default function ScheduleTable({
     // This means if filterUser.length < users.length, it's an active filter
     if (filterUser.length > 0 && filterUser.length < users.length) {
       activeFilters.push("User");
+    }
+
+    if (filterStaff.length > 0) {
+      activeFilters.push("Staff");
     }
     
     // Cleared filter - show if "Show Cleared" checkbox is checked
@@ -677,7 +779,7 @@ export default function ScheduleTable({
     }
   };
 
-  const handleCheckboxChange = (index, row) => {
+  const handleCheckboxChange = (row) => {
     setHighlightedRow(row.id); // Highlight the new row and reset any previously highlighted rows
     setSelectedRowIndex(row.id);
     if (row?.id) {
@@ -711,11 +813,30 @@ export default function ScheduleTable({
     <>
       {/* Filters */}
       <Box
-        sx={{ display: "flex", gap: "1rem", my: "1rem", alignItems: "center" }}
+        sx={{
+          display: "flex",
+          gap: "1rem",
+          my: "1rem",
+          alignItems: "center",
+          flexWrap: "wrap",
+          "& > .MuiFormControl-root": {
+            flex: "1 1 160px",
+            minWidth: "160px",
+            width: "auto",
+          },
+          "& > .MuiButton-root": {
+            flex: "1 1 180px",
+            minWidth: "180px",
+            width: "auto",
+          },
+        }}
       >
         <FormControl fullWidth size="small">
-          <InputLabel sx={{ fontSize: "9pt" }}>Date</InputLabel>
+          <InputLabel id="activity-date-filter-label" sx={{ fontSize: "9pt" }}>
+            Date
+          </InputLabel>
           <Select
+            labelId="activity-date-filter-label"
             value={filterDate}
             onChange={handleDateFilterChange}
             label="Date"
@@ -739,6 +860,7 @@ export default function ScheduleTable({
               },
             }}
             MenuProps={{
+              disableScrollLock: true,
               PaperProps: {
                 sx: {
                   "& .MuiMenuItem-root": {
@@ -757,8 +879,11 @@ export default function ScheduleTable({
         </FormControl>
 
         <FormControl fullWidth size="small">
-          <InputLabel sx={{ fontSize: "9pt" }}>Type</InputLabel>
+          <InputLabel id="activity-type-filter-label" sx={{ fontSize: "9pt" }}>
+            Type
+          </InputLabel>
           <Select
+            labelId="activity-type-filter-label"
             multiple
             value={filterType}
             onChange={handleTypeChange}
@@ -778,6 +903,7 @@ export default function ScheduleTable({
               },
             }}
             MenuProps={{
+              disableScrollLock: true,
               PaperProps: {
                 sx: {
                   "& .MuiMenuItem-root": {
@@ -800,8 +926,14 @@ export default function ScheduleTable({
         </FormControl>
 
         <FormControl fullWidth size="small">
-          <InputLabel sx={{ fontSize: "9pt" }}>Priority</InputLabel>
+          <InputLabel
+            id="activity-priority-filter-label"
+            sx={{ fontSize: "9pt" }}
+          >
+            Priority
+          </InputLabel>
           <Select
+            labelId="activity-priority-filter-label"
             multiple
             value={filterPriority}
             onChange={handlePriorityChange}
@@ -828,6 +960,7 @@ export default function ScheduleTable({
               },
             }}
             MenuProps={{
+              disableScrollLock: true,
               PaperProps: {
                 sx: {
                   "& .MuiMenuItem-root": {
@@ -850,8 +983,11 @@ export default function ScheduleTable({
         </FormControl>
 
         <FormControl fullWidth size="small">
-          <InputLabel sx={{ fontSize: "9pt" }}>User</InputLabel>
+          <InputLabel id="activity-user-filter-label" sx={{ fontSize: "9pt" }}>
+            User
+          </InputLabel>
           <Select
+            labelId="activity-user-filter-label"
             multiple
             value={filterUser}
             onChange={handleUserChange}
@@ -871,6 +1007,7 @@ export default function ScheduleTable({
               },
             }}
             MenuProps={{
+              disableScrollLock: true,
               PaperProps: {
                 sx: {
                   "& .MuiMenuItem-root": {
@@ -912,6 +1049,73 @@ export default function ScheduleTable({
                 <ListItemText primary={user.full_name} />
               </MenuItem>
             ))}
+          </Select>
+        </FormControl>
+
+        <FormControl fullWidth size="small">
+          <InputLabel id="activity-staff-filter-label" sx={{ fontSize: "9pt" }}>
+            Staff
+          </InputLabel>
+          <Select
+            labelId="activity-staff-filter-label"
+            multiple
+            value={filterStaff}
+            onChange={handleStaffChange}
+            onOpen={loadStaffContacts}
+            label="Staff"
+            size="small"
+            renderValue={(selected) => {
+              const names = selected.map((id) =>
+                getStaffName(
+                  staffContacts.find(
+                    (contact) => String(contact.id) === String(id)
+                  ) || {}
+                )
+              );
+              const displayedNames = names.slice(0, 3).join(", ");
+              return names.length > 3
+                ? `${displayedNames}, ...`
+                : displayedNames;
+            }}
+            sx={{
+              height: "30px",
+              "& .MuiSelect-select": {
+                fontSize: "9pt",
+              },
+            }}
+            MenuProps={{
+              disableScrollLock: true,
+              PaperProps: {
+                sx: {
+                  maxHeight: 360,
+                  "& .MuiMenuItem-root": {
+                    fontSize: "9pt",
+                  },
+                },
+              },
+            }}
+          >
+            {(staffLoadStatus === "idle" || staffLoadStatus === "loading") && (
+              <MenuItem disabled>Loading staff...</MenuItem>
+            )}
+            {staffLoadStatus === "error" && (
+              <MenuItem disabled>Unable to load staff</MenuItem>
+            )}
+            {staffLoadStatus === "loaded" && staffContacts.length === 0 && (
+              <MenuItem disabled>No staff found</MenuItem>
+            )}
+            {staffContacts.map((contact) => {
+              const contactId = String(contact.id);
+              return (
+                <MenuItem key={contactId} value={contactId}>
+                  <Checkbox
+                    checked={filterStaff.includes(contactId)}
+                    size="small"
+                  />
+                  <ListItemText primary={getStaffName(contact)} />
+                </MenuItem>
+              );
+            })}
           </Select>
         </FormControl>
 
@@ -1093,11 +1297,11 @@ export default function ScheduleTable({
                       sx={{ paddingY: 0 }}
                     >
                       <Checkbox
-                        checked={selectedRowIndex === index && openClearModal}
-                        onChange={() => handleCheckboxChange(index, row)}
+                        checked={selectedRowIndex === row.id && openClearModal}
+                        onChange={() => handleCheckboxChange(row)}
                         sx={{
                           color:
-                            selectedRowIndex === index ? "#fff" : "inherit",
+                            selectedRowIndex === row.id ? "#fff" : "inherit",
                           transform: "scale(0.9)", // Scale down the checkbox size
                           "& .MuiSvgIcon-root": {
                             fontSize: "1.2rem", // Adjust the icon size inside the checkbox

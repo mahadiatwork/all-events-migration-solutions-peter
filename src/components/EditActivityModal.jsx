@@ -1,6 +1,5 @@
 import React from "react";
 import "@mobiscroll/react/dist/css/mobiscroll.min.css";
-import { Input, Select, Textarea } from "@mobiscroll/react";
 import {
   Alert,
   Box,
@@ -107,12 +106,12 @@ function formatDateWithOffset(dateString) {
   return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}${offsetSign}${offsetHours}:${offsetMinutes}`;
 }
 
-function transformFormSubmission(data) {
+export function buildEditActivityPayload(data) {
   // Function to transform scheduleWith data into the Participants format
   const transformScheduleWithToParticipants = (scheduleWith) => {
     return scheduleWith.map((contact) => ({
       Email: contact.Email || null, // Use Email if available, or set to null
-      name: contact.Full_Name || null, // Use Full_Name for the name
+      name: contact.Full_Name || contact.name || null,
       invited: false, // Default to false
       type: "contact", // Default type to "contact"
       participant: contact.id || contact.participant, // Use id as participant ID
@@ -120,8 +119,8 @@ function transformFormSubmission(data) {
     }));
   };
 
-  const participantsFromScheduleWith = data.scheduleWith
-    ? transformScheduleWithToParticipants(data.scheduleWith)
+  const participantsFromScheduleWith = data.scheduledWith
+    ? transformScheduleWithToParticipants(data.scheduledWith)
     : [];
 
   let transformedData = {
@@ -135,8 +134,7 @@ function transformFormSubmission(data) {
     What_Id: data.What_Id,
     se_module: "Accounts",
 
-    // Combine the manually set participants and those from `scheduleWith`
-    Participants: data.scheduledWith,
+    Participants: participantsFromScheduleWith,
     Duration_Min: data.Duration_Min.toString(),
     Owner: {
       id: data?.scheduleFor?.id,
@@ -200,6 +198,9 @@ function transformFormSubmission(data) {
   delete transformedData.scheduleFor;
   delete transformedData.description;
   delete transformedData.associateWith;
+  delete transformedData.start;
+  delete transformedData.end;
+  delete transformedData.priority;
 
   // Remove keys that have null or undefined values
   Object.keys(transformedData).forEach((key) => {
@@ -300,7 +301,7 @@ const EditActivityModal = ({
     }));
   };
   const handleSubmit = async () => {
-    const transformedData = transformFormSubmission(formData);
+    const transformedData = buildEditActivityPayload(formData);
 
     const timeFormatted = dayjs(formData.start).format("hh:mm A");
     formData.time = timeFormatted;

@@ -86,7 +86,7 @@ export default function ClearActivityModal({
     calculateDuration(selectedRowData?.duration)
   );
 
-  const [result, setResult] = React.useState(selectedRowData?.result);
+  const [result, setResult] = React.useState(selectedRowData?.result || "");
   const [addActivityToHistory, setAddActivityToHistory] = React.useState(false);
   const [clearChecked, setClearChecked] = React.useState(
     selectedRowData?.Event_Status === "Closed" // true if the event is closed, false if open
@@ -106,35 +106,37 @@ export default function ClearActivityModal({
   const [existingHistory, setExistingHistory] = React.useState([]);
 
   const [activityDetails, setActivityDetails] = React.useState(
-    selectedRowData.Description || ""
+    selectedRowData?.Description || ""
   );
 
   useEffect(() => {
+    if (!selectedRowData || !ZOHO) return;
+
     if(selectedRowData.Description){
       setAddActivityToHistory(true)
     }
     const getRecords = async () => {
-      const historyResponse = await ZOHO.CRM.API.searchRecord({
-        Entity: "History1",
-        Type: "criteria",
-        Query: "(Event_ID:equals:" + selectedRowData?.id + ")",
-      });
+      try {
+        const historyResponse = await ZOHO.CRM.API.searchRecord({
+          Entity: "History1",
+          Type: "criteria",
+          Query: "(Event_ID:equals:" + selectedRowData.id + ")",
+        });
 
-      if (historyResponse.data.length > 0) {
-        const historyData = historyResponse.data[0];
-        setExistingHistory(historyResponse.data);
-
-        // Auto-check the checkbox
-        setAddActivityToHistory(true);
-
-        // Populate form fields with history data
-        setActivityDetails(historyData?.History_Details_Plain || "");
-        setResult(historyData?.History_Result || "");
+        if (historyResponse?.data?.length > 0) {
+          const historyData = historyResponse.data[0];
+          setExistingHistory(historyResponse.data);
+          setAddActivityToHistory(true);
+          setActivityDetails(historyData?.History_Details_Plain || "");
+          setResult(historyData?.History_Result || "");
+        }
+      } catch (error) {
+        console.error("Error loading activity history:", error);
       }
     };
 
     getRecords();
-  }, [selectedRowData]);
+  }, [selectedRowData, ZOHO]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -172,7 +174,7 @@ export default function ClearActivityModal({
       const createOrUpdateHistory = async () => {
         const recordData = {
           Name:
-            selectedRowData.Participants.length > 0
+            (selectedRowData.Participants || []).length > 0
               ? selectedRowData.Participants.map(
                   (participant) => participant.name
                 ).join(", ")
@@ -289,7 +291,9 @@ export default function ClearActivityModal({
             setEvents(store.events);
           }
           
-          await createOrUpdateHistory();
+          if (addActivityToHistory) {
+            await createOrUpdateHistory();
+          }
         } else {
           throw new Error("Failed to update the event.");
         }
@@ -428,6 +432,7 @@ export default function ClearActivityModal({
     React.useState(false);
   const handleActivityDetailsChange = (e) => {
     setActivityDetails(e.target.value);
+    setIsActivityDetailsUpdated(true);
   };
 
   // Delete existing history
@@ -452,7 +457,7 @@ export default function ClearActivityModal({
       if (getAllHistoryXcontacts.data.length > 0) {
         for (const participant of getAllHistoryXcontacts.data) {
           const relatedRecordsDelete = await ZOHO.CRM.API.deleteRecord({
-            Entity: "History1",
+            Entity: "History_X_Contacts",
             RecordID: participant?.id,
           });
         }
@@ -597,7 +602,7 @@ export default function ClearActivityModal({
                   disabled
                 />
 
-                <FormGroup fullWidth>
+                <FormGroup>
                   <InputLabel
                     id="duration-label"
                     sx={{ fontWeight: "bold", fontSize: "9pt" }}
@@ -639,6 +644,7 @@ export default function ClearActivityModal({
                         <Checkbox
                           checked={clearChecked}
                           onChange={handleClearChange}
+                          inputProps={{ "aria-label": "Clear" }}
                         />
                       }
                       label="Clear"
@@ -650,6 +656,7 @@ export default function ClearActivityModal({
                         <Checkbox
                           checked={eraseChecked}
                           onChange={handleEraseChange}
+                          inputProps={{ "aria-label": "Erase" }}
                         />
                       }
                       label="Erase"
@@ -706,9 +713,12 @@ export default function ClearActivityModal({
                   >
                     <FormControlLabel
                       control={
-                        <Checkbox
-                          checked={addActivityToHistory}
-                          onChange={handleActivityToHistory}
+                          <Checkbox
+                            checked={addActivityToHistory}
+                            onChange={handleActivityToHistory}
+                            inputProps={{
+                              "aria-label": "Add Activity Details to History",
+                            }}
                           // onChange={(e) =>
                           //   setAddActivityToHistory(e.target.checked)
                           // }

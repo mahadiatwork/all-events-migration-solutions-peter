@@ -1,10 +1,9 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import {
   Box,
   Button,
-  Dialog,
-  DialogActions,
-  DialogContent,
+  Autocomplete,
   TextField,
   MenuItem,
   Table,
@@ -18,14 +17,21 @@ import {
 } from "@mui/material";
 import PersonIcon from "@mui/icons-material/Person";
 
+const getContactName = (contact) =>
+  contact.Full_Name ||
+  contact.name ||
+  `${contact.First_Name || ""} ${contact.Last_Name || ""}`.trim() ||
+  "contact";
+
 export default function ContactField({
   formData,
   handleInputChange,
   ZOHO,
-  selectedRowData = {}, // Default to an empty object
 }) {
-  const [contacts, setContacts] = useState([]);
   const [selectedParticipants, setSelectedParticipants] = useState(
+    formData?.scheduledWith || []
+  );
+  const [draftParticipants, setDraftParticipants] = useState(
     formData?.scheduledWith || []
   );
   const [searchType, setSearchType] = useState("First_Name");
@@ -34,7 +40,6 @@ export default function ContactField({
     formData?.scheduledWith || []
   );
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const debounceTimer = useRef(null);
 
   const commonTextStyles = {
     fontSize: "9pt", // Uniform font size
@@ -65,7 +70,6 @@ export default function ContactField({
             }
   
             try {
-              console.log("Fetching for participant:", recordId);
               const contactDetails = await ZOHO.CRM.API.getRecord({
                 Entity: "Contacts",
                 RecordID: recordId,
@@ -107,6 +111,7 @@ export default function ContactField({
         );
   
         setSelectedParticipants(participants);
+        setDraftParticipants(participants);
         handleInputChange("scheduledWith", participants);
         setParticipantsLoaded(true); // prevent future fetches
       }
@@ -118,10 +123,12 @@ export default function ContactField({
 
   const handleOpen = () => {
     setFilteredContacts([]);
+    setDraftParticipants(selectedParticipants);
     setIsModalOpen(true);
   };
 
   const handleCancel = () => {
+    setDraftParticipants(selectedParticipants);
     setIsModalOpen(false);
   };
 
@@ -183,7 +190,7 @@ export default function ContactField({
   };
 
   const toggleContactSelection = (contact) => {
-    setSelectedParticipants((prev) =>
+    setDraftParticipants((prev) =>
       prev.some((c) => c.id === contact.id)
         ? prev.filter((c) => c.id !== contact.id)
         : [...prev, contact]
@@ -191,15 +198,14 @@ export default function ContactField({
   };
 
   const handleOk = () => {
-    const updatedParticipants = selectedParticipants.map((participant) => ({
-      Full_Name:
-        participant.Full_Name || participant.name ||
-        `${participant.First_Name} ${participant.Last_Name}`,
+    const updatedParticipants = draftParticipants.map((participant) => ({
+      Full_Name: getContactName(participant),
       Email: participant.Email,
       participant: participant.id,
       type: "contact",
     }));
 
+    setSelectedParticipants(draftParticipants);
     handleInputChange("scheduledWith", updatedParticipants);
     setIsModalOpen(false);
   };
@@ -208,60 +214,82 @@ export default function ContactField({
 
   useEffect(() => {
     const fetchStaffUsers = async () => {
-      if (searchType === "Staff") {
+      if (searchType === "Staff" && ZOHO) {
         try {
-          const response = await ZOHO.CRM.API.searchRecord({
-            Entity: "Contacts",
-            Type: "criteria",
-            Query: "(Staff_Type:equals:Staff)",
-          });
+          const contacts = [];
+          let page = 1;
+          let response;
 
-          if (response && response.data) {
-            setStaffUsers(response.data); // Assuming response.data contains an array of staff users
-          } else {
-            setStaffUsers([]); // Reset if no data found
-          }
+          // ponytail: Zoho Search caps at 2,000; switch to COQL if staff exceeds that.
+          do {
+            response = await ZOHO.CRM.API.searchRecord({
+              Entity: "Contacts",
+              Type: "criteria",
+              Query: "(Staff_Type:equals:Active)",
+              page,
+              per_page: 200,
+            });
+            contacts.push(
+              ...(response?.data || []).filter(
+                (contact) =>
+                  contact.Staff_Type === "Active" ||
+                  contact.Staff_Type === "Staff"
+              )
+            );
+            page += 1;
+          } while (response?.info?.more_records && page <= 10);
+
+          setStaffUsers(contacts);
         } catch (error) {
           console.error("Error fetching staff users:", error);
-          setStaffUsers([]); // Reset on error
+          setStaffUsers([]);
         }
       }
     };
 
     fetchStaffUsers();
-    // console.log({staffUsers})
-  }, [searchType]); // Added searchText as a dependency
+  }, [searchType, ZOHO]);
 
-
-  console.log("selectedParticipants", selectedParticipants)
-
-  return (
-    <Box>
-      <Box display="flex" alignItems="center" gap={2}>
-        <TextField
-          fullWidth
-          value={selectedParticipants
-            .map((c) => c.Full_Name || c.name || `${c.First_Name} ${c.Last_Name}`)
-            .join(", ")}
-          variant="outlined"
-          placeholder="Selected contacts"
-          InputProps={{
-            readOnly: true,
+  const contactPicker =
+    isModalOpen &&
+    createPortal(
+      <Box
+        onClick={handleCancel}
+        sx={{
+          position: "fixed",
+          inset: 0,
+          zIndex: 2000,
+          bgcolor: "rgba(0, 0, 0, 0.45)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          p: 2,
+        }}
+      >
+        <Box
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="contact-picker-title"
+          onClick={(e) => e.stopPropagation()}
+          sx={{
+            width: "100%",
+            maxWidth: 820,
+            maxHeight: "85vh",
+            overflowY: "auto",
+            bgcolor: "background.paper",
+            borderRadius: 2,
+            boxShadow: 24,
+            p: 2.5,
           }}
-          size="small"
-          sx={commonTextStyles}
-        />
-        <Button
-          variant="contained"
-          onClick={handleOpen}
-          sx={{ width: "100px", ...commonTextStyles }}
         >
-          Contacts
-        </Button>
-      </Box>
+          <Typography
+            id="contact-picker-title"
+            variant="subtitle1"
+            sx={{ fontWeight: "bold", mb: 2, fontSize: "11pt" }}
+          >
+            Select Contacts
+          </Typography>
 
-      <Dialog open={isModalOpen} onClose={handleCancel} fullWidth maxWidth="md">
-        <DialogContent>
           <Box display="flex" gap={2} mb={2}>
             <TextField
               select
@@ -270,15 +298,21 @@ export default function ContactField({
               onChange={(e) => setSearchType(e.target.value)}
               fullWidth
               size="small"
+              SelectProps={{
+                MenuProps: {
+                  disableScrollLock: true,
+                  sx: { zIndex: 2001 },
+                },
+              }}
               sx={{
                 ...commonTextStyles,
                 "& .MuiOutlinedInput-root": {
-                  padding: "0rem", // Adjust padding for consistent height
-                  lineHeight: "1.5", // Ensure consistent line height
+                  padding: "0rem",
+                  lineHeight: "1.5",
                 },
                 "& .MuiSelect-select": {
                   display: "flex",
-                  alignItems: "center", // Vertically align text
+                  alignItems: "center",
                 },
               }}
             >
@@ -302,34 +336,92 @@ export default function ContactField({
               </MenuItem>
             </TextField>
 
-            <TextField
-              label="Search Text"
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
-              fullWidth
-              size="small"
-              sx={{
-                ...commonTextStyles,
-                "& .MuiOutlinedInput-root": {
-                  padding: "0rem", // Match padding to the select field
-                  lineHeight: "1.5", // Match line height
-                },
-              }}
-            />
+            {searchType === "Staff" ? (
+              <Autocomplete
+                multiple
+                disableCloseOnSelect
+                filterSelectedOptions
+                openOnFocus
+                options={staffUsers}
+                value={staffUsers.filter((staff) =>
+                  draftParticipants.some(
+                    (contact) =>
+                      (contact.id || contact.participant) === staff.id
+                  )
+                )}
+                getOptionLabel={getContactName}
+                isOptionEqualToValue={(option, value) =>
+                  option.id === (value.id || value.participant)
+                }
+                onChange={(event, selectedStaff) => {
+                  const staffIds = new Set(
+                    staffUsers.map((contact) => contact.id)
+                  );
+                  setDraftParticipants((contacts) => [
+                    ...contacts.filter(
+                      (contact) =>
+                        !staffIds.has(contact.id || contact.participant)
+                    ),
+                    ...selectedStaff,
+                  ]);
+                }}
+                noOptionsText="No staff contacts found"
+                fullWidth
+                size="small"
+                slotProps={{ popper: { sx: { zIndex: 2001 } } }}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Search Text"
+                    placeholder="Select staff"
+                    sx={{
+                      ...commonTextStyles,
+                      "& .MuiOutlinedInput-root": {
+                        padding: "0rem",
+                        lineHeight: "1.5",
+                      },
+                    }}
+                  />
+                )}
+              />
+            ) : (
+              <TextField
+                label="Search Text"
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleSearch();
+                }}
+                fullWidth
+                size="small"
+                sx={{
+                  ...commonTextStyles,
+                  "& .MuiOutlinedInput-root": {
+                    padding: "0rem",
+                    lineHeight: "1.5",
+                  },
+                }}
+              />
+            )}
 
-            <Button
-              variant="contained"
-              onClick={handleSearch}
-              sx={{ width: "150px", ...commonTextStyles }}
-            >
-              Search
-            </Button>
+            {searchType !== "Staff" && (
+              <Button
+                variant="contained"
+                onClick={handleSearch}
+                sx={{ width: "150px", flexShrink: 0, ...commonTextStyles }}
+              >
+                Search
+              </Button>
+            )}
           </Box>
 
           <TableContainer
             sx={{
-              maxHeight: 300,
+              maxHeight: 280,
               overflowY: "auto",
+              border: "1px solid",
+              borderColor: "divider",
+              borderRadius: 1,
             }}
           >
             <Table size="small" sx={{ tableLayout: "fixed", fontSize: "9pt" }}>
@@ -357,17 +449,21 @@ export default function ContactField({
                       <TableRow key={contact.id}>
                         <TableCell>
                           <Checkbox
-                            checked={selectedParticipants.some(
+                            checked={draftParticipants.some(
                               (c) => c.id === contact.id
                             )}
                             onChange={() => toggleContactSelection(contact)}
+                            inputProps={{
+                              "aria-label": `Select ${getContactName(contact)}`,
+                            }}
                           />
                         </TableCell>
                         <TableCell>
                           <div
                             style={{ display: "flex", alignItems: "center" }}
                           >
-                            {contact.Staff_Type === "Staff" && (
+                            {(contact.Staff_Type === "Active" ||
+                              contact.Staff_Type === "Staff") && (
                               <PersonIcon
                                 fontSize="small"
                                 style={{ marginRight: 4 }}
@@ -395,10 +491,18 @@ export default function ContactField({
           </TableContainer>
 
           <Box mt={3}>
-            <Typography variant="h6" sx={{ ...commonTextStyles }}>
+            <Typography variant="h6" sx={{ ...commonTextStyles, mb: 1 }}>
               Selected Contacts:
             </Typography>
-            <TableContainer>
+            <TableContainer
+              sx={{
+                maxHeight: 180,
+                overflowY: "auto",
+                border: "1px solid",
+                borderColor: "divider",
+                borderRadius: 1,
+              }}
+            >
               <Table
                 size="small"
                 sx={{ tableLayout: "fixed", fontSize: "9pt" }}
@@ -422,56 +526,99 @@ export default function ContactField({
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {selectedParticipants.map((contact) => (
-                    <TableRow key={contact.id}>
-                      <TableCell>
-                        <Checkbox
-                          checked
-                          onChange={() => toggleContactSelection(contact)}
-                        />
+                  {draftParticipants.length > 0 ? (
+                    draftParticipants.map((contact) => (
+                      <TableRow key={contact.id}>
+                        <TableCell>
+                          <Checkbox
+                            checked
+                            onChange={() => toggleContactSelection(contact)}
+                            inputProps={{
+                              "aria-label": `Remove ${getContactName(contact)}`,
+                            }}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <div
+                            style={{ display: "flex", alignItems: "center" }}
+                          >
+                            {(contact.Staff_Type === "Active" ||
+                              contact.Staff_Type === "Staff") && (
+                              <PersonIcon
+                                fontSize="small"
+                                style={{ marginRight: 4 }}
+                              />
+                            )}
+                            {contact.First_Name}
+                          </div>
+                        </TableCell>
+                        <TableCell>{contact.Last_Name}</TableCell>
+                        <TableCell>{contact.Email}</TableCell>
+                        <TableCell>{contact.Mobile}</TableCell>
+                        <TableCell>{contact.ID_Number}</TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={6} align="center">
+                        No contacts selected.
                       </TableCell>
-                      <TableCell>
-                        <div style={{ display: "flex", alignItems: "center" }}>
-                          {contact.Staff_Type === "Staff" && (
-                            <PersonIcon
-                              fontSize="small"
-                              style={{ marginRight: 4 }}
-                            />
-                          )}
-                          {contact.First_Name}
-                        </div>
-                      </TableCell>
-                      <TableCell>{contact.Last_Name}</TableCell>
-                      <TableCell>{contact.Email}</TableCell>
-                      <TableCell>{contact.Mobile}</TableCell>
-                      <TableCell>{contact.ID_Number}</TableCell>
                     </TableRow>
-                  ))}
+                  )}
                 </TableBody>
               </Table>
             </TableContainer>
           </Box>
-        </DialogContent>
 
-        <DialogActions>
-          <Button
-            onClick={handleCancel}
-            variant="outlined"
-            sx={commonTextStyles}
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={handleOk}
-            variant="contained"
-            color="primary"
-            disabled={selectedParticipants.length === 0}
-            sx={commonTextStyles}
-          >
-            OK
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </Box>
+          <Box display="flex" justifyContent="flex-end" gap={1} mt={2.5}>
+            <Button
+              onClick={handleCancel}
+              variant="outlined"
+              sx={commonTextStyles}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleOk}
+              variant="contained"
+              color="primary"
+              disabled={draftParticipants.length === 0}
+              sx={commonTextStyles}
+            >
+              OK
+            </Button>
+          </Box>
+        </Box>
+      </Box>,
+      document.body
+    );
+
+  return (
+    <>
+      <Box display="flex" alignItems="center" gap={2}>
+        <TextField
+          fullWidth
+          value={selectedParticipants
+            .map(getContactName)
+            .join(", ")}
+          variant="outlined"
+          placeholder="Selected contacts"
+          InputProps={{
+            readOnly: true,
+          }}
+          size="small"
+          sx={commonTextStyles}
+        />
+        <Button
+          variant="contained"
+          onClick={handleOpen}
+          sx={{ width: "100px", ...commonTextStyles }}
+        >
+          Contacts
+        </Button>
+      </Box>
+
+      {contactPicker || null}
+    </>
   );
 }
