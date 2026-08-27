@@ -466,7 +466,23 @@ export default function ScheduleTable({
 
   const handleStaffChange = (event) => {
     const value = event.target.value;
-    setFilterStaff(typeof value === "string" ? value.split(",") : value);
+    const arrayValue = typeof value === "string" ? value.split(",") : value;
+
+    if (arrayValue.includes("select_all")) {
+      const allStaffIds = staffContacts.map((c) => String(c.id));
+      setFilterStaff(allStaffIds);
+      return;
+    }
+
+    if (arrayValue.includes("deselect_all")) {
+      setFilterStaff([]);
+      return;
+    }
+
+    const cleaned = arrayValue.filter(
+      (v) => v !== "select_all" && v !== "deselect_all"
+    );
+    setFilterStaff(cleaned);
   };
 
   const loadStaffContacts = async () => {
@@ -815,19 +831,19 @@ export default function ScheduleTable({
       <Box
         sx={{
           display: "flex",
-          gap: "1rem",
+          gap: "0.5rem",
           my: "1rem",
           alignItems: "center",
           flexWrap: "wrap",
           "& > .MuiFormControl-root": {
-            flex: "1 1 160px",
-            minWidth: "160px",
+            flex: "1 1 120px",
+            minWidth: "110px",
+            maxWidth: { xs: "100%", sm: "170px" },
             width: "auto",
           },
           "& > .MuiButton-root": {
-            flex: "1 1 180px",
-            minWidth: "180px",
-            width: "auto",
+            flex: "0 0 auto",
+            minWidth: "auto",
           },
         }}
       >
@@ -1065,6 +1081,7 @@ export default function ScheduleTable({
             label="Staff"
             size="small"
             renderValue={(selected) => {
+              if (selected.length === 0) return "Select Staff";
               const names = selected.map((id) =>
                 getStaffName(
                   staffContacts.find(
@@ -1072,8 +1089,8 @@ export default function ScheduleTable({
                   ) || {}
                 )
               );
-              const displayedNames = names.slice(0, 3).join(", ");
-              return names.length > 3
+              const displayedNames = names.slice(0, 2).join(", ");
+              return names.length > 2
                 ? `${displayedNames}, ...`
                 : displayedNames;
             }}
@@ -1104,6 +1121,31 @@ export default function ScheduleTable({
             {staffLoadStatus === "loaded" && staffContacts.length === 0 && (
               <MenuItem disabled>No staff found</MenuItem>
             )}
+            {staffContacts.length > 0 && (
+              <MenuItem value="select_all">
+                <Checkbox
+                  checked={
+                    filterStaff.length === staffContacts.length &&
+                    staffContacts.length > 0
+                  }
+                  indeterminate={
+                    filterStaff.length > 0 &&
+                    filterStaff.length < staffContacts.length
+                  }
+                  size="small"
+                />
+                <ListItemText primary="Select All" />
+              </MenuItem>
+            )}
+            {staffContacts.length > 0 && (
+              <MenuItem value="deselect_all">
+                <Checkbox
+                  checked={filterStaff.length === 0}
+                  size="small"
+                />
+                <ListItemText primary="Deselect All" />
+              </MenuItem>
+            )}
             {staffContacts.map((contact) => {
               const contactId = String(contact.id);
               return (
@@ -1121,11 +1163,10 @@ export default function ScheduleTable({
 
         <Button
           variant="outlined"
-          fullWidth
           onClick={handleClearFilters}
           color="secondary"
-          size="small" // Reduced button size
-          sx={{ height: "30px" }} // Adjust height
+          size="small"
+          sx={{ height: "30px", fontSize: "9pt", whiteSpace: "nowrap", px: 1.5 }}
         >
           Clear filter
         </Button>
@@ -1133,28 +1174,34 @@ export default function ScheduleTable({
         <FormControlLabel
           control={
             <Checkbox
-              checked={showCleared} // Bind to state
-              onChange={handleClearedCheckboxChange} // Checkbox change handler
-              size="small" // Reduced checkbox size
+              checked={showCleared}
+              onChange={handleClearedCheckboxChange}
+              size="small"
             />
           }
           label="Show Cleared"
           sx={{
-            display: "flex", // Ensure label and checkbox are aligned in a row
-            alignItems: "center", // Vertically align the label and checkbox
-            whiteSpace: "nowrap", // Prevent text wrapping
+            display: "flex",
+            alignItems: "center",
+            whiteSpace: "nowrap",
+            m: 0,
             "& .MuiFormControlLabel-label": {
-              fontSize: "9pt", // Change label text size
+              fontSize: "9pt",
             },
           }}
         />
 
         <Button
           variant="contained"
-          fullWidth
           onClick={() => setOpenCreateModal(true)}
-          size="small" // Reduced button size
-          sx={{ height: "30px" }} // Adjust height
+          size="small"
+          sx={{
+            height: "30px",
+            fontSize: "9pt",
+            whiteSpace: "nowrap",
+            px: 1.5,
+            ml: { sm: "auto" },
+          }}
         >
           Create New Activity
         </Button>
