@@ -26,6 +26,7 @@ function App() {
   // --- Local State Management ---
   const [zohoLoaded, setZohoLoaded] = useState(false);
   const [users, setUsers] = useState([]);
+  const [staff, setStaff] = useState([]);
   const [recentColors, setRecentColor] = useState("");
   const [loggedInUser, setLoggedInUser] = useState(null);
   
@@ -56,7 +57,7 @@ function App() {
     });
   }, []);
 
-  // --- 2. Initial Metadata Fetch (Users & Colors) ---
+  // --- 2. Initial Metadata Fetch (Users, Staff & Colors) ---
   useEffect(() => {
     if (zohoLoaded) {
       fetchInitialMetadata();
@@ -76,6 +77,34 @@ function App() {
         page: 1,
       });
       setUsers(usersResponse.users || []);
+
+      // Fetch Staff Contacts (Staff_Type: equals Active)
+      if (ZOHO?.CRM?.API?.searchRecord) {
+        try {
+          const staffContacts = [];
+          let page = 1;
+          let response;
+          do {
+            response = await ZOHO.CRM.API.searchRecord({
+              Entity: "Contacts",
+              Type: "criteria",
+              Query: "(Staff_Type:equals:Active)",
+              page,
+              per_page: 200,
+            });
+            staffContacts.push(
+              ...(response?.data || []).filter(
+                (contact) =>
+                  contact.Staff_Type === "Active" || contact.Staff_Type === "Staff"
+              )
+            );
+            page += 1;
+          } while (response?.info?.more_records && page <= 10);
+          setStaff(staffContacts);
+        } catch (staffErr) {
+          console.error("Error fetching staff metadata:", staffErr);
+        }
+      }
     } catch (error) {
       console.error("Error fetching metadata:", error);
     }
@@ -415,6 +444,7 @@ function App() {
     <ZohoContext.Provider
       value={{
         users,
+        staff,
         events,
         ZOHO,
         filterDate,
@@ -436,6 +466,7 @@ function App() {
           events={events}
           ZOHO={ZOHO}
           users={users}
+          staff={staff}
           filterDate={filterDate}
           setFilterDate={setFilterDate}
           recentColors={recentColors}

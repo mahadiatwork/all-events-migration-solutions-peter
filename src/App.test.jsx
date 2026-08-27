@@ -41,6 +41,7 @@ const zoho = {
       getRecord: vi.fn(),
       getOrgVariable: vi.fn(),
       getAllRecords: vi.fn(),
+      searchRecord: vi.fn(),
     },
     CONNECTION: { invoke: vi.fn() },
   },
@@ -74,6 +75,12 @@ describe("App Zoho integration", () => {
         { id: "u1", full_name: "Ada Lovelace" },
         { id: "u2", full_name: "Grace Hopper" },
       ],
+    });
+    zoho.CRM.API.searchRecord.mockResolvedValue({
+      data: [
+        { id: "staff-1", Full_Name: "Staff One", Staff_Type: "Active" },
+      ],
+      info: { more_records: false },
     });
 
     const earlier = {

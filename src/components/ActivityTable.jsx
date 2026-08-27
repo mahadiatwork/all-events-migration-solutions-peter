@@ -36,6 +36,7 @@ import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import useEventsStore from "../store/eventsStore";
+import { ZohoContext } from "../App";
 
 // Extend dayjs with plugins
 dayjs.extend(utc);
@@ -330,6 +331,7 @@ export default function ScheduleTable({
   events: eventsProp, // Keep for backward compatibility, but will use store
   ZOHO,
   users = [],
+  staff = [],
   filterDate,
   setFilterDate,
   loggedInUser,
@@ -338,6 +340,7 @@ export default function ScheduleTable({
   setCustomDateRange,
   updateEventState, // Keep for backward compatibility, but will use store
 }) {
+  const context = React.useContext(ZohoContext);
   // --- Global State Management (Zustand) ---
   // Read events from global store - this is the single source of truth
   const events = useEventsStore((state) => state.events);
@@ -369,6 +372,12 @@ export default function ScheduleTable({
   const [staffContacts, setStaffContacts] = React.useState([]);
   const [filterStaff, setFilterStaff] = React.useState([]);
   const [staffLoadStatus, setStaffLoadStatus] = React.useState("idle");
+
+  const staffList = React.useMemo(() => {
+    if (staff && staff.length > 0) return staff;
+    if (context?.staff && context.staff.length > 0) return context.staff;
+    return staffContacts;
+  }, [staff, context?.staff, staffContacts]);
 
   const [showCleared, setShowCleared] = React.useState(false); // State for "Cleared" checkbox
 
@@ -469,7 +478,7 @@ export default function ScheduleTable({
     const arrayValue = typeof value === "string" ? value.split(",") : value;
 
     if (arrayValue.includes("select_all")) {
-      const allStaffIds = staffContacts.map((c) => String(c.id));
+      const allStaffIds = staffList.map((c) => String(c.id));
       setFilterStaff(allStaffIds);
       return;
     }
@@ -486,6 +495,7 @@ export default function ScheduleTable({
   };
 
   const loadStaffContacts = async () => {
+    if (staffList.length > 0) return;
     if (staffLoadStatus === "loading" || staffLoadStatus === "loaded") return;
 
     if (!ZOHO?.CRM?.API?.searchRecord) {
@@ -1007,7 +1017,7 @@ export default function ScheduleTable({
             multiple
             value={filterUser}
             onChange={handleUserChange}
-            // label="User"
+            label="User"
             size="small"
             renderValue={(selected) => {
               if (selected.length === 0) return "Select User";
@@ -1026,6 +1036,7 @@ export default function ScheduleTable({
               disableScrollLock: true,
               PaperProps: {
                 sx: {
+                  maxHeight: 360,
                   "& .MuiMenuItem-root": {
                     fontSize: "9pt",
                   },
@@ -1084,7 +1095,7 @@ export default function ScheduleTable({
               if (selected.length === 0) return "Select Staff";
               const names = selected.map((id) =>
                 getStaffName(
-                  staffContacts.find(
+                  staffList.find(
                     (contact) => String(contact.id) === String(id)
                   ) || {}
                 )
@@ -1112,32 +1123,32 @@ export default function ScheduleTable({
               },
             }}
           >
-            {(staffLoadStatus === "idle" || staffLoadStatus === "loading") && (
+            {staffList.length === 0 && (staffLoadStatus === "idle" || staffLoadStatus === "loading") && (
               <MenuItem disabled>Loading staff...</MenuItem>
             )}
-            {staffLoadStatus === "error" && (
+            {staffList.length === 0 && staffLoadStatus === "error" && (
               <MenuItem disabled>Unable to load staff</MenuItem>
             )}
-            {staffLoadStatus === "loaded" && staffContacts.length === 0 && (
+            {staffList.length === 0 && staffLoadStatus === "loaded" && (
               <MenuItem disabled>No staff found</MenuItem>
             )}
-            {staffContacts.length > 0 && (
+            {staffList.length > 0 && (
               <MenuItem value="select_all">
                 <Checkbox
                   checked={
-                    filterStaff.length === staffContacts.length &&
-                    staffContacts.length > 0
+                    filterStaff.length === staffList.length &&
+                    staffList.length > 0
                   }
                   indeterminate={
                     filterStaff.length > 0 &&
-                    filterStaff.length < staffContacts.length
+                    filterStaff.length < staffList.length
                   }
                   size="small"
                 />
                 <ListItemText primary="Select All" />
               </MenuItem>
             )}
-            {staffContacts.length > 0 && (
+            {staffList.length > 0 && (
               <MenuItem value="deselect_all">
                 <Checkbox
                   checked={filterStaff.length === 0}
@@ -1146,7 +1157,7 @@ export default function ScheduleTable({
                 <ListItemText primary="Deselect All" />
               </MenuItem>
             )}
-            {staffContacts.map((contact) => {
+            {staffList.map((contact) => {
               const contactId = String(contact.id);
               return (
                 <MenuItem key={contactId} value={contactId}>
