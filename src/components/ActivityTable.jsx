@@ -887,6 +887,7 @@ export default function ScheduleTable({
             }}
             MenuProps={{
               disableScrollLock: true,
+              MenuListProps: { style: { width: '100%' } },
               PaperProps: {
                 sx: {
                   "& .MuiMenuItem-root": {
@@ -930,6 +931,7 @@ export default function ScheduleTable({
             }}
             MenuProps={{
               disableScrollLock: true,
+              MenuListProps: { style: { width: '100%' } },
               PaperProps: {
                 sx: {
                   "& .MuiMenuItem-root": {
@@ -987,6 +989,7 @@ export default function ScheduleTable({
             }}
             MenuProps={{
               disableScrollLock: true,
+              MenuListProps: { style: { width: '100%' } },
               PaperProps: {
                 sx: {
                   "& .MuiMenuItem-root": {
@@ -1034,6 +1037,7 @@ export default function ScheduleTable({
             }}
             MenuProps={{
               disableScrollLock: true,
+              MenuListProps: { style: { width: '100%' } },
               PaperProps: {
                 sx: {
                   maxHeight: 360,
@@ -1113,6 +1117,7 @@ export default function ScheduleTable({
             }}
             MenuProps={{
               disableScrollLock: true,
+              MenuListProps: { style: { width: '100%' } },
               PaperProps: {
                 sx: {
                   maxHeight: 360,
